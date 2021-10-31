@@ -80,7 +80,7 @@ Source *Source_FromFile(const char *file, Error *error)
 				return NULL;	
 			}
 
-		if(fseek(fp, 0, SEEK_END))
+		if(fseek(fp, 0, SEEK_SET))
 			{
 				Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
 				fclose(fp);

@@ -33,6 +33,8 @@ typedef enum {
 	OPCODE_PUSHS,
 	OPCODE_PUSHV,
 	OPCODE_RETURN,
+	OPCODE_JUMPIFNOTANDPOP,
+	OPCODE_JUMP,
 } Opcode;
 
 typedef struct xExecutable Executable;
@@ -47,4 +49,6 @@ Source 	   *Executable_GetSource(Executable *exe);
 ExeBuilder *ExeBuilder_New(BPAlloc *alloc);
 _Bool 		ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *opv, int opc, int off, int len);
 Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error);
+BPAlloc    *ExeBuilder_GetAlloc(ExeBuilder *exeb);
+int 		ExeBuilder_InstrCount(ExeBuilder *exeb);
 #endif

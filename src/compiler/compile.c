@@ -42,7 +42,8 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							OperExprNode *oper = (OperExprNode*) expr;
 
 							for(Node *operand = oper->head; operand; operand = operand->next)
-								emit_instr_for_node(exeb, operand, error);
+								if(!emit_instr_for_node(exeb, operand, error))
+									return 0;
 
 							return ExeBuilder_Append(exeb, error,
 								exprkind_to_opcode(expr->kind), 
@@ -84,10 +85,78 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				break;
 			}
 
+			case NODE_IFELSE:
+			{
+				IfElseNode *ifelse = (IfElseNode*) node;
+
+				if(!emit_instr_for_node(exeb, ifelse->condition, error))
+					return 0;
+
+				if(ifelse->false_branch)
+					{
+						Promise *else_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+						Promise *done_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+
+						if(else_offset == NULL || done_offset == NULL)
+							{
+								Error_Report(error, 1, "No memory");
+								return 0;
+							}
+
+						Operand op = { .type = OPTP_PROMISE, .as_promise = else_offset };
+						if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &op, 1, node->offset, node->length))
+							return 0;
+
+						if(!emit_instr_for_node(exeb, ifelse->true_branch, error))
+							return 0;
+
+						op = (Operand) { .type = OPTP_PROMISE, .as_promise = done_offset };
+						if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
+							return 0;
+
+						long long int temp = ExeBuilder_InstrCount(exeb);
+						Promise_Resolve(else_offset, &temp, sizeof(temp));
+
+						if(!emit_instr_for_node(exeb, ifelse->false_branch, error))
+							return 0;
+
+						temp = ExeBuilder_InstrCount(exeb);
+						Promise_Resolve(done_offset, &temp, sizeof(temp));
+
+						Promise_Free(else_offset);
+						Promise_Free(done_offset);
+					}
+				else
+					{
+						Promise *done_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+
+						if(done_offset == NULL)
+							{
+								Error_Report(error, 1, "No memory");
+								return 0;
+							}
+
+						if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &(Operand) { .type = OPTP_PROMISE, .as_promise = done_offset }, 1, node->offset, node->length))
+							return 0;
+
+						if(!emit_instr_for_node(exeb, ifelse->true_branch, error))
+							return 0;
+
+						long long int temp = ExeBuilder_InstrCount(exeb);
+						Promise_Resolve(done_offset, &temp, sizeof(temp));
+
+						Promise_Free(done_offset);
+					}
+
+				return 1;
+			}
+
 			default:
 			UNREACHABLE;
-			break;
+			return 0;
 		}
+	UNREACHABLE;
+	return 0;
 }
 
 Executable *compile(AST *ast, BPAlloc *alloc, Error *error)

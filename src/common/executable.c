@@ -48,12 +48,15 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_MUL]  = {"MUL",  2, 0, NULL},
 	[OPCODE_DIV]  = {"DIV",  2, 0, NULL},
 
-	[OPCODE_PUSHI]  = {"PUSHI",  2, 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_PUSHF]  = {"PUSHF",  2, 1, (OperandType[]) {OPTP_FLOAT}},
-	[OPCODE_PUSHS]  = {"PUSHS",  2, 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_PUSHV]  = {"PUSHV",  2, 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHI]  = {"PUSHI",  1, 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_PUSHF]  = {"PUSHF",  1, 1, (OperandType[]) {OPTP_FLOAT}},
+	[OPCODE_PUSHS]  = {"PUSHS",  1, 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHV]  = {"PUSHV",  1, 1, (OperandType[]) {OPTP_STRING}},
 
 	[OPCODE_RETURN] = {"RETURN", 0, 0, NULL},
+
+	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_JUMP] = {"JUMP", 0, 1, (OperandType[]) {OPTP_INT}},
 };
 
 static const char *operand_type_names[] = {
@@ -363,3 +366,18 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 	return 1;
 }
+
+BPAlloc *ExeBuilder_GetAlloc(ExeBuilder *exeb)
+{
+	return BucketList_GetAlloc(exeb->code);
+}
+
+int ExeBuilder_InstrCount(ExeBuilder *exeb)
+{
+	int raw_size = BucketList_Size(exeb->code);
+
+	assert(raw_size % sizeof(Instruction) == 0);
+
+	return raw_size / sizeof(Instruction);
+}
+

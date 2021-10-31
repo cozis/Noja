@@ -175,3 +175,8 @@ void BucketList_Copy(BucketList *blist, void *dest, int len)
 			bucket = bucket->next;
 		}
 }
+
+BPAlloc *BucketList_GetAlloc(BucketList *blist)
+{
+	return blist->alloc;
+}

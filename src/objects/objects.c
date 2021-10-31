@@ -218,6 +218,13 @@ _Bool Object_IsInt(Object *obj)
 	return obj->type->atomic == ATMTP_INT;
 }
 
+_Bool Object_IsBool(Object *obj)
+{
+	assert(obj != NULL);
+	assert(obj->type != NULL);
+	return obj->type->atomic == ATMTP_BOOL;
+}
+
 _Bool Object_IsFloat(Object *obj)
 {
 	assert(obj != NULL);
@@ -246,6 +253,29 @@ long long int Object_ToInt(Object *obj, Error *err)
 		}
 
 	return type->to_int(obj, err);
+}
+
+_Bool Object_ToBool(Object *obj, Error *err)
+{
+	assert(err);
+	assert(obj);
+
+	if(!Object_IsBool(obj))
+		{
+			Error_Report(err, 0, "Object is not a boolean");
+			return 0;
+		}
+
+	const Type *type = Object_GetType(obj);
+	assert(type);
+
+	if(type->to_bool == NULL)
+		{
+			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			return 0;
+		}
+
+	return type->to_bool(obj, err);
 }
 
 double Object_ToFloat(Object *obj, Error *err)

@@ -369,7 +369,7 @@ static Node *parse_string_primary_expression(Context *ctx)
 	assert(ctx != NULL);
 	assert(ctx->token->kind == TSTRING);
 
-	if(current(ctx) == TDONE)
+	if(done(ctx))
 		{
 			Error_Report(ctx->error, 0, "Source ended where a string literal was expected");
 			return NULL;
@@ -493,6 +493,12 @@ static Node *parse_primary_expresion(Context *ctx)
 {
 	assert(ctx != NULL);
 
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a primary expression was expected");
+			return NULL;
+		}
+
 	switch(current(ctx))
 		{
 			case '+':
@@ -532,7 +538,7 @@ static Node *parse_primary_expresion(Context *ctx)
 				if(node == NULL)
 					return NULL;
 
-				if(current(ctx) == TDONE)
+				if(done(ctx))
 					{
 						Error_Report(ctx->error, 0, "Source ended before \")\", after sub-expression");
 						return NULL;
@@ -823,34 +829,44 @@ static Node *parse_ifelse_statement(Context *ctx)
 {
 	assert(ctx != NULL);
 	assert(ctx->token != NULL);
-	assert(ctx->token->kind == TKWIF);
 
-	ctx->token = ctx->token->next;
-
-	if(ctx->token->kind == TDONE)
+	if(done(ctx))
 		{
-			// ERROR: Source ended after if keyword.
-			// An expression was expected.
-			Error_Report(ctx->error, 0, "Source ended after if keyword. An expression was expected");
+			Error_Report(ctx->error, 0, "Source ended where an if-else statement was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != TKWIF)
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an if-else statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
 			return NULL;
 		}
 
 	Token *if_token = current_token(ctx);
+	assert(if_token != NULL);
+
+	next(ctx); // Consume the "if" keyword.
 
 	Node *condition = parse_expression(ctx);
-	if(condition == NULL) return NULL;
+	
+	if(condition == NULL) 
+		return NULL;
 
 	Node *true_branch = parse_statement(ctx);
-	if(condition == NULL) return NULL;
+	
+	if(condition == NULL) 
+		return NULL;
 
 	Node *false_branch = NULL;
+
 	if(ctx->token->kind == TKWELSE)
 		{
-			// Consume the "else" token.
-			ctx->token = ctx->token->next;
+			next(ctx); // Consume the "else" token.
 
 			false_branch = parse_statement(ctx);
-			if(false_branch == NULL) return NULL;
+			
+			if(false_branch == NULL) 
+				return NULL;
 		}
 
 	IfElseNode *ifelse;

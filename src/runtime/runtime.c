@@ -433,6 +433,40 @@ static _Bool step(Runtime *runtime, Error *error)
 			case OPCODE_RETURN:
 			return 0;
 
+			case OPCODE_JUMP:
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+			runtime->frame->index = ops[0].as_int;
+			return 1;
+
+			case OPCODE_JUMPIFNOTANDPOP:
+			{
+				assert(opc == 1);
+				assert(ops[0].type == OPTP_INT);
+				
+				long long int target = ops[0].as_int;
+
+				if(runtime->frame->used == 0)
+					{
+						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
+						return 0;
+					}
+
+				Object *top = Stack_Top(runtime->stack, 0);
+				assert(top != NULL);
+
+				if(!Object_IsBool(top))
+					{
+						Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
+						return 0;
+					}
+
+				if(Object_ToBool(top, error)) // This can't fail because we know it's a bool.
+					runtime->frame->index = target;
+
+				return 1;
+			}
+
 			default:
 			UNREACHABLE;
 			return 0;

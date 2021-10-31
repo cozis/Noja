@@ -41,7 +41,7 @@ unsigned int Promise_Size(Promise *promise)
 	return promise->size;
 }
 
-void Promise_Delete(Promise *promise)
+void Promise_Free(Promise *promise)
 {
 	assert(promise->set == 1);
 }

@@ -15,6 +15,7 @@ struct Object {
 typedef enum {
 	ATMTP_NOTATOMIC = 0,
 	ATMTP_INT,
+	ATMTP_BOOL,
 	ATMTP_FLOAT,
 } AtomicType;
 
@@ -47,6 +48,7 @@ struct Type {
 	// Some.
 	union {
 		long long int (*to_int)(Object *self, Error *err);
+		_Bool 		  (*to_bool)(Object *self, Error *err);
 		double 		  (*to_float)(Object *self, Error *err);
 		char		 *(*to_string)(Object *self, int *size, Heap *heap, Error *err);
 	};
@@ -81,13 +83,16 @@ Object*		 Object_NewMap(int num, Heap *heap, Error *error);
 Object*		 Object_NewNone(Heap *heap, Error *error);
 
 Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);
+Object*		 Object_FromBool  (_Bool		 val, Heap *heap, Error *error);
 Object*		 Object_FromFloat (double 		 val, Heap *heap, Error *error);
 Object*		 Object_FromString(const char *str, int len, Heap *heap, Error *error);
 
 _Bool		 Object_IsInt  (Object *obj);
+_Bool		 Object_IsBool (Object *obj);
 _Bool		 Object_IsFloat(Object *obj);
 
 long long int Object_ToInt  (Object *obj, Error *err);
+_Bool 		  Object_ToBool (Object *obj, Error *err);
 double		  Object_ToFloat(Object *obj, Error *err);
 
 _Bool 		  Object_Compare(Object *obj1, Object *obj2, Error *error);

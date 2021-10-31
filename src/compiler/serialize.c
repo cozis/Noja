@@ -126,6 +126,27 @@ static xj_value *convert_node(Node *node, xj_error *error, xj_alloc **alloc)
 				}
 			break;
 
+			case NODE_IFELSE:
+			{
+				IfElseNode *ifelse = (IfElseNode*) node;
+
+				xj_value *condition = convert_node(ifelse->condition, error, alloc);
+				if(condition == NULL) return NULL;
+
+				xj_value *true_branch = convert_node(ifelse->true_branch, error, alloc);
+				if(true_branch == NULL) return NULL;
+
+				xj_value *false_branch = convert_node(ifelse->false_branch, error, alloc);
+				if(false_branch == NULL) return NULL;
+
+				return xj_decodef(error, alloc, 
+					"{"
+					"\t\"node-kind\": \"if-else\", \n"
+					"\t\"condition\": %v, \n"
+					"\t\"true-branch\": %v, \n"
+					"\t\"false-branch\": %v\n"
+					"}", condition, true_branch, false_branch);
+			}
 
 			default:
 			UNREACHABLE;
