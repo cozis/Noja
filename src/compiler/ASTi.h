@@ -8,6 +8,7 @@ typedef enum {
 	NODE_EXPR, 
 	NODE_IFELSE,
 	NODE_COMP,
+	NODE_RETURN,
 } NodeKind;
 
 typedef enum {
@@ -86,4 +87,9 @@ typedef struct {
 	Node  base;
 	Node *head;
 } CompoundNode;
+
+typedef struct {
+	Node base;
+	Node *val;
+} ReturnNode;
 #endif

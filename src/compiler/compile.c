@@ -205,6 +205,19 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				return 1;
 			}
 
+			case NODE_RETURN:
+			{
+				ReturnNode *ret = (ReturnNode*) node;
+
+				if(!emit_instr_for_node(exeb, ret->val, error))
+					return 0;
+
+				if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, ret->base.offset, ret->base.length))
+					return 0;
+
+				return 1;
+			}
+
 			default:
 			UNREACHABLE;
 			return 0;

@@ -29,6 +29,7 @@ typedef enum {
 	TKWNONE,
 	TKWTRUE,
 	TKWFALSE,
+	TKWRETURN,
 } TokenKind;
 
 typedef struct Token Token;
@@ -139,6 +140,10 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 					else if(matchstr(str + tok->offset, tok->length, "false"))
 						{
 							tok->kind = TKWFALSE;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "return"))
+						{
+							tok->kind = TKWRETURN;
 						}
 
 					#undef matchstr
@@ -366,6 +371,32 @@ static Node *parse_statement(Context *ctx)
 				return node;
 			}
 
+			case TKWRETURN:
+			{
+				int offset = current_token(ctx)->offset;
+
+				next(ctx); // Consume the "return" keyword.
+
+				Node *val = parse_expression_statement(ctx);
+
+				if(val == NULL)
+					return NULL;
+
+				ReturnNode *node = BPAlloc_Malloc(ctx->alloc, sizeof(ReturnNode));
+				
+				if(node == NULL)
+					{
+						Error_Report(ctx->error, 1, "No memory");
+						return NULL;
+					}
+
+				node->base.kind = NODE_RETURN;
+				node->base.next = NULL;
+				node->base.offset = offset;
+				node->base.length = val->offset + val->length - offset;
+				node->val = val;
+				return (Node*) node;
+			}
 		}
 
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 

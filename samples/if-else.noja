@@ -1,9 +1,9 @@
 
-if false 
-	{ 
-		3;
+if true
+	{
+		return 3;
 		2;
-	} 
+	}
 else 
 	4;
-99;
+return 99;

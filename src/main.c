@@ -328,7 +328,60 @@ int main(int argc, char **argv)
 
 			case DISASSEMBLY:
 			{
+				// Load
+				Source *src;
+				{
+					if(opts.input_is_file)
+						src = Source_FromFile(opts.input, &error);
+					else
+						src = Source_FromString(NULL, opts.input, -1, &error);
+
+					if(src == NULL)
+						{
+							fprintf(stderr, "FATAL: %s.\n", error.message);
+							return 1;
+						}
+				}
+
+				// Compile
+				Executable *exe;
+				{
+					BPAlloc *alloc = BPAlloc_Init(-1);
+
+					if(alloc == NULL)
+						return 1;
+
+					AST *ast = parse(src, alloc, &error);
+					
+					if(ast == NULL)
+						{
+							fprintf(stderr, "PARSING ERROR: %s.\n", error.message);
+							
+							Error_Free(&error);
+							BPAlloc_Free(alloc);
+							Source_Free(src);
+							return 1;
+						}
+
+					exe = compile(ast, alloc, &error);
+
+					if(exe == NULL)
+						{
+							fprintf(stderr, "COMPILATION ERROR: %s.\n", error.message);
+							
+							Error_Free(&error);
+							BPAlloc_Free(alloc);
+							Source_Free(src);
+							return 1;
+						}
+
+					BPAlloc_Free(alloc);
+				}
+
 				Executable_Dump(exe);
+
+				Executable_Free(exe);
+				Source_Free(src);
 				return 1;
 			}
 
