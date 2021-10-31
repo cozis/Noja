@@ -1,0 +1,104 @@
+[
+	{
+		"source": "1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "int", 
+			"value": 1
+		}
+	},
+	{
+		"source": "1.1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "float", 
+			"value": 1.1
+		}
+	},
+	{
+		"source": "1+1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "add", 
+			"operands": [
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}, 
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}
+			]
+		}
+	},
+	{
+		"source": "1-1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "sub", 
+			"operands": [
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}, 
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}
+			]
+		}
+	},
+	{
+		"source": "1*1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "mul", 
+			"operands": [
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}, 
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}
+			]
+		}
+	},
+	{
+		"source": "1-+1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "sub", 
+			"operands": [
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}, 
+				{
+					"node-kind": "expr", 
+					"expr-kind": "pos", 
+					"operands": [
+						{"node-kind": "expr", "expr-kind": "int", "value": 1}
+					]
+				}
+			]
+		}
+	},
+	{
+		"source": "+1",  
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "pos", 
+			"operands": [
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}
+			]
+		}
+	},
+	{
+		"source": "-1",
+		"expect": {
+			"node-kind": "expr", 
+			"expr-kind": "neg", 
+			"operands": [
+				{"node-kind": "expr", "expr-kind": "int", "value": 1}
+			]
+		}
+	},
+	{
+		"source": "hello",
+		"expect": {"node-kind": "expr", "expr-kind": "ident", "value": "hello"}
+	},
+	{
+		"source": "'hello'",
+		"expect": {"node-kind": "expr", "expr-kind": "string", "value": "hello"}
+	},
+	{
+		"source": "-'hello'",
+		"expect": {"node-kind": "expr", "expr-kind": "neg", "operands": [{"node-kind": "expr", "expr-kind": "string", "value": "hello"}]}
+	},
+	{
+		"source": "-'hel\\nlo'",
+		"expect": {"node-kind": "expr", "expr-kind": "neg", "operands": [{"node-kind": "expr", "expr-kind": "string", "value": "hel\\nlo"}]}
+	}
+]

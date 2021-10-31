@@ -1,0 +1,36 @@
+
+stack = {count: 0, head: none};
+
+fun push(stack, value) {
+
+	node = {prev: null, item: value};
+
+	node.prev = list.head;
+	stack.head = node;
+	stack.count += 1;
+}
+
+fun pop(stack)
+{
+	if stack.head is none:
+		return none; # return it; ?
+
+	value = stack.head.item;
+	stack.head = stack.head.prev;
+	stack.count -= 1;
+
+	return value;
+}
+
+push(stack, 1);
+push(stack, 2);
+push(stack, 3);
+x = pop(stack);
+y = pop(stack);
+z = pop(stack);
+w = pop(stack);
+
+assert x == 3;
+assert y == 2;
+assert z == 1;
+assert w == none;
