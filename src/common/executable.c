@@ -48,10 +48,13 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_MUL]  = {"MUL",  2, 0, NULL},
 	[OPCODE_DIV]  = {"DIV",  2, 0, NULL},
 
-	[OPCODE_PUSHI]  = {"PUSHI",  1, 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_PUSHF]  = {"PUSHF",  1, 1, (OperandType[]) {OPTP_FLOAT}},
-	[OPCODE_PUSHS]  = {"PUSHS",  1, 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_PUSHV]  = {"PUSHV",  1, 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHINT] = {"PUSHINT", 0, 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_PUSHFLT] = {"PUSHFLT", 0, 1, (OperandType[]) {OPTP_FLOAT}},
+	[OPCODE_PUSHSTR] = {"PUSHSTR", 0, 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHVAR] = {"PUSHVAR", 0, 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHTRU] = {"PUSHTRU", 0, 0, NULL},
+	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, 0, NULL},
+	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, 0, NULL},
 
 	[OPCODE_RETURN] = {"RETURN", 0, 0, NULL},
 

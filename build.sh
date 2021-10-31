@@ -18,6 +18,7 @@ gcc -c src/objects/heap.c     -o temp/objects/heap.o     $FLAGS
 gcc -c src/objects/o_int.c    -o temp/objects/o_int.o    $FLAGS
 gcc -c src/objects/o_map.c    -o temp/objects/o_map.o    $FLAGS
 gcc -c src/objects/o_none.c   -o temp/objects/o_none.o   $FLAGS
+gcc -c src/objects/o_bool.c   -o temp/objects/o_bool.o   $FLAGS
 gcc -c src/objects/o_float.c  -o temp/objects/o_float.o  $FLAGS
 gcc -c src/objects/o_string.c -o temp/objects/o_string.o $FLAGS
 gcc -c src/objects/objects.c  -o temp/objects/objects.o  $FLAGS
@@ -71,6 +72,7 @@ gcc src/main.c \
 	temp/utils/bucketlist.o \
 	temp/objects/o_map.o \
 	temp/objects/o_none.o \
+	temp/objects/o_bool.o \
 	temp/objects/o_string.o \
 	temp/runtime/runtime.o \
 	temp/runtime/runtime_error.o \

@@ -26,6 +26,9 @@ typedef enum {
 
 	TKWIF,
 	TKWELSE,
+	TKWNONE,
+	TKWTRUE,
+	TKWFALSE,
 } TokenKind;
 
 typedef struct Token Token;
@@ -123,6 +126,18 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 					else if(matchstr(str + tok->offset, tok->length, "else"))
 						{
 							tok->kind = TKWELSE;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "none"))
+						{
+							tok->kind = TKWNONE;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "true"))
+						{
+							tok->kind = TKWTRUE;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "false"))
+						{
+							tok->kind = TKWFALSE;
 						}
 
 					#undef matchstr
@@ -330,6 +345,9 @@ static Node *parse_statement(Context *ctx)
 			case TFLOAT:
 			case TSTRING:
 			case TIDENT:
+			case TKWNONE:
+			case TKWTRUE:
+			case TKWFALSE:
 			return parse_expression_statement(ctx);
 
 			case TKWIF:
@@ -652,6 +670,78 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			case TSTRING:
 			return parse_string_primary_expression(ctx);
+
+			case TKWNONE:
+			{
+				next(ctx);
+
+				ExprNode *node;
+				{
+					node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
+				
+					if(node == NULL)
+						{
+							Error_Report(ctx->error, 1, "No memory");
+							return NULL;
+						}
+
+					node->base.kind = NODE_EXPR;
+					node->base.next = NULL;
+					node->base.offset = ctx->token->offset;
+					node->base.length = ctx->token->length;
+					node->kind = EXPR_NONE;
+				}
+
+				return (Node*) node;
+			}
+
+			case TKWTRUE:
+			{
+				next(ctx);
+
+				ExprNode *node;
+				{
+					node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
+				
+					if(node == NULL)
+						{
+							Error_Report(ctx->error, 1, "No memory");
+							return NULL;
+						}
+
+					node->base.kind = NODE_EXPR;
+					node->base.next = NULL;
+					node->base.offset = ctx->token->offset;
+					node->base.length = ctx->token->length;
+					node->kind = EXPR_TRUE;
+				}
+
+				return (Node*) node;
+			}
+
+			case TKWFALSE:
+			{
+				next(ctx);
+
+				ExprNode *node;
+				{
+					node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
+				
+					if(node == NULL)
+						{
+							Error_Report(ctx->error, 1, "No memory");
+							return NULL;
+						}
+
+					node->base.kind = NODE_EXPR;
+					node->base.next = NULL;
+					node->base.offset = ctx->token->offset;
+					node->base.length = ctx->token->length;
+					node->kind = EXPR_FALSE;
+				}
+
+				return (Node*) node;
+			}
 
 			case TIDENT:
 			{

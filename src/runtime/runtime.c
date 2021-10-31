@@ -363,7 +363,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				break;
 			}
 
-			case OPCODE_PUSHI:
+			case OPCODE_PUSHINT:
 			{
 				assert(opc == 1);
 				assert(ops[0].type == OPTP_INT);
@@ -378,7 +378,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
-			case OPCODE_PUSHF:
+			case OPCODE_PUSHFLT:
 			{
 				assert(opc == 1);
 				assert(ops[0].type == OPTP_FLOAT);
@@ -393,7 +393,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
-			case OPCODE_PUSHS:
+			case OPCODE_PUSHSTR:
 			{
 				assert(opc == 1);
 				assert(ops[0].type == OPTP_STRING);
@@ -408,7 +408,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
-			case OPCODE_PUSHV:
+			case OPCODE_PUSHVAR:
 			{
 				assert(opc == 1);
 				assert(ops[0].type == OPTP_STRING);
@@ -427,6 +427,48 @@ static _Bool step(Runtime *runtime, Error *error)
 							Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
 						return 0;
 					}
+				return 1;
+			}
+
+			case OPCODE_PUSHNNE:
+			{
+				assert(opc == 0);
+
+				Object *obj = Object_NewNone(runtime->heap, error);
+
+				if(obj == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
+				return 1;
+			}
+
+			case OPCODE_PUSHTRU:
+			{
+				assert(opc == 0);
+
+				Object *obj = Object_FromBool(1, runtime->heap, error);
+
+				if(obj == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
+				return 1;
+			}
+
+			case OPCODE_PUSHFLS:
+			{
+				assert(opc == 0);
+
+				Object *obj = Object_FromBool(0, runtime->heap, error);
+
+				if(obj == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
 				return 1;
 			}
 

@@ -54,29 +54,38 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						{
 							IntExprNode *p = (IntExprNode*) expr;
 							Operand op = { .type = OPTP_INT, .as_int = p->val };
-							return ExeBuilder_Append(exeb, error, OPCODE_PUSHI, &op, 1, node->offset, node->length);
+							return ExeBuilder_Append(exeb, error, OPCODE_PUSHINT, &op, 1, node->offset, node->length);
 						}
 
 						case EXPR_FLOAT:
 						{
 							FloatExprNode *p = (FloatExprNode*) expr;
 							Operand op = { .type = OPTP_FLOAT, .as_float = p->val };
-							return ExeBuilder_Append(exeb, error, OPCODE_PUSHF, &op, 1, node->offset, node->length);
+							return ExeBuilder_Append(exeb, error, OPCODE_PUSHFLT, &op, 1, node->offset, node->length);
 						}
 
 						case EXPR_STRING:
 						{
 							StringExprNode *p = (StringExprNode*) expr;
 							Operand op = { .type = OPTP_STRING, .as_string = p->val };
-							return ExeBuilder_Append(exeb, error, OPCODE_PUSHS, &op, 1, node->offset, node->length);
+							return ExeBuilder_Append(exeb, error, OPCODE_PUSHSTR, &op, 1, node->offset, node->length);
 						}
 
 						case EXPR_IDENT:
 						{
 							IdentExprNode *p = (IdentExprNode*) expr;
 							Operand op = { .type = OPTP_STRING, .as_string = p->val };
-							return ExeBuilder_Append(exeb, error, OPCODE_PUSHV, &op, 1, node->offset, node->length);
+							return ExeBuilder_Append(exeb, error, OPCODE_PUSHVAR, &op, 1, node->offset, node->length);
 						}
+
+						case EXPR_NONE:
+						return ExeBuilder_Append(exeb, error, OPCODE_PUSHNNE, NULL, 0, node->offset, node->length);
+
+						case EXPR_TRUE:
+						return ExeBuilder_Append(exeb, error, OPCODE_PUSHTRU, NULL, 0, node->offset, node->length);
+
+						case EXPR_FALSE:
+						return ExeBuilder_Append(exeb, error, OPCODE_PUSHFLS, NULL, 0, node->offset, node->length);
 
 						default:
 						UNREACHABLE;

@@ -4,23 +4,23 @@
 
 static _Bool to_bool(Object *obj, Error *err);
 
-static const Type t_int = {
+static const Type t_bool = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "int",
+	.name = "bool",
 	.size = sizeof (Object),
 	.atomic = ATMTP_BOOL,
 	.to_bool = to_bool,
 };
 
 static Object the_true_object = {
-	.type = t_bool,
+	.type = &t_bool,
 	.flags = Object_STATIC,
-}
+};
 
 static Object the_false_object = {
-	.type = t_bool,
+	.type = &t_bool,
 	.flags = Object_STATIC,
-}
+};
 
 static _Bool to_bool(Object *obj, Error *err)
 {
