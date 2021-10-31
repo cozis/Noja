@@ -6,6 +6,7 @@
 
 typedef enum {
 	NODE_EXPR, 
+	NODE_IFELSE,
 } NodeKind;
 
 typedef enum {
@@ -69,5 +70,12 @@ typedef struct {
 	Node    *head;
 	int	     count;
 } OperExprNode;
+
+typedef struct {
+	Node base;
+	Node *condition;
+	Node *true_branch;
+	Node *false_branch;
+} IfElseNode;
 
 #endif

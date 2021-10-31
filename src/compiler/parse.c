@@ -3,14 +3,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <ctype.h>
+#include "../utils/defs.h"
 #include "parse.h"
 #include "ASTi.h"
-
-#define UNREACHABLE assert(0)
-
-#ifndef NULL
-#define NULL ((void*) 0)
-#endif
 
 typedef enum {
 	
@@ -28,6 +23,9 @@ typedef enum {
 	TFLOAT,
 	TSTRING,
 	TIDENT,
+
+	TKWIF,
+	TKWELSE,
 } TokenKind;
 
 typedef struct Token Token;
@@ -47,6 +45,7 @@ typedef struct {
 static Node *parse_statement(Context *ctx);
 static Node *parse_expression(Context *ctx);
 static Node *parse_expression_statement(Context *ctx);
+static Node *parse_ifelse_statement(Context *ctx);
 
 static inline _Bool isoper(char c)
 {
@@ -113,6 +112,20 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 						i += 1;
 
 					tok->length = i - tok->offset;
+
+					#define matchstr(str, len, const_str) \
+						(len == sizeof(const_str)-1 && !strncmp(str, const_str, sizeof(const_str)-1))
+					
+					if(matchstr(str + tok->offset, tok->length, "if"))
+						{
+							tok->kind = TKWIF;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "else"))
+						{
+							tok->kind = TKWELSE;
+						}
+
+					#undef matchstr
 				}
 			else if(isdigit(str[i]))
 				{
@@ -261,11 +274,47 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 	return ast;
 }
 
+static inline Token *current_token(Context *ctx)
+{
+	assert(ctx != NULL);
+	assert(ctx->token != NULL);
+	return ctx->token;
+}
+
+static inline TokenKind current(Context *ctx)
+{
+	assert(ctx != NULL);
+	return current_token(ctx)->kind;
+}
+
+static inline TokenKind next(Context *ctx)
+{
+	assert(ctx != NULL);
+	assert(ctx->token != NULL);
+	assert(ctx->token->kind != TDONE);
+	ctx->token = ctx->token->next;
+	return current(ctx);
+}
+
+static inline TokenKind prev(Context *ctx)
+{
+	assert(ctx != NULL);
+	assert(ctx->token != NULL);
+	assert(ctx->token->prev != NULL);
+	ctx->token = ctx->token->prev;
+	return current(ctx);
+}
+
+static inline _Bool done(Context *ctx)
+{
+	return current(ctx) == TDONE;
+}
+
 static Node *parse_statement(Context *ctx)
 {
 	assert(ctx != NULL);
 
-	switch(ctx->token->kind)
+	switch(current(ctx))
 		{
 			case '*':
 			case '/':
@@ -282,6 +331,9 @@ static Node *parse_statement(Context *ctx)
 			case TSTRING:
 			case TIDENT:
 			return parse_expression_statement(ctx);
+
+			case TKWIF:
+			return parse_ifelse_statement(ctx);
 		}
 
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
@@ -294,28 +346,21 @@ static Node *parse_expression_statement(Context *ctx)
 	assert(ctx != NULL);
 
 	Node *expr = parse_expression(ctx);
-	
-	if(expr == NULL)
-		return NULL;
+	if(expr == NULL) return NULL;
 
-	assert(ctx->token != NULL);
+	// The final statement doesn't need a ';'.
+	if(done(ctx)) return expr;
 
-	if(ctx->token->kind == TDONE)
-		// If the source ended before
-		// the final ";", it's ok.
-		return expr;
-
-	if(ctx->token->kind != ';')
+	if(current(ctx) != ';')
 		{
-			// ERROR: Got something other than
-			// a semicolon at the end of statement.
+			// ERROR: 	Got something other than a semicolon at the end 
+			// 			of statement.
+
 			Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
 			return NULL;
 		}
 
-	ctx->token = ctx->token->next;
-	assert(ctx->token != NULL);
-
+	next(ctx);
 	return expr;
 }
 
@@ -323,6 +368,18 @@ static Node *parse_string_primary_expression(Context *ctx)
 {
 	assert(ctx != NULL);
 	assert(ctx->token->kind == TSTRING);
+
+	if(current(ctx) == TDONE)
+		{
+			Error_Report(ctx->error, 0, "Source ended where a string literal was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != TSTRING)
+		{
+			Error_Report(ctx->error, 0, "Got token \"%.*s\" where a string literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
 
 	const char *src = ctx->src;
 	int 		len = ctx->token->offset + ctx->token->length - 1;
@@ -428,9 +485,7 @@ static Node *parse_string_primary_expression(Context *ctx)
 		node->len = copyl;
 	}
 
-	ctx->token = ctx->token->next;
-	assert(ctx->token != NULL);
-
+	next(ctx);
 	return (Node*) node;
 }
 
@@ -438,19 +493,18 @@ static Node *parse_primary_expresion(Context *ctx)
 {
 	assert(ctx != NULL);
 
-	switch(ctx->token->kind)
+	switch(current(ctx))
 		{
 			case '+':
 			case '-':
 			{
-				Token *operator = ctx->token;
+				Token *unary_operator = current_token(ctx);
 
-				ctx->token = ctx->token->next;
-				assert(ctx->token != NULL);
+				next(ctx);
 
-				Node  *operand  = parse_primary_expresion(ctx);
+				Node *operand = parse_primary_expresion(ctx);
 				
-				if(operand == NULL)
+				if(operand == NULL) 
 					return NULL;
 
 				OperExprNode *temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
@@ -460,9 +514,9 @@ static Node *parse_primary_expresion(Context *ctx)
 
 					temp->base.base.kind = NODE_EXPR;
 					temp->base.base.next = NULL;
-					temp->base.base.offset = operator->offset;
-					temp->base.base.length = operand->offset + operand->length - operator->offset;
-					temp->base.kind = operator->kind == '+' ? EXPR_POS : EXPR_NEG;
+					temp->base.base.offset = unary_operator->offset;
+					temp->base.base.length = operand->offset + operand->length - unary_operator->offset;
+					temp->base.kind = unary_operator->kind == '+' ? EXPR_POS : EXPR_NEG;
 					temp->head = operand;
 					temp->count = 1;
 				}
@@ -471,22 +525,26 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			case '(':
 			{
-				ctx->token = ctx->token->next;
+				next(ctx); // Consume the '('.
 				
 				Node *node = parse_expression(ctx);
 				
 				if(node == NULL)
 					return NULL;
 
-				if(ctx->token->kind != ')')
+				if(current(ctx) == TDONE)
+					{
+						Error_Report(ctx->error, 0, "Source ended before \")\", after sub-expression");
+						return NULL;
+					}
+
+				if(current(ctx) != ')')
 					{
 						Error_Report(ctx->error, 0, "Missing \")\", after sub-expression");
 						return NULL;
 					}
 
-				ctx->token = ctx->token->next;
-				assert(ctx->token != NULL);
-
+				next(ctx); // Consume the ')'.
 				return node;
 			}
 
@@ -759,4 +817,61 @@ static Node *parse_expression(Context *ctx)
 		return left_expr;
 
 	return parse_expression_2(ctx, left_expr, -1000000000);
+}
+
+static Node *parse_ifelse_statement(Context *ctx)
+{
+	assert(ctx != NULL);
+	assert(ctx->token != NULL);
+	assert(ctx->token->kind == TKWIF);
+
+	ctx->token = ctx->token->next;
+
+	if(ctx->token->kind == TDONE)
+		{
+			// ERROR: Source ended after if keyword.
+			// An expression was expected.
+			Error_Report(ctx->error, 0, "Source ended after if keyword. An expression was expected");
+			return NULL;
+		}
+
+	Token *if_token = current_token(ctx);
+
+	Node *condition = parse_expression(ctx);
+	if(condition == NULL) return NULL;
+
+	Node *true_branch = parse_statement(ctx);
+	if(condition == NULL) return NULL;
+
+	Node *false_branch = NULL;
+	if(ctx->token->kind == TKWELSE)
+		{
+			// Consume the "else" token.
+			ctx->token = ctx->token->next;
+
+			false_branch = parse_statement(ctx);
+			if(false_branch == NULL) return NULL;
+		}
+
+	IfElseNode *ifelse;
+	{
+		ifelse = BPAlloc_Malloc(ctx->alloc, sizeof(IfElseNode));
+		
+		if(ifelse == NULL)
+			{
+				// ERROR: No memory.
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		ifelse->base.kind = NODE_IFELSE;
+		ifelse->base.next = NULL;
+		ifelse->base.offset = if_token->offset;
+		ifelse->base.length = ctx->token->offset + ctx->token->length - if_token->offset;
+		ifelse->condition = condition;
+		ifelse->true_branch = true_branch;
+		ifelse->false_branch = false_branch;
+	}
+
+	return (Node*) ifelse;
 }
