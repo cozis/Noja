@@ -1,6 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include <stdio.h>
 #include "../utils/error.h"
 
 typedef struct Type Type;
@@ -33,6 +34,7 @@ struct Type {
 	int 		 (*hash)(Object *self);
 	Object*		 (*copy)(Object *self, Heap *heap, Error *err);
 	Object* 	 (*call)(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *err);
+	void 		 (*print)(Object *self, FILE *fp);
 	unsigned int (*deepsize)(const Object *self);
 
 	// Collections.
@@ -72,6 +74,7 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err);
 int 		 Object_Hash  (Object *obj, Error *err);
 Object*		 Object_Copy  (Object *obj, Heap *heap, Error *err);
 Object*		 Object_Call  (Object *obj, Object **argv, unsigned int argc, Heap *heap, Error *err);
+_Bool 		 Object_Print (Object *obj, FILE *fp, Error *error);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);
 _Bool		 Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *err);

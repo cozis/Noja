@@ -2,6 +2,7 @@
 #include "objects.h"
 
 static double to_float(Object *obj, Error *err);
+static void print(Object *obj, FILE *fp);
 
 typedef struct {
 	Object base;
@@ -14,6 +15,7 @@ static const Type t_float = {
 	.size = sizeof (FloatObject),
 	.atomic = ATMTP_FLOAT,
 	.to_float = to_float,
+	.print = print,
 };
 
 static double to_float(Object *obj, Error *err)
@@ -37,4 +39,13 @@ Object *Object_FromFloat(double val, Heap *heap, Error *error)
 	obj->val = val;
 
 	return (Object*) obj;
+}
+
+static void print(Object *obj, FILE *fp)
+{
+	assert(fp != NULL);
+	assert(obj != NULL);
+	assert(obj->type == &t_float);
+
+	fprintf(fp, "%2.2f", ((FloatObject*) obj)->val);
 }

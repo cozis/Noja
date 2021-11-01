@@ -3,6 +3,7 @@
 #include "objects.h"
 
 static long long int to_int(Object *obj, Error *err);
+static void print(Object *obj, FILE *fp);
 
 typedef struct {
 	Object base;
@@ -15,12 +16,13 @@ static const Type t_int = {
 	.size = sizeof (IntObject),
 	.atomic = ATMTP_INT,
 	.to_int = to_int,
+	.print = print,
 };
 
 static long long int to_int(Object *obj, Error *err)
 {
-	assert(obj);
-	assert(err);
+	assert(obj != NULL);
+	assert(err != NULL);
 	assert(Object_GetType(obj) == &t_int);
 
 	(void) err;
@@ -30,6 +32,9 @@ static long long int to_int(Object *obj, Error *err)
 
 Object *Object_FromInt(long long int val, Heap *heap, Error *error)
 {
+	assert(heap != NULL);
+	assert(error != NULL);
+
 	IntObject *obj = (IntObject*) Heap_Malloc(heap, &t_int, error);
 
 	if(obj == 0)
@@ -38,4 +43,13 @@ Object *Object_FromInt(long long int val, Heap *heap, Error *error)
 	obj->val = val;
 
 	return (Object*) obj;
+}
+
+static void print(Object *obj, FILE *fp)
+{
+	assert(fp != NULL);
+	assert(obj != NULL);
+	assert(obj->type == &t_int);
+
+	fprintf(fp, "%lld", ((IntObject*) obj)->val);
 }

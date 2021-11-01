@@ -13,6 +13,7 @@ typedef struct {
 static int hash(Object *self);
 static int count(Object *self);
 static Object *copy(Object *self, Heap *heap, Error *err);
+static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
 
 static const Type t_string = {
@@ -22,6 +23,7 @@ static const Type t_string = {
 	.hash = hash,
 	.count = count,
 	.copy = copy,
+	.print = print,
 	.op_eql = op_eql,
 };
 
@@ -93,4 +95,15 @@ static _Bool op_eql(Object *self, Object *other)
 	StringObject *s2 = (StringObject*) other;
 
 	return s1->size == s2->size && !strncmp(s1->body, s2->body, s1->size);
+}
+
+static void print(Object *obj, FILE *fp)
+{
+	assert(fp != NULL);
+	assert(obj != NULL);
+	assert(obj->type == &t_string);
+
+	StringObject *str = (StringObject*) obj;
+
+	fprintf(fp, "%.*s", str->size, str->body);
 }
