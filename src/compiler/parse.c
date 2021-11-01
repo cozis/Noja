@@ -399,8 +399,7 @@ static Node *parse_expression_statement(Context *ctx)
 static Node *parse_string_primary_expression(Context *ctx)
 {
 	assert(ctx != NULL);
-	assert(ctx->token->kind == TSTRING);
-
+	
 	if(done(ctx))
 		{
 			Error_Report(ctx->error, 0, "Source ended where a string literal was expected");

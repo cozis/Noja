@@ -181,8 +181,6 @@ int main(int argc, char **argv)
 					BPAlloc_Free(alloc);
 				}
 
-				Executable_Dump(exe);
-
 				// Execute
 				{
 					Runtime *runtime = Runtime_New(-1, -1);
@@ -329,8 +327,11 @@ int main(int argc, char **argv)
 			}
 
 			case DISASSEMBLY:
-			fprintf(stderr, "Not implemented yet.\n");
-			return 1;
+			{
+				Executable_Dump(exe);
+				return 1;
+			}
+
 		}
 	return 0;
 }
