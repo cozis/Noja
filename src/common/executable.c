@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "../utils/defs.h"
 #include "../utils/bucketlist.h"
 #include "executable.h"
@@ -31,53 +32,34 @@ struct xExeBuilder {
 
 typedef struct {
 	const char  *name;
-	int 		 stacksz;
 	int 		 opcount;
 	OperandType *optypes;
 } InstrInfo;
 
 static const InstrInfo instr_table[] = {
 
-	[OPCODE_NOPE] = {"NOPE", 0, 0, NULL},
+	[OPCODE_NOPE] = {"NOPE", 0, NULL},
 
-	[OPCODE_POS]  = {"POS",  1, 0, NULL},
-	[OPCODE_NEG]  = {"NEG",  1, 0, NULL},
+	[OPCODE_POS]  = {"POS", 0, NULL},
+	[OPCODE_NEG]  = {"NEG", 0, NULL},
 
-	[OPCODE_ADD]  = {"ADD",  2, 0, NULL},
-	[OPCODE_SUB]  = {"SUB",  2, 0, NULL},
-	[OPCODE_MUL]  = {"MUL",  2, 0, NULL},
-	[OPCODE_DIV]  = {"DIV",  2, 0, NULL},
+	[OPCODE_ADD]  = {"ADD", 0, NULL},
+	[OPCODE_SUB]  = {"SUB", 0, NULL},
+	[OPCODE_MUL]  = {"MUL", 0, NULL},
+	[OPCODE_DIV]  = {"DIV", 0, NULL},
 
-	[OPCODE_PUSHINT] = {"PUSHINT", 0, 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_PUSHFLT] = {"PUSHFLT", 0, 1, (OperandType[]) {OPTP_FLOAT}},
-	[OPCODE_PUSHSTR] = {"PUSHSTR", 0, 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_PUSHVAR] = {"PUSHVAR", 0, 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_PUSHTRU] = {"PUSHTRU", 0, 0, NULL},
-	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, 0, NULL},
-	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, 0, NULL},
+	[OPCODE_PUSHINT] = {"PUSHINT", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_PUSHFLT] = {"PUSHFLT", 1, (OperandType[]) {OPTP_FLOAT}},
+	[OPCODE_PUSHSTR] = {"PUSHSTR", 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHVAR] = {"PUSHVAR", 1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_PUSHTRU] = {"PUSHTRU", 0, NULL},
+	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, NULL},
+	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, NULL},
 
-	[OPCODE_RETURN] = {"RETURN", 0, 0, NULL},
+	[OPCODE_RETURN] = {"RETURN", 0, NULL},
 
-	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_JUMP] = {"JUMP", 0, 1, (OperandType[]) {OPTP_INT}},
-};
-
-static const char *operand_type_names[] = {
-	[OPTP_INT] = "int",
-	[OPTP_FLOAT] = "float",
-	[OPTP_STRING] = "string",
-};
-
-static const char *operand_type_arts[] = {
-	[OPTP_INT] = "an",
-	[OPTP_FLOAT] = "a",
-	[OPTP_STRING] = "a",
-};
-
-static unsigned int operand_type_sizes[] = {
-	[OPTP_INT] = membersizeof(Operand, as_int),
-	[OPTP_FLOAT] = membersizeof(Operand, as_float),
-	[OPTP_STRING] = membersizeof(Operand, as_string),
+	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_JUMP] = {"JUMP", 1, (OperandType[]) {OPTP_INT}},
 };
 
 Executable *Executable_Copy(Executable *exe)
@@ -98,6 +80,46 @@ void Executable_Free(Executable *exe)
 			if(exe->src)
 				Source_Free(exe->src);
 			free(exe);
+		}
+}
+
+void Executable_Dump(Executable *exe)
+{
+	for(int i = 0; i < exe->bodyl; i += 1)
+		{
+			Opcode opcode;
+			Operand ops[MAX_OPS];
+			int opc = MAX_OPS;
+
+			(void) Executable_Fetch(exe, i, &opcode, ops, &opc);
+
+			const InstrInfo *info = instr_table + exe->body[i].opcode;
+
+			fprintf(stderr, "%d: %s ", i, info->name);
+
+			for(int j = 0; j < opc; j += 1)
+				{
+					switch(ops[j].type)
+						{
+							case OPTP_INT:
+							fprintf(stderr, "%lld ", ops[j].as_int);
+							break;
+
+							case OPTP_FLOAT:
+							fprintf(stderr, "%f ", ops[j].as_float);
+							break;
+
+							case OPTP_STRING:
+							fprintf(stderr, "[%s] ", ops[j].as_string);
+							break;
+
+							case OPTP_PROMISE:
+							UNREACHABLE;
+							break;
+						}
+				}
+
+			fprintf(stderr, "\n");
 		}
 }
 
@@ -247,6 +269,24 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 {
 	assert(exeb != NULL);
 	assert(opc >= 0);
+
+	static const char *operand_type_names[] = {
+		[OPTP_INT] = "int",
+		[OPTP_FLOAT] = "float",
+		[OPTP_STRING] = "string",
+	};
+
+	static const char *operand_type_arts[] = {
+		[OPTP_INT] = "an",
+		[OPTP_FLOAT] = "a",
+		[OPTP_STRING] = "a",
+	};
+
+	static const unsigned int operand_type_sizes[] = {
+		[OPTP_INT] = membersizeof(Operand, as_int),
+		[OPTP_FLOAT] = membersizeof(Operand, as_float),
+		[OPTP_STRING] = membersizeof(Operand, as_string),
+	};
 
 	const InstrInfo *info = instr_table + opcode;
 

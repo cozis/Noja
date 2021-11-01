@@ -495,6 +495,10 @@ static _Bool step(Runtime *runtime, Error *error)
 					}
 
 				Object *top = Stack_Top(runtime->stack, 0);
+
+				if(!Runtime_Pop(runtime, error, 1))
+					return 0;			
+
 				assert(top != NULL);
 
 				if(!Object_IsBool(top))
@@ -503,7 +507,7 @@ static _Bool step(Runtime *runtime, Error *error)
 						return 0;
 					}
 
-				if(Object_ToBool(top, error)) // This can't fail because we know it's a bool.
+				if(!Object_ToBool(top, error)) // This can't fail because we know it's a bool.
 					runtime->frame->index = target;
 
 				return 1;

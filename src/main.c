@@ -181,6 +181,8 @@ int main(int argc, char **argv)
 					BPAlloc_Free(alloc);
 				}
 
+				Executable_Dump(exe);
+
 				// Execute
 				{
 					Runtime *runtime = Runtime_New(-1, -1);

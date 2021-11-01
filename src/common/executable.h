@@ -45,6 +45,7 @@ typedef struct xExeBuilder ExeBuilder;
 
 Executable *Executable_Copy(Executable *exe);
 void 		Executable_Free(Executable *exe);
+void 		Executable_Dump(Executable *exe);
 _Bool		Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops, int *opc);
 _Bool 		Executable_SetSource(Executable *exe, Source *src);
 Source 	   *Executable_GetSource(Executable *exe);
