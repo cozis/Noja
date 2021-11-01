@@ -462,6 +462,10 @@ static _Bool step(Runtime *runtime, Error *error)
 							Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
 						return 0;
 					}
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
+
 				return 1;
 			}
 

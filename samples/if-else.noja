@@ -1,12 +1,6 @@
 
-p = 1;
-return p;
-
-if true
-	{
-		x = 7;
-		2;
-	}
-else 
-	4;
-return x;
+if false
+	a = 1;
+else
+	a = 2;
+return a;

@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
 					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0);
 
-					if(result == NULL)
+					if(result == NULL || !Object_Print(result, stderr, (Error*) &error))
 						{
 							fprintf(stderr, "RUNTIME ERROR: %s.\n", error.base.message);
 							
@@ -213,28 +213,8 @@ int main(int argc, char **argv)
 							Runtime_Free(runtime);
 							return 1;
 						}
-					else
-						{
-							if(Object_IsInt(result))
-								{
-									long long int val = Object_ToInt(result, (Error*) &error);
-									assert(error.base.occurred == 0);
 
-									fprintf(stderr, "%lld\n", val);
-								}
-							else if(Object_IsFloat(result))
-								{
-									double val = Object_ToFloat(result, (Error*) &error);
-									assert(error.base.occurred == 0);
-
-									fprintf(stderr, "%f\n", val);
-								}
-							else
-								{
-									fprintf(stderr, "Not printing returned value since it's not an int or a float.\n");
-								}
-						}
-
+					fprintf(stderr, "\n");
 					Runtime_Free(runtime);
 				}
 
