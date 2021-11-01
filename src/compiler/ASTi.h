@@ -7,6 +7,7 @@
 typedef enum {
 	NODE_EXPR, 
 	NODE_IFELSE,
+	NODE_COMP,
 } NodeKind;
 
 typedef enum {
@@ -81,4 +82,8 @@ typedef struct {
 	Node *false_branch;
 } IfElseNode;
 
+typedef struct {
+	Node  base;
+	Node *head;
+} CompoundNode;
 #endif

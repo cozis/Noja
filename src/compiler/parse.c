@@ -49,6 +49,7 @@ static Node *parse_statement(Context *ctx);
 static Node *parse_expression(Context *ctx);
 static Node *parse_expression_statement(Context *ctx);
 static Node *parse_ifelse_statement(Context *ctx);
+static Node *parse_compound_statement(Context *ctx, TokenKind end);
 
 static inline _Bool isoper(char c)
 {
@@ -275,7 +276,7 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 	ctx.alloc = alloc;
 	ctx.error = error;
 
-	Node *root = parse_statement(&ctx);
+	Node *root = parse_compound_statement(&ctx, TDONE);
 
 	if(root == NULL)
 		return NULL;
@@ -352,6 +353,19 @@ static Node *parse_statement(Context *ctx)
 
 			case TKWIF:
 			return parse_ifelse_statement(ctx);
+
+			case '{':
+			{
+				next(ctx); // Consume the '{'.
+
+				Node *node = parse_compound_statement(ctx, '}');
+
+				if(node != NULL)
+					next(ctx); // Consume the '}'.
+
+				return node;
+			}
+
 		}
 
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
@@ -834,7 +848,7 @@ static inline int precedenceof(Token *tok)
 			return 2;
 			
 			default:
-			return -10000000;
+			return -100000000;
 		}
 
 	UNREACHABLE;
@@ -980,4 +994,52 @@ static Node *parse_ifelse_statement(Context *ctx)
 	}
 
 	return (Node*) ifelse;
+}
+
+static Node *parse_compound_statement(Context *ctx, TokenKind end)
+{
+	int end_offset;
+	Node *head, **tail;
+
+	tail = &head;
+	*tail = NULL;
+
+	while(current(ctx) != end && current(ctx) != TDONE)
+		{
+			Node *temp = parse_statement(ctx);
+
+			if(temp == NULL)
+				return NULL;
+
+			*tail = temp;
+			tail = &temp->next;
+
+			end_offset = temp->offset + temp->length;
+		}
+
+	if(current(ctx) != end)
+		{
+			Error_Report(ctx->error, 0, "Source ended inside compound statement");
+			return NULL;
+		}
+
+	CompoundNode *node;
+	{
+		node = BPAlloc_Malloc(ctx->alloc, sizeof(CompoundNode));
+		
+		if(node == NULL)
+			{
+				// ERROR: No memory.
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		node->base.kind = NODE_COMP;
+		node->base.next = NULL;
+		node->base.offset = head->offset;
+		node->base.length = end_offset - head->offset;
+		node->head = head;
+	}
+
+	return (Node*) node;
 }

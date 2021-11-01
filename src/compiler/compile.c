@@ -119,6 +119,13 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						if(!emit_instr_for_node(exeb, ifelse->true_branch, error))
 							return 0;
 
+						if(ifelse->true_branch->kind == NODE_EXPR)
+							{
+								Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+								if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, ifelse->true_branch->offset, 0))
+									return 0;
+							}
+						
 						op = (Operand) { .type = OPTP_PROMISE, .as_promise = done_offset };
 						if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
 							return 0;
@@ -128,6 +135,13 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 
 						if(!emit_instr_for_node(exeb, ifelse->false_branch, error))
 							return 0;
+
+						if(ifelse->false_branch->kind == NODE_EXPR)
+							{
+								Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+								if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, ifelse->false_branch->offset, 0))
+									return 0;
+							}
 
 						temp = ExeBuilder_InstrCount(exeb);
 						Promise_Resolve(done_offset, &temp, sizeof(temp));
@@ -151,10 +165,41 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						if(!emit_instr_for_node(exeb, ifelse->true_branch, error))
 							return 0;
 
+						if(ifelse->true_branch->kind == NODE_EXPR)
+							{
+								Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+								if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, ifelse->true_branch->offset, 0))
+									return 0;
+							}
+
 						long long int temp = ExeBuilder_InstrCount(exeb);
 						Promise_Resolve(done_offset, &temp, sizeof(temp));
 
 						Promise_Free(done_offset);
+					}
+
+				return 1;
+			}
+
+			case NODE_COMP:
+			{
+				CompoundNode *comp = (CompoundNode*) node;
+
+				Node *stmt = comp->head;
+
+				while(stmt)
+					{
+						if(!emit_instr_for_node(exeb, stmt, error))
+							return 0;
+
+						if(stmt->kind == NODE_EXPR)
+							{
+								Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+								if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, stmt->offset, 0))
+									return 0;
+							}
+
+						stmt = stmt->next;
 					}
 
 				return 1;

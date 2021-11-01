@@ -342,6 +342,8 @@ static _Bool step(Runtime *runtime, Error *error)
 			case OPCODE_MUL:
 			case OPCODE_DIV:
 			{
+				assert(opc == 0);
+
 				Object *rop = Stack_Top(runtime->stack,  0);
 				Object *lop = Stack_Top(runtime->stack, -1);
 
@@ -361,6 +363,15 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(!Runtime_Push(runtime, error, res))
 					return 0;
 				break;
+			}
+
+			case OPCODE_POP:
+			{
+				assert(opc == 1);
+
+				if(!Runtime_Pop(runtime, error, ops[0].as_int))
+					return 0;
+				return 1;
 			}
 
 			case OPCODE_PUSHINT:
