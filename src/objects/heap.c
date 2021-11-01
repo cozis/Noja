@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include "objects.h"
 
+#if USING_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 typedef struct OflowAlloc OflowAlloc;
 struct OflowAlloc {
 	OflowAlloc *prev;
@@ -38,11 +42,20 @@ Heap *Heap_New(int size)
 			return NULL;
 		}
 
+#if USING_VALGRIND
+	VALGRIND_CREATE_MEMPOOL(heap, 0, 0);
+#endif
+
 	return heap;
 }
 
 void Heap_Free(Heap *heap)
 {
+
+#if USING_VALGRIND
+	VALGRIND_DESTROY_MEMPOOL(heap);
+#endif
+
 	while(heap->oflow)
 		{
 			OflowAlloc *prev = heap->oflow->prev;
@@ -105,6 +118,10 @@ void *Heap_RawMalloc(Heap *heap, int size, Error *err)
 		}
 
 	assert(((intptr_t) addr) % 8 == 0);
+
+#if USING_VALGRIND
+	VALGRIND_MEMPOOL_ALLOC(heap, addr, size);
+#endif
 
 	return addr;
 }

@@ -50,6 +50,29 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 								NULL, 0, node->offset, node->length);
 						}
 
+						case EXPR_ASS:
+						{
+							OperExprNode *oper = (OperExprNode*) expr;
+
+							Node *lop, *rop;
+							lop = oper->head;
+							rop = lop->next;
+
+							if(((ExprNode*) lop)->kind != EXPR_IDENT)
+								{
+									Error_Report(error, 0, "Assignment left operand must be an identifier");
+									return 0;
+								}
+
+							if(!emit_instr_for_node(exeb, rop, error))
+								return 0;
+
+							const char *name = ((IdentExprNode*) lop)->val;
+
+							Operand op = { .type = OPTP_STRING, .as_string = name };
+							return ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1, node->offset, node->length);
+						}
+
 						case EXPR_INT:
 						{
 							IntExprNode *p = (IntExprNode*) expr;

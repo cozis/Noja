@@ -18,6 +18,7 @@ typedef enum {
 	EXPR_SUB,
 	EXPR_MUL,
 	EXPR_DIV,
+	EXPR_ASS,
 	EXPR_INT,
 	EXPR_NONE,
 	EXPR_TRUE,

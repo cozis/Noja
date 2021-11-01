@@ -852,15 +852,15 @@ static inline _Bool isbinop(Token *tok)
 	return 	tok->kind == '+' || 
 			tok->kind == '-' || 
 			tok->kind == '*' || 
-			tok->kind == '/';
+			tok->kind == '/' ||
+			tok->kind == '=';
 }
 
 static inline _Bool isrightassoc(Token *tok)
 {
 	assert(tok != NULL);
 
-	(void) tok;
-	return 0;
+	return tok->kind == '=';
 }
 
 static inline int precedenceof(Token *tok)
@@ -869,6 +869,9 @@ static inline int precedenceof(Token *tok)
 
 	switch(tok->kind)
 		{
+			case '=':
+			return 0;
+
 			case '+':
 			case '-':
 			return 1;
@@ -928,6 +931,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 						case '-': temp->base.kind = EXPR_SUB; break;
 						case '*': temp->base.kind = EXPR_MUL; break;
 						case '/': temp->base.kind = EXPR_DIV; break;
+						case '=': temp->base.kind = EXPR_ASS; break;
 
 						default:
 						UNREACHABLE;

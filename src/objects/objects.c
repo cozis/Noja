@@ -49,7 +49,7 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 
 	if(type->deepsize == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return 0;
 		}
 
@@ -65,7 +65,7 @@ int Object_Hash(Object *obj, Error *err)
 
 	if(type->hash == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return -1;
 		}
 
@@ -82,7 +82,7 @@ Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 
 	if(type->copy == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return NULL;
 		}
 
@@ -99,7 +99,7 @@ Object *Object_Call(Object *obj, Object **argv, unsigned int argc, Heap *heap, E
 
 	if(type->call == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return NULL;
 		}
 
@@ -117,11 +117,11 @@ Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)
 
 	if(type->select == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 			return NULL;
 		}
 
-	return type->select(coll, key, heap, err);	
+	return type->select(coll, key, heap, err);
 }
 
 Object *Object_Delete(Object *coll, Object *key, Heap *heap, Error *err)
@@ -135,7 +135,7 @@ Object *Object_Delete(Object *coll, Object *key, Heap *heap, Error *err)
 
 	if(type->delete == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 			return NULL;
 		}
 
@@ -153,7 +153,7 @@ _Bool Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *e
 
 	if(type->insert == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 			return 0;
 		}
 
@@ -170,7 +170,7 @@ int	Object_Count(Object *coll, Error *err)
 
 	if(type->count == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 			return -1;
 		}
 
@@ -187,7 +187,7 @@ Object *Object_Next(Object *iter, Heap *heap, Error *err)
 
 	if(type->next == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(iter), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(iter), __func__);
 			return NULL;
 		}
 
@@ -204,7 +204,7 @@ Object *Object_Prev(Object *iter, Heap *heap, Error *err)
 
 	if(type->prev == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(iter), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(iter), __func__);
 			return NULL;
 		}
 
@@ -248,7 +248,7 @@ long long int Object_ToInt(Object *obj, Error *err)
 
 	if(type->to_int == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return 0;
 		}
 
@@ -271,7 +271,7 @@ _Bool Object_ToBool(Object *obj, Error *err)
 
 	if(type->to_bool == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return 0;
 		}
 
@@ -294,7 +294,7 @@ double Object_ToFloat(Object *obj, Error *err)
 
 	if(type->to_float == NULL)
 		{
-			Error_Report(err, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 			return 0;
 		}
 
@@ -303,12 +303,16 @@ double Object_ToFloat(Object *obj, Error *err)
 
 _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)
 {
+	assert(obj1 != NULL);
+	assert(obj2 != NULL);
+	assert(error != NULL);
+
 	if(obj1->type != obj2->type)
 		return 0;
 
 	if(obj1->type->op_eql == NULL)
 		{
-			Error_Report(error, "Object %s doesn't implement %s", Object_GetName(obj1), __func__);
+			Error_Report(error, 0, "Object %s doesn't implement %s", Object_GetName(obj1), __func__);
 			return 0;
 		}
 

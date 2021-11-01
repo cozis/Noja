@@ -103,9 +103,9 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 					
 					assert(k >= 0);
 
-					if(Object_Compare(key, map->keys[i], error))
+					if(Object_Compare(key, map->keys[k], error))
 						// Found it!
-						return map->vals[i];
+						return map->vals[k];
 
 					if(error->occurred)
 						// Key doesn't implement compare.
@@ -230,11 +230,11 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 				{
 					assert(k >= 0);
 
-					if(Object_Compare(key, map->keys[i], error))
+					if(Object_Compare(key, map->keys[k], error))
 						{
 							// Already inserted.
 							// Overwrite the value.
-							map->vals[i] = val;
+							map->vals[k] = val;
 							return 1;
 						}
 

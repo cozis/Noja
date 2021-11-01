@@ -12,6 +12,8 @@ typedef struct {
 
 static int hash(Object *self);
 static int count(Object *self);
+static Object *copy(Object *self, Heap *heap, Error *err);
+static _Bool op_eql(Object *self, Object *other);
 
 static const Type t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -19,6 +21,8 @@ static const Type t_string = {
 	.size = sizeof (StringObject),
 	.hash = hash,
 	.count = count,
+	.copy = copy,
+	.op_eql = op_eql,
 };
 
 Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
@@ -66,4 +70,27 @@ static int hash(Object *self)
 	StringObject *strobj = (StringObject*) self;
 
 	return hashbytes((unsigned char*) strobj->body, strobj->size);
+}
+
+static Object *copy(Object *self, Heap *heap, Error *err)
+{
+	assert(self != NULL);
+	assert(self->type == &t_string);
+	assert(heap != NULL);
+	assert(err != NULL);
+
+	return self;
+}
+
+static _Bool op_eql(Object *self, Object *other)
+{
+	assert(self != NULL);
+	assert(self->type == &t_string);
+	assert(other != NULL);
+	assert(other->type == &t_string);
+
+	StringObject *s1 = (StringObject*) self;
+	StringObject *s2 = (StringObject*) other;
+
+	return s1->size == s2->size && !strncmp(s1->body, s2->body, s1->size);
 }

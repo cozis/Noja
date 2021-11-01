@@ -47,7 +47,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_SUB]  = {"SUB", 0, NULL},
 	[OPCODE_MUL]  = {"MUL", 0, NULL},
 	[OPCODE_DIV]  = {"DIV", 0, NULL},
-
+	[OPCODE_ASS]  = {"ASS", 1, (OperandType[]) {OPTP_STRING}},
 	[OPCODE_POP]  = {"POP", 1, (OperandType[]) {OPTP_INT}},
 
 	[OPCODE_PUSHINT] = {"PUSHINT", 1, (OperandType[]) {OPTP_INT}},

@@ -1,9 +1,12 @@
 
+p = 1;
+return p;
+
 if true
 	{
-		return 3;
+		x = 7;
 		2;
 	}
 else 
 	4;
-return 99;
+return x;

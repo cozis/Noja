@@ -83,7 +83,7 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 	
 	if(runtime->frame->used == MAX_FRAME_STACK)
 		{
-			Error_Report(error, 0, "Frames stack limit of %d reached", MAX_FRAME_STACK);
+			Error_Report(error, 0, "Frame stack limit of %d reached", MAX_FRAME_STACK);
 			return 0;
 		}
 
@@ -112,7 +112,7 @@ _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 
 	if((unsigned int) runtime->frame->used < n)
 		{
-			Error_Report(error, 0, "Frames has not enough values on the stack");
+			Error_Report(error, 0, "Frame has not enough values on the stack");
 			return 0;
 		}
 
@@ -363,6 +363,30 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(!Runtime_Push(runtime, error, res))
 					return 0;
 				break;
+			}
+
+			case OPCODE_ASS:
+			{
+				assert(opc == 1);
+				assert(ops[0].type == OPTP_STRING);
+
+				if(runtime->frame->used == 0)
+					{
+						Error_Report(error, 0, "Frame has not enough values on the stack");
+						return 0;
+					}
+
+				Object *val = Stack_Top(runtime->stack, 0);
+				assert(val != NULL);
+
+				Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
+								
+				if(key == NULL)
+					return 0;
+				
+				if(!Object_Insert(runtime->frame->vars, key, val, runtime->heap, error))
+					return 0;
+				return 1;
 			}
 
 			case OPCODE_POP:
