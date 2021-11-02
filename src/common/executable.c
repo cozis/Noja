@@ -141,6 +141,28 @@ Source *Executable_GetSource(Executable *exe)
 	return exe->src;
 }
 
+int Executable_GetInstrOffset(Executable *exe, int index)
+{
+	if(index < 0 || index >= exe->bodyl)
+		return -1;
+
+	if(exe->src)
+		return exe->body[index].offset;
+	else
+		return -1;
+}
+
+int Executable_GetInstrLength(Executable *exe, int index)
+{
+	if(index < 0 || index >= exe->bodyl)
+		return -1;
+
+	if(exe->src)
+		return exe->body[index].length;
+	else
+		return -1;
+}
+
 _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops, int *opc)
 {
 	assert(index >= 0);

@@ -267,13 +267,18 @@ Executable *compile(AST *ast, BPAlloc *alloc, Error *error)
 	Executable *exe = NULL;
 	ExeBuilder *exeb = ExeBuilder_New(alloc2);
 
-	if(exeb)
+	if(exeb != NULL)
 		{
 			if(!emit_instr_for_node(exeb, ast->root, error))
 				return 0;
 
 			if(ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, Source_GetSize(ast->src), 0))
-				exe = ExeBuilder_Finalize(exeb, error);
+				{
+					exe = ExeBuilder_Finalize(exeb, error);
+					
+					if(exe != NULL)
+						Executable_SetSource(exe, ast->src);
+				}
 		}
 
 	if(alloc == NULL)

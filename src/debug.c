@@ -1,9 +1,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <limits.h>
+#include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
 #include "debug.h"
+#include "utils/defs.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -13,13 +16,26 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-typedef struct {
-	char *name;
+typedef enum {
+	BY_LINE,
+	BY_INDEX,
+	BY_OFFSET,
+} BreakPointMode;
 
+typedef struct {
+	BreakPointMode mode;
+	char 		  *name;
+	union {
+		int line;
+		int index;
+		int offset;
+	};
 } BreakPoint;
 
 struct xDebug {
-
+	_Bool continuing;
+	BreakPoint bpoints[32];
+	int        bpoints_count;
 };
 
 Debug *Debug_New()
@@ -29,7 +45,8 @@ Debug *Debug_New()
 	if(dbg == NULL)
 		return NULL;
 
-	// Do stuff here.
+	dbg->continuing = 0;
+	dbg->bpoints_count = 0;
 
 	return dbg;
 }
@@ -37,7 +54,11 @@ Debug *Debug_New()
 void Debug_Free(Debug *dbg)
 {
 	if(dbg)
-		free(dbg);
+		{
+			for(int i = 0; i < dbg->bpoints_count; i += 1)
+				free(dbg->bpoints[i].name);
+			free(dbg);
+		}
 }
 
 _Bool Debug_Callback(Runtime *runtime, void *userp)
@@ -47,29 +68,125 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 
 	Debug *dbg = (Debug*) userp;
 
-	char buffer[256];
-	int  length;
+	const char *name = NULL;
+	int line = -1;
+	int index = -1;
+	int offset = -1;
+	int length = -1;
 
-	int argc;
+	{
+		Executable *exe = Runtime_GetCurrentExecutable(runtime);
+		assert(exe != NULL);
+
+		index = Runtime_GetCurrentIndex(runtime);
+		assert(index >= 0);
+
+		Source *src = Executable_GetSource(exe);
+
+		if(src != NULL)
+			{
+				// Executable has source information.
+				offset = Executable_GetInstrOffset(exe, index);
+				assert(offset >= 0);
+
+				length = Executable_GetInstrLength(exe, index);
+				assert(length >= 0);
+
+				name = Source_GetName(src);
+
+				const char *body = Source_GetBody(src);
+				assert(body != NULL);
+
+				line = 1;
+
+				int i = 0;
+				
+				while(i < offset)
+					{
+						if(body[i] == '\n')
+							line += 1;
+
+						i += 1;
+					}
+
+				assert(line > 0);
+			}
+	}
+
+	// Check if we reached a breakpoint.
+	
+	_Bool hit = 0;
+	int   idx;
+
+	for(int i = 0; i < dbg->bpoints_count && hit == 0; i += 1)
+		{
+			if(!strcmp(dbg->bpoints[i].name, name))
+				{
+					switch(dbg->bpoints[i].mode)
+						{
+							case BY_LINE:
+							if(dbg->bpoints[i].line == line)
+								hit = 1;
+							break;
+
+							case BY_INDEX:
+							if(dbg->bpoints[i].index == index)
+								hit = 1;
+							break;
+							
+							case BY_OFFSET:
+							if(dbg->bpoints[i].offset >= offset && dbg->bpoints[i].offset < offset + length)
+								hit = 1;
+							break;
+						}
+
+					if(hit)
+						idx = i;
+				}
+		}
+
+	if(hit)
+		{
+			fprintf(stderr, "Hit breakpoint %d\n", idx);
+			dbg->continuing = 0;
+		}
+	else
+		{
+			if(dbg->continuing)
+				return 1;
+		}
+
+
+	char buffer[256];
+	int  buflen;
+
 	char *argv[32];
+	int   argc;
 
 	do {
 		
-		fprintf(stderr, ANSI_COLOR_GREEN "> " ANSI_COLOR_RESET);
+		if(name == NULL && line == -1)
+			fprintf(stderr, "(unnamed)" ANSI_COLOR_GREEN " > " ANSI_COLOR_RESET);
+		else if(name == NULL && line > -1)
+			fprintf(stderr, "(unnamed):%d" ANSI_COLOR_GREEN " > " ANSI_COLOR_RESET, line);
+		else if(name != NULL && line == -1)
+			fprintf(stderr, "%s" ANSI_COLOR_GREEN " > " ANSI_COLOR_RESET, name);
+		else if(name != NULL && line > -1)
+			fprintf(stderr, "%s:%d" ANSI_COLOR_GREEN " > " ANSI_COLOR_RESET, name, line);
 
 		{
-			length = 0;
+			buflen = 0;
 
 			char c;
 			while((c = getc(stdin)) != '\n')
 				{
-					if(length < (int) sizeof(buffer)-1)
-						buffer[length] = c;
+					if(buflen < (int) sizeof(buffer)-1)
+						buffer[buflen] = c;
 				
-					length += 1;
+					buflen += 1;
 				}
 
-			if(length > (int) sizeof(buffer)-1)
+			if(buflen > (int) sizeof(buffer)-1)
 				{
 					fprintf(stdout, 
 						"Command is too long. The internal buffer can only contain %ld bytes.\n"
@@ -78,7 +195,7 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 					continue;
 				}
 
-			buffer[length] = '\0';
+			buffer[buflen] = '\0';
 		}
 
 		// Now split the buffer into words in the (argc, argv) style.
@@ -229,15 +346,95 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 				}
 			else if(!strcmp(argv[0], "breakpoint"))
 				{
-					fprintf(stderr, "Not implemented yet.\n");
+					if(argc < 3)
+						{
+							fprintf(stderr, "\"breakpoint\" command expects 2 operands.\n");
+							continue;
+						}
+
+					int max_breakpoints = sizeof(dbg->bpoints) / sizeof(dbg->bpoints[0]);
+
+					if(dbg->bpoints_count == max_breakpoints)
+						{
+							fprintf(stderr, "Can't add a breakpoint. The maximum number of breakpoints (%d) was reached.\n", max_breakpoints);
+						}
+					else
+						{
+							// Handle second argument.
+
+							BreakPointMode mode;
+
+							if(!strcmp(argv[2], "line"))
+								{
+									mode = BY_LINE;
+								}
+							else if(!strcmp(argv[2], "index"))
+								{
+									mode = BY_INDEX;
+								}
+							else if(!strcmp(argv[2], "offset"))
+								{
+									mode = BY_OFFSET;
+								}
+							else
+								{
+									fprintf(stderr, "Bad second argument \"%s\". It must be either one of \"line\", \"index\", \"offset\".\n", argv[2]);
+									continue;
+								}
+
+							// Handle third argument.
+
+							long long int N = strtoll(argv[3], NULL, 10);
+
+							if(errno == ERANGE)
+								{
+									if(N == LLONG_MIN)
+										{
+											fprintf(stderr, "Bad third argument. Integer is too big.\n");
+										}
+									else
+										{
+											assert(N == LLONG_MAX);
+											fprintf(stderr, "Bad third argument. Integer is too big.\n");
+										}
+									continue;
+								}
+							else if(errno != 0)
+								{
+									fprintf(stderr, "Bad third argument. (strtoll says: %s).\n", strerror(errno));
+									continue;
+								}
+
+							// Handle first argument.
+
+							char *name_copy = malloc(strlen(argv[1])+1);
+
+							if(name_copy == NULL)
+								{
+									fprintf(stderr, "Uoops! No memory!");
+									continue;
+								}
+
+							strcpy(name_copy, argv[1]);
+
+							dbg->bpoints[dbg->bpoints_count] = (BreakPoint) { 
+								.mode = mode, 
+								.name = name_copy,
+								.line = N,
+							};
+
+							dbg->bpoints_count += 1;
+							fprintf(stderr, "BreakPoint added.\n");
+						}
 				}
 			else if(!strcmp(argv[0], "continue"))
 				{
-					fprintf(stderr, "Not implemented yet.\n");
+					dbg->continuing = 1;
+					return 1;
 				}
 			else if(!strcmp(argv[0], "step"))
 				{
-					break;
+					return 1;
 				}
 			else if(!strcmp(argv[0], "quit"))
 				{
@@ -251,5 +448,6 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 
 	} while(1);
 
-	return 1;
+	UNREACHABLE;
+	return 0;
 }

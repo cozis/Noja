@@ -23,6 +23,22 @@ struct xRuntime {
 	Heap  *heap;
 };
 
+int Runtime_GetCurrentIndex(Runtime *runtime)
+{
+	if(runtime->depth == 0)
+		return -1;
+	else
+		return runtime->frame->index;
+}
+
+Executable *Runtime_GetCurrentExecutable(Runtime *runtime)
+{
+	if(runtime->depth == 0)
+		return NULL;
+	else
+		return runtime->frame->exe;
+}
+
 Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
 {
 	if(stack_size < 0)
