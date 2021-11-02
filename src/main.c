@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "compiler/parse.h"
 #include "compiler/serialize.h"
 #include "compiler/compile.h"
@@ -28,6 +29,8 @@ static int parse_args(Options *opts, int argc, char **argv, Error *error)
 
 	opts->action = RUN;
 	opts->input_is_file = 1;
+	opts->debug = 0;
+	opts->verbose = 0;
 	opts->input  = NULL;
 	opts->output = NULL;
 
@@ -97,6 +100,148 @@ static int parse_args(Options *opts, int argc, char **argv, Error *error)
 	i += 1;
 
 	return i;
+}
+
+static _Bool debug_callback(Runtime *runtime, void *userp)
+{
+	assert(runtime != NULL);
+	assert(userp == NULL);
+
+	#define ANSI_COLOR_RED     "\x1b[31m"
+	#define ANSI_COLOR_GREEN   "\x1b[32m"
+	#define ANSI_COLOR_YELLOW  "\x1b[33m"
+	#define ANSI_COLOR_BLUE    "\x1b[34m"
+	#define ANSI_COLOR_MAGENTA "\x1b[35m"
+	#define ANSI_COLOR_CYAN    "\x1b[36m"
+	#define ANSI_COLOR_RESET   "\x1b[0m"
+
+	char buffer[256];
+	int  length;
+
+	int argc;
+	char *argv[32];
+
+	do {
+		
+		fprintf(stderr, ANSI_COLOR_GREEN "> " ANSI_COLOR_RESET);
+
+		{
+			length = 0;
+
+			char c;
+			while((c = getc(stdin)) != '\n')
+				{
+					if(length < (int) sizeof(buffer)-1)
+						buffer[length] = c;
+				
+					length += 1;
+				}
+
+			if(length > (int) sizeof(buffer)-1)
+				{
+					fprintf(stdout, 
+						"Command is too long. The internal buffer can only contain %ld bytes.\n"
+						"Try inserting another command.\n", 
+						sizeof(buffer)-1);
+					continue;
+				}
+
+			buffer[length] = '\0';
+		}
+
+		// Now split the buffer into words in the (argc, argv) style.
+
+		{
+			argc = 0;
+
+			_Bool again = 0;
+			int curs = 0;
+			while(1)
+				{
+					// Skip whitespace.
+					while(isspace(buffer[curs]))
+						curs += 1;
+
+					if(buffer[curs] == '\0')
+						break;
+
+					int offset = curs;
+
+					while(!isspace(buffer[curs]) && buffer[curs] != '\0')
+						curs += 1;
+
+					int length = curs - offset;
+
+					assert(length > 0);
+
+					{
+						int max_argc = sizeof(argv) / sizeof(argv[0]);
+
+						if(argc == max_argc)
+							{
+								fprintf(stdout, 
+									"Command has too many words. The internal buffer can only contain %d words.\n"
+									"Try inserting another command.\n", 
+									max_argc);
+								again = 1;
+								break;
+							}
+
+						argv[argc++] = buffer + offset;
+					}
+
+					if(buffer[curs] == '\0')
+						break;
+
+					assert(isspace(buffer[curs]));
+
+					buffer[curs] = '\0';
+
+					curs += 1; // Consume the space that ended the word (not overwritten by a zero byte).
+				}
+
+			if(again)
+				continue;
+		}
+
+		if(argc == 0)
+			continue;
+
+		{
+			if(!strcmp(argv[0], "help"))
+				{
+					fprintf(stderr, 
+						"help ...................... Show this message\n"
+						"step ...................... Run an instruction\n"
+						"quit ...................... Stop execution\n"
+						"continue .................. Run until a breakpoint or the end of the code is reached\n"
+						"breakpoint <file> <line> .. Add a breakpoint\n");
+				}
+			else if(!strcmp(argv[0], "breakpoint"))
+				{
+					fprintf(stderr, "Not implemented yet.\n");
+				}
+			else if(!strcmp(argv[0], "continue"))
+				{
+					fprintf(stderr, "Not implemented yet.\n");
+				}
+			else if(!strcmp(argv[0], "step"))
+				{
+					break;
+				}
+			else if(!strcmp(argv[0], "quit"))
+				{
+					return 0;
+				}
+			else
+				{
+					fprintf(stdout, "Unknown command \"%s\". Type \"help\" is you need help.\n", argv[0]);
+				}
+		}
+
+	} while(1);
+
+	return 1;
 }
 
 int main(int argc, char **argv)
@@ -196,7 +341,7 @@ int main(int argc, char **argv)
 					RuntimeError error;
 					RuntimeError_Init(&error, runtime);
 
-					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0);
+					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0, NULL, opts.debug ? debug_callback : NULL);
 
 					if(result == NULL || !Object_Print(result, stderr, (Error*) &error))
 						{

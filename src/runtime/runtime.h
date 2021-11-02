@@ -16,7 +16,7 @@ Snapshot *Snapshot_New(Runtime *runtime);
 void 	  Snapshot_Free(Snapshot *snapshot);
 void 	  Snapshot_Print(Snapshot *snapshot, FILE *fp);
 
-Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc);
+Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc, void *userp, _Bool (*callback)(Runtime*, void*));
 
 Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int offset, Heap *heap, Error *error);
 #endif

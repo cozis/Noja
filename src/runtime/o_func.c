@@ -30,7 +30,7 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	assert(func->exe != NULL);
 	assert(func->index >= 0);
 
-	return run(func->runtime, error, func->exe, func->index, argv, argc);	
+	return run(func->runtime, error, func->exe, func->index, argv, argc, NULL, NULL);	
 }
 
 Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, Heap *heap, Error *error)

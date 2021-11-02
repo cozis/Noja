@@ -1070,8 +1070,8 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 
 		node->base.kind = NODE_COMP;
 		node->base.next = NULL;
-		node->base.offset = head->offset;
-		node->base.length = end_offset - head->offset;
+		node->base.offset = head ? head->offset : 0;
+		node->base.length = head ? end_offset - head->offset : 0;
 		node->head = head;
 	}
 

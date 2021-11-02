@@ -560,7 +560,7 @@ static _Bool step(Runtime *runtime, Error *error)
 	return 1;
 }
 
-Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc)
+Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc, void *userp, _Bool (*callback)(Runtime*, void*))
 {
 	assert(runtime != NULL);
 	assert(error != NULL);
@@ -598,7 +598,21 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 			goto cleanup;
 
 	// Run the code.
-	while(step(runtime, error));
+
+	if(callback != NULL)
+		{
+			if(!callback(runtime, userp))
+				Error_Report(error, 0, "Forced abortion");
+			else
+				while(step(runtime, error))
+					if(!callback(runtime, userp))
+						{
+							Error_Report(error, 0, "Forced abortion");
+							break;
+						}
+		}
+	else
+		while(step(runtime, error));
 
 	// This is what the function will return.
 	Object *result = NULL;
