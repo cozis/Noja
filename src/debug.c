@@ -267,7 +267,8 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 						"step .............. Run an instruction\n"
 						"quit .............. Stop execution\n"
 						"continue .......... Run until a breakpoint or the end of the code is reached\n"
-						"breakpoint ........ Add a breakpoint\n");
+						"breakpoint ........ Add a breakpoint\n"
+						"stack ............. Show the contents of the stack\n");
 						}
 					else if(!strcmp(argv[1], "help"))
 						{
@@ -337,6 +338,17 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 								"             | \n"
 								"             | the third argument is, based on the second one, either\n"
 								"             | a line number, a character offset or an instruction index.\n"
+								"\n");
+						}
+					else if(!strcmp(argv[1], "stack"))
+						{
+							fprintf(stderr, 
+								"\n"
+								"     Command | stack\n"
+								"             | \n"
+								"       Usage | > stack\n"
+								"             | \n"
+								" Description | Show the contents of the stack.\n"
 								"\n");
 						}
 					else
@@ -435,6 +447,35 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 			else if(!strcmp(argv[0], "step"))
 				{
 					return 1;
+				}
+			else if(!strcmp(argv[0], "stack"))
+				{
+					Stack *stack = Runtime_GetStack(runtime);
+					assert(stack != NULL);
+
+					Error error;
+					Error_Init(&error);
+
+					if(Stack_Size(stack) == 0)
+						fprintf(stderr, "The stack is empty.\n");
+
+					for(int i = 0; i < (int) Stack_Size(stack); i += 1)
+						{
+							Object *obj = Stack_Top(stack, -i);
+							assert(obj != NULL);
+
+							fprintf(stderr, "  %d | ", i);
+							Object_Print(obj, stderr, &error);
+
+							if(error.occurred)
+								{
+									Error_Free(&error);
+									Error_Init(&error);
+									fprintf(stderr, "(unprintable)");
+								}
+
+							fprintf(stderr, "\n");
+						}
 				}
 			else if(!strcmp(argv[0], "quit"))
 				{

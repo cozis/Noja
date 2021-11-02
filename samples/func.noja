@@ -1,6 +1,6 @@
 
 fun k(k)
-	return k();
+	return k(k);
 
 k(k);
 

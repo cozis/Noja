@@ -7,5 +7,7 @@ _Bool 		 Stack_Pop(Stack *s, unsigned int n);
 _Bool 		 Stack_Push(Stack *s, void *item);
 void 		 Stack_Free(Stack *s);
 unsigned int Stack_Size(Stack *s);
+Stack 		*Stack_Copy(Stack *s, _Bool readonly);
 unsigned int Stack_Capacity(Stack *s);
+_Bool		 Stack_IsReadOnlyCopy(Stack *s);
 #endif

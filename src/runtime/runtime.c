@@ -4,7 +4,7 @@
 #include "runtime.h"
 
 #define MAX_FRAME_STACK 16
-#define MAX_FRAMES 1024
+#define MAX_FRAMES 16
 
 typedef struct Frame Frame;
 
@@ -24,6 +24,11 @@ struct xRuntime {
 	Stack *stack;
 	Heap  *heap;
 };
+
+Stack *Runtime_GetStack(Runtime *runtime)
+{
+	return Stack_Copy(runtime->stack, 1);
+}
 
 Heap *Runtime_GetHeap(Runtime *runtime)
 {
