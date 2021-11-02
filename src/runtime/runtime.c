@@ -17,11 +17,17 @@ struct Frame {
 struct xRuntime {
 	void *callback_userp;
 	_Bool (*callback_addr)(Runtime*, void*);
+	Object *builtins;
 	int    depth;
 	Frame *frame;
 	Stack *stack;
 	Heap  *heap;
 };
+
+Heap *Runtime_GetHeap(Runtime *runtime)
+{
+	return runtime->heap;
+}
 
 int Runtime_GetCurrentIndex(Runtime *runtime)
 {
@@ -73,8 +79,10 @@ Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool 
 
 		runtime->callback_userp = callback_userp;
 		runtime->callback_addr = callback_addr;
+		runtime->builtins = NULL;
 		runtime->frame = NULL;
 		runtime->depth = 0;
+		
 	}
 
 	return runtime;
@@ -85,6 +93,14 @@ void Runtime_Free(Runtime *runtime)
 	Heap_Free(runtime->heap);
 	Stack_Free(runtime->stack);
 	free(runtime);
+}
+
+Object *Runtime_GetBuiltins(Runtime *runtime, Error *error)
+{
+	if(runtime->builtins == NULL)
+		runtime->builtins = Object_NewMap(-1, runtime->heap, error);
+
+	return runtime->builtins;
 }
 
 _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
@@ -418,6 +434,51 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
+			case OPCODE_CALL:
+			{
+				assert(opc == 1);
+				assert(ops[0].type == OPTP_INT);
+
+				int argc = ops[0].as_int;
+				assert(argc >= 0);
+
+				if(runtime->frame->used < argc + 1)
+					{
+						Error_Report(error, 1, "Frame doesn't own enough objects to execute call");
+						return 0;
+					}
+
+				Object *callable = Stack_Top(runtime->stack, 0);
+				assert(callable != NULL);
+
+				Object *argv[8];
+
+				int max_argc = sizeof(argv) / sizeof(argv[0]);
+				if(argc > max_argc)
+					{
+						Error_Report(error, 1, "Static buffer only allows function calls with up to %d arguments", max_argc);
+						return 0;
+					}
+
+				for(int i = 0; i < argc; i += 1)
+					{
+						argv[i] = Stack_Top(runtime->stack, -(i+1));
+						assert(argv[i] != NULL);
+					}
+
+				(void) Runtime_Pop(runtime, error, argc+1);
+				assert(error->occurred == 0);
+
+				Object *obj = Object_Call(callable, argv, argc, runtime->heap, error);
+
+				if(obj == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
+				return 1;
+			}
+
 			case OPCODE_PUSHINT:
 			{
 				assert(opc == 1);
@@ -475,13 +536,23 @@ static _Bool step(Runtime *runtime, Error *error)
 
 				Object *obj = Object_Select(runtime->frame->vars, key, runtime->heap, error);
 
-				if(obj == NULL)
+				if(obj == NULL && error->occurred == 0)
 					{
-						if(error->occurred == 0)
-							// There's no such variable.
-							Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
-						return 0;
+						// Variable not defined locally.
+
+						if(runtime->builtins)
+							obj = Object_Select(runtime->builtins, key, runtime->heap, error);
+
+						if(obj == NULL)
+							{
+								if(error->occurred == 0)
+									// There's no such variable.
+									Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
+								return 0;
+							}
 					}
+				else if(obj == NULL)
+					return 0;
 
 				if(!Runtime_Push(runtime, error, obj))
 					return 0;
@@ -538,7 +609,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				assert(ops[1].type == OPTP_INT);
 
 				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, runtime->heap, error);
-				
+
 				if(obj == NULL)
 					return 0;
 

@@ -1,6 +1,6 @@
 USING_VALGRIND=0
 
-FLAGS="-L3p/libs/ -I3p/include/ -Wall -Wextra -g -DUSING_VALGRIND=$USING_VALGRIND -DTRACE_SOURCE_COPIES=$TRACE_SOURCE_COPIES"
+FLAGS="-L3p/libs/ -I3p/include/ -Wall -Wextra -g -DUSING_VALGRIND=$USING_VALGRIND"
 
 mkdir temp
 
@@ -34,6 +34,8 @@ gcc -c src/common/executable.c -o temp/common/executable.o $FLAGS
 mkdir temp/runtime
 gcc -c src/runtime/runtime_error.c -o temp/runtime/runtime_error.o $FLAGS
 gcc -c src/runtime/runtime.c 	   -o temp/runtime/runtime.o       $FLAGS
+gcc -c src/runtime/builtins.c 	   -o temp/runtime/builtins.o      $FLAGS
+gcc -c src/runtime/o_nfunc.c       -o temp/runtime/o_nfunc.o       $FLAGS
 gcc -c src/runtime/o_func.c        -o temp/runtime/o_func.o        $FLAGS
 
 rm -rf build
@@ -76,6 +78,8 @@ gcc src/main.c src/debug.c \
 	temp/objects/o_string.o \
 	temp/runtime/runtime.o \
 	temp/runtime/runtime_error.o \
+	temp/runtime/builtins.o \
+	temp/runtime/o_nfunc.o \
 	temp/runtime/o_func.o \
 	temp/common/executable.o \
 	-o build/noja $FLAGS -Lbuild/ -lnoja-compile -lnoja-objects -lxjson

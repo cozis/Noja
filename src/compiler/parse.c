@@ -53,6 +53,7 @@ static Node *parse_expression_statement(Context *ctx);
 static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
 static Node *parse_function_definition(Context *ctx);
+static Node *parse_postfix_expression(Context *ctx);
 
 static inline _Bool isoper(char c)
 {
@@ -859,6 +860,98 @@ static Node *parse_primary_expresion(Context *ctx)
 	return NULL;
 }
 
+static Node *parse_postfix_expression(Context *ctx)
+{
+	assert(ctx != NULL);
+
+	Node *node = parse_primary_expresion(ctx);
+
+	if(node == NULL)
+		return NULL;
+
+	while(1)
+		{
+			switch(current(ctx))
+				{
+					case '(':
+					{
+						int offset = current_token(ctx)->offset;
+
+						Node *argv = NULL;
+						int   argc = 0;
+							
+						next(ctx); // Skip the '('.
+
+						if(current(ctx) != ')')
+							while(1)
+								{
+									// Parse.
+									Node *arg = parse_expression(ctx);
+
+									if(arg == NULL)
+										return NULL;
+
+									// Append.
+									arg->next = argv;
+									argv = arg;
+									argc += 1;
+
+									// Get ',' or ')'.
+
+									if(current(ctx) == ')')
+										break;
+
+									if(current(ctx) != ',')
+										{
+											if(current(ctx) == TDONE)
+												Error_Report(ctx->error, 0, "Source ended inside a function argument list");
+											else
+												Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+											return NULL;
+										}
+
+									next(ctx); // Skip the ','.
+								}
+
+						int length = current_token(ctx)->offset
+								   + current_token(ctx)->length
+								   - offset;
+
+						next(ctx); // Skip the ')'.
+
+						CallExprNode *call;
+						{
+							call = BPAlloc_Malloc(ctx->alloc, sizeof(CallExprNode));
+
+							if(call == NULL)
+								{
+									Error_Report(ctx->error, 1, "No memory");
+									return NULL;
+								}
+
+							call->base.base.kind = NODE_EXPR;
+							call->base.base.next = NULL;
+							call->base.base.offset = offset;
+							call->base.base.length = length;
+							call->base.kind = EXPR_CALL;
+							call->func = node;
+							call->argv = argv;
+							call->argc = argc;
+						}
+
+						node = (Node*) call;
+						break;
+					}
+
+					default: 
+					goto done;
+				} // End switch.
+		} // End loop.
+done:
+	
+	return node;
+}
+
 static inline _Bool isbinop(Token *tok)
 {
 	assert(tok != NULL);
@@ -911,7 +1004,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 			ctx->token = ctx->token->next;
 			assert(ctx->token != NULL);
 
-			Node *right_expr = parse_primary_expresion(ctx);
+			Node *right_expr = parse_postfix_expression(ctx);
 
 			if(right_expr == NULL)
 				return NULL;
@@ -966,7 +1059,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 
 static Node *parse_expression(Context *ctx)
 {
-	Node *left_expr = parse_primary_expresion(ctx);
+	Node *left_expr = parse_postfix_expression(ctx);
 
 	if(left_expr == NULL)
 		return NULL;

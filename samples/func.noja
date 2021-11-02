@@ -1,7 +1,5 @@
 
 fun hello() 
-	{
-		print;('hello');
-	}
+	print('hel\nlo', 2);
 
-return hello;
+return hello();

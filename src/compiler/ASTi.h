@@ -22,6 +22,7 @@ typedef enum {
 	EXPR_DIV,
 	EXPR_ASS,
 	EXPR_INT,
+	EXPR_CALL,
 	EXPR_NONE,
 	EXPR_TRUE,
 	EXPR_FALSE,
@@ -78,6 +79,13 @@ typedef struct {
 	Node    *head;
 	int	     count;
 } OperExprNode;
+
+typedef struct {
+	ExprNode base;
+	Node *func;
+	Node *argv;
+	int   argc;
+} CallExprNode;
 
 typedef struct {
 	Node base;

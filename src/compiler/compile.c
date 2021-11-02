@@ -101,6 +101,27 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							return ExeBuilder_Append(exeb, error, OPCODE_PUSHVAR, &op, 1, node->offset, node->length);
 						}
 
+						case EXPR_CALL:
+						{
+							CallExprNode *p = (CallExprNode*) expr;
+
+							Node *arg = p->argv;
+
+							while(arg)
+								{
+									if(!emit_instr_for_node(exeb, arg, error))
+										return 0;
+
+									arg = arg->next;
+								}
+
+							if(!emit_instr_for_node(exeb, p->func, error))
+								return 0;
+
+							Operand op = { .type = OPTP_INT, .as_int = p->argc };
+							return ExeBuilder_Append(exeb, error, OPCODE_CALL, &op, 1, node->offset, node->length);
+						}
+
 						case EXPR_NONE:
 						return ExeBuilder_Append(exeb, error, OPCODE_PUSHNNE, NULL, 0, node->offset, node->length);
 
@@ -309,6 +330,11 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						}
 
 					if(!emit_instr_for_node(exeb, func->body, error))
+						return 0;
+
+					// Write a return instruction, just 
+					// in case it didn't already return.
+					if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, func->body->offset, 0))
 						return 0;
 				}
 
