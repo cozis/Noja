@@ -546,7 +546,7 @@ static _Bool step(Runtime *runtime, Error *error)
 					{
 						// Variable not defined locally.
 
-						if(runtime->builtins)
+						if(runtime->builtins != NULL)
 							obj = Object_Select(runtime->builtins, key, runtime->heap, error);
 
 						if(obj == NULL)

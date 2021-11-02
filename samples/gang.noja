@@ -1,8 +1,8 @@
 
 stack = {count: 0, head: none};
 
-fun push(stack, value) {
-
+fun push(stack, value) 
+{
 	node = {prev: null, item: value};
 
 	node.prev = list.head;

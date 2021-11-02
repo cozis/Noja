@@ -1,15 +1,10 @@
 
-fun k(k)
-	return k(k);
-
-k(k);
-
 fun x(a, b, c)
-	print(a, b, c);
+	print('a = ', a, '\nb = ', b, '\nc = ', c, '\n\n');
 
-print(x(1, 2, 3));
-
-fun hello() 
-	print('hel\nlo', 2);
-
-return hello();
+x(1, 2, 3, 4, 5);
+x(1, 2, 3, 4);
+x(1, 2, 3); 
+x(1, 2); # Fails here!
+x(1);
+x();

@@ -52,7 +52,7 @@ Object *Object_NewMap(int num, Heap *heap, Error *error)
 
 		obj->mapper_size = mapper_size;
 		obj->count = 0;
-		obj->mapper = Heap_RawMalloc(heap, sizeof(int) * capacity, error);
+		obj->mapper = Heap_RawMalloc(heap, sizeof(int) * mapper_size, error);
 		obj->keys   = Heap_RawMalloc(heap, sizeof(Object*) * capacity, error);
 		obj->vals   = Heap_RawMalloc(heap, sizeof(Object*) * capacity, error);
 
