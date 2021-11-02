@@ -46,8 +46,16 @@ Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, He
 	if(func == NULL)
 		return NULL;
 
+	Executable *exe_copy = Executable_Copy(exe);
+
+	if(exe_copy == NULL)
+		{
+			Error_Report(error, 1, "Failed to copy executable");
+			return NULL;
+		}
+
 	func->runtime = runtime;
-	func->exe = exe;
+	func->exe = exe_copy;
 	func->index = index;
 	return (Object*) func;
 }

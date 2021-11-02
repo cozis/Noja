@@ -155,6 +155,9 @@ Source *Source_FromString(const char *name, const char *body, int size, Error *e
 
 	if(name)
 		strcpy(s->name, name);
+	else
+		s->name = NULL;
+	
 	strncpy(s->body, body, size);
 	return s;
 }
