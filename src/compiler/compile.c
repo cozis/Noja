@@ -324,7 +324,8 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1,  arg->base.offset, arg->base.length))
 								return 0;
 
-							assert(arg->base.next->kind == NODE_ARG);
+							if(arg->base.next)
+								assert(arg->base.next->kind == NODE_ARG);
 
 							arg = (ArgumentNode*) arg->base.next;
 						}

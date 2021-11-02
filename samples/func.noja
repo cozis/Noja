@@ -1,4 +1,9 @@
 
+fun x(a, b, c)
+	print(a, b, c);
+
+print(x(1, 2, 3));
+
 fun hello() 
 	print('hel\nlo', 2);
 
