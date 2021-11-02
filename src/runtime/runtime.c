@@ -15,13 +15,15 @@ struct Frame {
 };
 
 struct xRuntime {
+	void *callback_userp;
+	_Bool (*callback_addr)(Runtime*, void*);
 	int    depth;
 	Frame *frame;
 	Stack *stack;
 	Heap  *heap;
 };
 
-Runtime *Runtime_New(int stack_size, int heap_size)
+Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
 {
 	if(stack_size < 0)
 		stack_size = 1024;
@@ -53,6 +55,8 @@ Runtime *Runtime_New(int stack_size, int heap_size)
 				free(runtime);
 			}
 
+		runtime->callback_userp = callback_userp;
+		runtime->callback_addr = callback_addr;
 		runtime->frame = NULL;
 		runtime->depth = 0;
 	}
@@ -560,7 +564,7 @@ static _Bool step(Runtime *runtime, Error *error)
 	return 1;
 }
 
-Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc, void *userp, _Bool (*callback)(Runtime*, void*))
+Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc)
 {
 	assert(runtime != NULL);
 	assert(error != NULL);
@@ -599,13 +603,13 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 
 	// Run the code.
 
-	if(callback != NULL)
+	if(runtime->callback_addr != NULL)
 		{
-			if(!callback(runtime, userp))
+			if(!runtime->callback_addr(runtime, runtime->callback_userp))
 				Error_Report(error, 0, "Forced abortion");
 			else
 				while(step(runtime, error))
-					if(!callback(runtime, userp))
+					if(!runtime->callback_addr(runtime, runtime->callback_userp))
 						{
 							Error_Report(error, 0, "Forced abortion");
 							break;
