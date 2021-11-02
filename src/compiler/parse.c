@@ -315,6 +315,41 @@ static inline TokenKind current(Context *ctx)
 	return current_token(ctx)->kind;
 }
 
+#if 0
+
+#include <stdio.h>
+
+static inline TokenKind next(Context *ctx, const char *file, int line)
+{
+	assert(ctx != NULL);
+	assert(ctx->token != NULL);
+	assert(ctx->token->kind != TDONE);
+
+	Token *prev = ctx->token;
+
+	ctx->token = ctx->token->next;
+
+	fprintf(stderr, "NEXT [%.*s] -> [%.*s] from %s:%d\n", 
+		      prev->length, ctx->src +       prev->offset,
+		ctx->token->length, ctx->src + ctx->token->offset, 
+		file, line);
+
+	return current(ctx);
+}
+
+static inline TokenKind prev(Context *ctx)
+{
+	assert(ctx != NULL);
+	assert(ctx->token != NULL);
+	assert(ctx->token->prev != NULL);
+	ctx->token = ctx->token->prev;
+	return current(ctx);
+}
+
+#define next(ctx) next(ctx, __FILE__, __LINE__)
+
+#else
+
 static inline TokenKind next(Context *ctx)
 {
 	assert(ctx != NULL);
@@ -332,6 +367,8 @@ static inline TokenKind prev(Context *ctx)
 	ctx->token = ctx->token->prev;
 	return current(ctx);
 }
+
+#endif
 
 static inline _Bool done(Context *ctx)
 {
@@ -404,7 +441,7 @@ static Node *parse_statement(Context *ctx)
 			case TKWFUN:
 			return parse_function_definition(ctx);
 		}
-	
+
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
 		ctx->token->length, ctx->src + ctx->token->offset);
 	return NULL;
@@ -677,9 +714,8 @@ static Node *parse_primary_expresion(Context *ctx)
 					node->base.kind = EXPR_INT;
 					node->val = val;
 				}
-
-				ctx->token = ctx->token->next;
-				assert(ctx->token != NULL);
+				
+				next(ctx);
 
 				return (Node*) node;
 			}
@@ -726,8 +762,7 @@ static Node *parse_primary_expresion(Context *ctx)
 					node->val = val;
 				}
 
-				ctx->token = ctx->token->next;
-				assert(ctx->token != NULL);
+				next(ctx);
 				
 				return (Node*) node;
 			}
@@ -837,8 +872,7 @@ static Node *parse_primary_expresion(Context *ctx)
 					node->len = copyl;
 				}
 
-				ctx->token = ctx->token->next;
-				assert(ctx->token != NULL);
+				next(ctx);
 
 				return (Node*) node;
 			}
@@ -997,8 +1031,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 		{
 			Token *op = ctx->token;
 
-			ctx->token = ctx->token->next;
-			assert(ctx->token != NULL);
+			next(ctx);
 
 			Node *right_expr = parse_postfix_expression(ctx);
 
@@ -1060,7 +1093,7 @@ static Node *parse_expression(Context *ctx)
 	if(left_expr == NULL)
 		return NULL;
 
-	if(ctx->token->kind == TDONE)
+	if(done(ctx))
 		return left_expr;
 
 	return parse_expression_2(ctx, left_expr, -1000000000);
@@ -1092,9 +1125,23 @@ static Node *parse_ifelse_statement(Context *ctx)
 	if(condition == NULL) 
 		return NULL;
 
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended right after an if-else condition, where a ':' was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != ':')
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after an if-else condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	next(ctx); // Skip the ':'.
+
 	Node *true_branch = parse_statement(ctx);
 	
-	if(condition == NULL) 
+	if(true_branch == NULL) 
 		return NULL;
 
 	Node *false_branch = NULL;
@@ -1104,7 +1151,7 @@ static Node *parse_ifelse_statement(Context *ctx)
 			next(ctx); // Consume the "else" token.
 
 			false_branch = parse_statement(ctx);
-			
+
 			if(false_branch == NULL) 
 				return NULL;
 		}

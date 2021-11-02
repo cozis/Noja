@@ -1,8 +1,9 @@
-p = (true);
+p = (false);
 
-if p
-	(a = 1);
+if p:
+	a = 1;
 else
 	a = 2;
 
+print(a);
 return a;
