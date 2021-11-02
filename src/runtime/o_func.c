@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 #include "../utils/defs.h"
 #include "../objects/objects.h"
 #include "runtime.h"
@@ -7,7 +8,7 @@ typedef struct {
 	Object base;
 	Runtime *runtime;
 	Executable *exe;
-	int index;
+	int index, argc;
 } FunctionObject;
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error);
@@ -28,16 +29,64 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	FunctionObject *func = (FunctionObject*) self;
 
 	assert(func->exe != NULL);
+	assert(func->argc >= 0);
 	assert(func->index >= 0);
 
-	return run(func->runtime, error, func->exe, func->index, argv, argc);	
+	// Make sure the right amount of arguments is provided.
+
+	Object **argv2;
+
+	int expected_argc = func->argc;
+
+	if(expected_argc < (int) argc)
+		{
+			// Nothing to be done. By using
+			// the right argc the additional
+			// arguments are ignored implicitly.
+			argv2 = argv;
+		}
+	else if(expected_argc > (int) argc)
+		{
+			// Some arguments are missing.
+			argv2 = malloc(sizeof(Object*) * expected_argc);
+
+			if(argv2 == NULL)
+				{
+					Error_Report(error, 1, "No memory");
+					return NULL;
+				}
+
+			// Copy the provided arguments.
+			for(int i = 0; i < (int) argc; i += 1)
+				argv2[i] = argv[i];
+
+			// Set the unspecified arguments to none.
+			for(int i = argc; i < expected_argc; i += 1)
+				{
+					argv2[i] = Object_NewNone(heap, error);
+
+					if(argv2[i] == NULL)
+						return 0;
+				}
+		}
+	else
+		// The right amount of arguments was provided.
+		argv2 = argv;
+
+	Object *result = run(func->runtime, error, func->exe, func->index, argv2, expected_argc);
+
+	if(argv2 != argv)
+		free(argv2);
+
+	return result;
 }
 
-Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, Heap *heap, Error *error)
+Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Heap *heap, Error *error)
 {
 	assert(runtime != NULL);
 	assert(exe != NULL);
 	assert(index >= 0);
+	assert(argc >= 0);
 	assert(heap != NULL);
 	assert(error != NULL);
 
@@ -57,5 +106,7 @@ Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, He
 	func->runtime = runtime;
 	func->exe = exe_copy;
 	func->index = index;
+	func->argc = argc;
+
 	return (Object*) func;
 }

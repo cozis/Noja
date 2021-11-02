@@ -20,5 +20,5 @@ void 	  Snapshot_Print(Snapshot *snapshot, FILE *fp);
 
 Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc);
 
-Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int offset, Heap *heap, Error *error);
+Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Heap *heap, Error *error);
 #endif

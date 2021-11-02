@@ -531,6 +531,22 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
+			case OPCODE_PUSHFUN:
+			{
+				assert(opc == 2);
+				assert(ops[0].type == OPTP_INT);
+				assert(ops[1].type == OPTP_INT);
+
+				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, runtime->heap, error);
+				
+				if(obj == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
+				return 1;
+			}
+
 			case OPCODE_RETURN:
 			return 0;
 

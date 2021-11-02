@@ -76,6 +76,7 @@ gcc src/main.c src/debug.c \
 	temp/objects/o_string.o \
 	temp/runtime/runtime.o \
 	temp/runtime/runtime_error.o \
+	temp/runtime/o_func.o \
 	temp/common/executable.o \
 	-o build/noja $FLAGS -Lbuild/ -lnoja-compile -lnoja-objects -lxjson
 

@@ -241,6 +241,86 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				return 1;
 			}
 
+			case NODE_FUNC:
+			{
+				FunctionNode *func = (FunctionNode*) node;
+
+				Promise *func_index = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+				Promise *jump_index = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+
+				if(func_index == NULL || jump_index == NULL)
+					{
+						Error_Report(error, 1, "No memory");
+						return 0;
+					}
+
+				// Push function.
+				{
+					Operand ops[2] = {
+						{ .type = OPTP_PROMISE, .as_promise = func_index },
+						{ .type = OPTP_INT,     .as_int     = func->argc },
+					};
+
+					if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHFUN, ops, 2, func->base.offset, func->base.length))
+						return 0;
+				}
+				
+				// Assign variable.
+				Operand op = (Operand) { .type = OPTP_STRING, .as_string = func->name };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1,  func->base.offset, func->base.length))
+					return 0;
+
+				// Pop function object.
+				op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1,  func->base.offset, func->base.length))
+					return 0;
+
+				// Jump after the function code.
+				op = (Operand) { .type = OPTP_PROMISE, .as_promise = jump_index };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1,  func->base.offset, func->base.length))
+					return 0;
+
+				// This is the function code index.
+				long long int temp = ExeBuilder_InstrCount(exeb);
+				Promise_Resolve(func_index, &temp, sizeof(temp));
+
+				// Compile the function body.
+				{
+					// Assign the arguments.
+
+					if(func->argv)
+						assert(func->argv->kind == NODE_ARG);
+
+					ArgumentNode *arg = (ArgumentNode*) func->argv;
+
+					while(arg)
+						{
+							op = (Operand) { .type = OPTP_STRING, .as_string = arg->name };
+							if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1,  arg->base.offset, arg->base.length))
+								return 0;
+
+							op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+							if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1,  arg->base.offset, arg->base.length))
+								return 0;
+
+							assert(arg->base.next->kind == NODE_ARG);
+
+							arg = (ArgumentNode*) arg->base.next;
+						}
+
+					if(!emit_instr_for_node(exeb, func->body, error))
+						return 0;
+				}
+
+				// This is the first index after the function code.
+				temp = ExeBuilder_InstrCount(exeb);
+				Promise_Resolve(jump_index, &temp, sizeof(temp));
+
+				Promise_Free(func_index);
+				Promise_Free(jump_index);
+				return 1;
+			}
+
 			default:
 			UNREACHABLE;
 			return 0;

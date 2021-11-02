@@ -25,6 +25,7 @@ typedef enum {
 	TIDENT,
 
 	TKWIF,
+	TKWFUN,
 	TKWELSE,
 	TKWNONE,
 	TKWTRUE,
@@ -51,6 +52,7 @@ static Node *parse_expression(Context *ctx);
 static Node *parse_expression_statement(Context *ctx);
 static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
+static Node *parse_function_definition(Context *ctx);
 
 static inline _Bool isoper(char c)
 {
@@ -124,6 +126,10 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 					if(matchstr(str + tok->offset, tok->length, "if"))
 						{
 							tok->kind = TKWIF;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "fun"))
+						{
+							tok->kind = TKWFUN;
 						}
 					else if(matchstr(str + tok->offset, tok->length, "else"))
 						{
@@ -397,6 +403,9 @@ static Node *parse_statement(Context *ctx)
 				node->val = val;
 				return (Node*) node;
 			}
+
+			case TKWFUN:
+			return parse_function_definition(ctx);
 		}
 
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
@@ -549,6 +558,20 @@ static Node *parse_string_primary_expression(Context *ctx)
 
 	next(ctx);
 	return (Node*) node;
+}
+
+static char *copy_token_text(Context *ctx)
+{
+	char *copy = BPAlloc_Malloc(ctx->alloc, ctx->token->length + 1);
+
+	if(copy == NULL)
+		return NULL;
+
+	memcpy(copy, ctx->src + ctx->token->offset, ctx->token->length);
+
+	copy[ctx->token->length] = '\0';
+
+	return copy;
 }
 
 static Node *parse_primary_expresion(Context *ctx)
@@ -789,23 +812,14 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			case TIDENT:
 			{
-				char *copy;
-				int   copyl;
+				char *copy  = copy_token_text(ctx);
+				int   copyl = ctx->token->length;
 
-				{
-					copy = BPAlloc_Malloc(ctx->alloc, ctx->token->length + 1);
-
-					if(copy == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					copyl = ctx->token->length;
-					memcpy(copy, ctx->src + ctx->token->offset, copyl);
-					copy[copyl] = '\0';
-					
-				}
+				if(copy == NULL)
+					{
+						Error_Report(ctx->error, 1, "No memory");
+						return NULL;
+					}
 
 				IdentExprNode *node;
 				{
@@ -966,7 +980,6 @@ static Node *parse_expression(Context *ctx)
 static Node *parse_ifelse_statement(Context *ctx)
 {
 	assert(ctx != NULL);
-	assert(ctx->token != NULL);
 
 	if(done(ctx))
 		{
@@ -1076,4 +1089,159 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 	}
 
 	return (Node*) node;
+}
+
+static Node *parse_function_definition(Context *ctx)
+{
+	assert(ctx != NULL);
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a function definition was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != TKWFUN)
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function definition was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	int offset = current_token(ctx)->offset;
+
+	if(next(ctx) != TIDENT)
+		{
+			if(done(ctx))
+				Error_Report(ctx->error, 0, "Source ended where an identifier was expected as function name");
+			else
+				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an identifier was expected as function name", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	char *name = copy_token_text(ctx);
+
+	if(name == NULL)
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
+
+	if(next(ctx) != '(')
+		{
+			if(done(ctx))
+				Error_Report(ctx->error, 0, "Source ended where a function argument list was expected");
+			else
+				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument list was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	Node *argv = NULL;
+	int   argc = 0;
+
+	if(next(ctx) != ')')
+		{
+			// Parse arguments.
+
+			while(1)
+				{
+					if(done(ctx))
+						{
+							Error_Report(ctx->error, 0, "Source ended inside a function argument list");
+							return NULL;
+						}
+
+					if(current(ctx) != TIDENT)
+						{
+							Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument name was expected", ctx->token->length, ctx->src + ctx->token->offset);
+							return NULL;
+						}
+
+					char *arg_name = copy_token_text(ctx);
+
+					if(arg_name == NULL)
+						{
+							Error_Report(ctx->error, 1, "No memory");
+							return NULL;
+						}
+
+					ArgumentNode *arg;
+					{
+						// Make argument node.
+						arg = BPAlloc_Malloc(ctx->alloc, sizeof(ArgumentNode));
+
+						if(arg == NULL)
+							{
+								Error_Report(ctx->error, 1, "No memory");
+								return NULL;
+							}
+
+						arg->base.kind = NODE_ARG;
+						arg->base.next = NULL;
+						arg->base.offset = current_token(ctx)->offset;
+						arg->base.length = current_token(ctx)->length;
+						arg->name = arg_name;
+					}
+
+					// Add it to the list.
+					argc += 1;
+					arg->base.next = argv;
+					argv = (Node*) arg;
+
+					// Get either ',' or ')'.
+
+					if(next(ctx) == ')')
+						break;
+
+					if(done(ctx))
+						{
+							Error_Report(ctx->error, 0, "Source ended inside a function argument list");
+							return NULL;
+						}
+
+					if(current(ctx) != ',')
+						{
+							Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+							return NULL;
+						}
+
+					// Now prepare for the next identifier.
+					next(ctx);
+				}
+		}
+
+	next(ctx); // Consume the ')'.
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended before function body");
+			return NULL;
+		}
+
+	Node *body = parse_statement(ctx);
+
+	if(body == NULL)
+		return NULL;
+
+	FunctionNode *func;
+	{
+		// Make argument node.
+		func = BPAlloc_Malloc(ctx->alloc, sizeof(FunctionNode));
+
+		if(func == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		func->base.kind = NODE_FUNC;
+		func->base.next = NULL;
+		func->base.offset = offset;
+		func->base.length = body->offset + body->length - offset;
+		func->name = name;
+		func->argv = argv;
+		func->argc = argc;
+		func->body = body;
+	}
+
+	return (Node*) func;
 }

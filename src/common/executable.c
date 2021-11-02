@@ -57,6 +57,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHTRU] = {"PUSHTRU", 0, NULL},
 	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, NULL},
 	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, NULL},
+	[OPCODE_PUSHFUN] = {"PUSHFUN", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
 
 	[OPCODE_RETURN] = {"RETURN", 0, NULL},
 
@@ -319,7 +320,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 			// ERROR: Too many operands were provided.
 			Error_Report(error, 0, 
 				"Instruction %s expects %d operands, but %d were provided", 
-				info->name, opc, info->opcount);
+				info->name, info->opcount, opc);
 			return 0;
 		}
 

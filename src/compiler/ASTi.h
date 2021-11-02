@@ -9,6 +9,8 @@ typedef enum {
 	NODE_IFELSE,
 	NODE_COMP,
 	NODE_RETURN,
+	NODE_FUNC,
+	NODE_ARG,
 } NodeKind;
 
 typedef enum {
@@ -93,4 +95,17 @@ typedef struct {
 	Node base;
 	Node *val;
 } ReturnNode;
+
+typedef struct {
+	Node  base;
+	char *name;
+	Node *argv;
+	int   argc;
+	Node *body;
+} FunctionNode;
+
+typedef struct {
+	Node  base;
+	char *name;
+} ArgumentNode;
 #endif

@@ -1,0 +1,7 @@
+
+fun hello() 
+	{
+		print;('hello');
+	}
+
+return hello;
