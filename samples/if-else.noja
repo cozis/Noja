@@ -1,8 +1,10 @@
 p = (false);
 
-if p:
-	a = 1;
-else
+if p: 
+	{
+		a = 1; 
+	}
+else 
 	a = 2;
 
 print(a);

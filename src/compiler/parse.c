@@ -375,9 +375,6 @@ static inline _Bool done(Context *ctx)
 	return current(ctx) == TDONE;
 }
 
-#warning "TEMP"
-#include <stdio.h>
-
 static Node *parse_statement(Context *ctx)
 {
 	assert(ctx != NULL);

@@ -1,0 +1,5 @@
+
+if false:
+	a = 33;
+
+print(a, '\n');

@@ -22,8 +22,6 @@ typedef struct {
 	const char *input, *output;
 } Options;
 
-_Bool debug_callback(Runtime *runtime, void *userp);
-
 static int parse_args(Options *opts, int argc, char **argv, Error *error)
 {
 	assert(argc >= 0);
