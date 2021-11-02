@@ -1,4 +1,9 @@
 
+fun k(k)
+	return k();
+
+k(k);
+
 fun x(a, b, c)
 	print(a, b, c);
 

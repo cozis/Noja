@@ -4,6 +4,7 @@
 #include "runtime.h"
 
 #define MAX_FRAME_STACK 16
+#define MAX_FRAMES 1024
 
 typedef struct Frame Frame;
 
@@ -674,6 +675,14 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	assert(exe != NULL);
 	assert(index >= 0);
 	assert(argc >= 0);
+
+	if(runtime->depth == MAX_FRAMES)
+		{
+			Error_Report(error, 1, "Maximum nested call limit of %d was reached", MAX_FRAMES);
+			return NULL;
+		}
+
+	assert(runtime->depth < MAX_FRAMES);
 		
 	// Initialize the frame.
 	Frame frame;
