@@ -7,10 +7,19 @@ while p:
 		p = false;
 	}
 
+# ------------------------------------- #
 
+do
+	{
+		print('Hello 2!\n'); 
+	}
+while false;
 
-do { 
-	
-	print('Hello 2!\n'); 
+# ------------------------------------- #
 
-} while true;
+i = 0;
+while i < 10:
+	{
+		print('i = ', i+1, '\n');	
+		i = i + 1;
+	}

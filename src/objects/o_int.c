@@ -4,6 +4,7 @@
 
 static long long int to_int(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
+static _Bool op_eql(Object *self, Object *other);
 
 typedef struct {
 	Object base;
@@ -17,6 +18,7 @@ static const Type t_int = {
 	.atomic = ATMTP_INT,
 	.to_int = to_int,
 	.print = print,
+	.op_eql = op_eql,
 };
 
 static long long int to_int(Object *obj, Error *err)
@@ -52,4 +54,19 @@ static void print(Object *obj, FILE *fp)
 	assert(obj->type == &t_int);
 
 	fprintf(fp, "%lld", ((IntObject*) obj)->val);
+}
+
+static _Bool op_eql(Object *self, Object *other)
+{
+	assert(self != NULL);
+	assert(self->type == &t_int);
+	assert(other != NULL);
+	assert(other->type == &t_int);
+
+	IntObject *i1, *i2;
+
+	i1 = (IntObject*) self;
+	i2 = (IntObject*) other;
+
+	return i1->val == i2->val;
 }

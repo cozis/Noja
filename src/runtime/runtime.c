@@ -349,6 +349,100 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 	return res;
 }
 
+static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, Error *error)
+{
+	assert(lop != NULL);
+	assert(rop != NULL);
+
+	#define APPLY(x, y, z, id) 								\
+		switch(opcode)										\
+			{												\
+				case OPCODE_LSS: (z) = (x) <  (y); break;	\
+				case OPCODE_GRT: (z) = (x) >  (y); break;	\
+				case OPCODE_LEQ: (z) = (x) <= (y); break;	\
+				case OPCODE_GEQ: (z) = (x) >= (y); break;	\
+				default: assert(0); break;					\
+			}
+
+	_Bool res;
+
+	if(Object_IsInt(lop))
+		{
+			long long int raw_lop = Object_ToInt(lop, error);
+
+			if(error->occurred)
+				return NULL;
+
+			if(Object_IsInt(rop))
+				{
+					// int + int
+					long long int raw_rop = Object_ToInt(rop, error);
+
+					if(error->occurred)
+						return NULL;
+
+					APPLY(raw_lop, raw_rop, res, id)
+				}
+			else if(Object_IsFloat(rop))
+				{
+					// int + float
+					double raw_rop = Object_ToFloat(rop, error);
+
+					if(error->occurred)
+						return NULL;
+
+					APPLY((double) raw_lop, raw_rop, res, id)
+				}
+			else
+				{
+					Error_Report(error, 0, "Relational operation on a non-numeric object");
+					return NULL;
+				}
+		}
+	else if(Object_IsFloat(lop))
+		{
+			double raw_lop = Object_ToFloat(lop, error);
+
+			if(error->occurred)
+				return NULL;
+
+			if(Object_IsInt(rop))
+				{
+					// float + int
+					long long int raw_rop = Object_ToInt(rop, error);
+
+					if(error->occurred)
+						return NULL;
+
+					APPLY(raw_lop, (double) raw_rop, res, id)
+				}
+			else if(Object_IsFloat(rop))
+				{
+					// float + float
+					double raw_rop = Object_ToFloat(rop, error);
+
+					if(error->occurred)
+						return NULL;
+
+					APPLY(raw_lop, raw_rop, res, id)
+				}
+			else
+				{
+					Error_Report(error, 0, "Relational operation on a non-numeric object");
+					return NULL;
+				}
+		}
+	else
+		{
+			Error_Report(error, 0, "Relational operation on a non-numeric object");
+			return NULL;
+		}
+
+	#undef APPLY
+
+	return Object_FromBool(res, heap, error);
+}
+
 static _Bool step(Runtime *runtime, Error *error)
 {
 	assert(runtime != NULL);
@@ -405,6 +499,68 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(!Runtime_Push(runtime, error, res))
 					return 0;
 				break;
+			}
+
+			case OPCODE_EQL:
+			case OPCODE_NQL:
+			{
+				assert(opc == 0);
+
+				Object *rop = Stack_Top(runtime->stack,  0);
+				Object *lop = Stack_Top(runtime->stack, -1);
+
+				if(!Runtime_Pop(runtime, error, 2))
+					return 0;
+
+				// We managed to pop rop and lop,
+				// so we know they're not NULL.
+				assert(rop != NULL);
+				assert(lop != NULL);
+
+				_Bool rawres = Object_Compare(lop, rop, error);
+
+				if(error->occurred == 1)
+					return 0;
+
+				if(opcode == OPCODE_NQL)
+					rawres = !rawres;
+
+				Object *res = Object_FromBool(rawres, runtime->heap, error);
+
+				if(res == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, res))
+					return 0;
+				return 1;
+			}
+
+			case OPCODE_LSS:
+			case OPCODE_GRT:
+			case OPCODE_LEQ:
+			case OPCODE_GEQ:
+			{
+				assert(opc == 0);
+
+				Object *rop = Stack_Top(runtime->stack,  0);
+				Object *lop = Stack_Top(runtime->stack, -1);
+
+				if(!Runtime_Pop(runtime, error, 2))
+					return 0;
+
+				// We managed to pop rop and lop,
+				// so we know they're not NULL.
+				assert(rop != NULL);
+				assert(lop != NULL);
+
+				Object *res = do_relational_op(lop, rop, opcode, runtime->heap, error);
+
+				if(res == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, res))
+					return 0;
+				return 1;
 			}
 
 			case OPCODE_ASS:

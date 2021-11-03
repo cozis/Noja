@@ -15,6 +15,12 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 			case EXPR_SUB: return OPCODE_SUB;
 			case EXPR_MUL: return OPCODE_MUL;
 			case EXPR_DIV: return OPCODE_DIV;
+			case EXPR_EQL: return OPCODE_EQL;
+			case EXPR_NQL: return OPCODE_NQL;
+			case EXPR_LSS: return OPCODE_LSS;
+			case EXPR_LEQ: return OPCODE_LEQ;
+			case EXPR_GRT: return OPCODE_GRT;
+			case EXPR_GEQ: return OPCODE_GEQ;
 			default:
 			UNREACHABLE;
 			break;
@@ -38,6 +44,12 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						case EXPR_SUB:
 						case EXPR_MUL:
 						case EXPR_DIV:
+						case EXPR_EQL:
+						case EXPR_NQL:
+						case EXPR_LSS:
+						case EXPR_LEQ:
+						case EXPR_GRT:
+						case EXPR_GEQ:
 						{
 							OperExprNode *oper = (OperExprNode*) expr;
 

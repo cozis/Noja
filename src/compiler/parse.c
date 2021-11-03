@@ -16,6 +16,10 @@ typedef enum {
 	TSUB = '-',
 	TMUL = '*',
 	TDIV = '/',
+
+	TLSS = '<',
+	TGRT = '>',
+
 	TASS = '=',
 
 	TDONE = 256,
@@ -33,6 +37,12 @@ typedef enum {
 	TKWRETURN,
 	TKWWHILE,
 	TKWDO,
+
+	TEQL,
+	TNQL,
+	TLEQ,
+	TGEQ,
+
 } TokenKind;
 
 typedef struct Token Token;
@@ -65,6 +75,9 @@ static inline _Bool isoper(char c)
 			c == '-' || 
 			c == '*' || 
 			c == '/' || 
+			c == '<' ||
+			c == '>' ||
+			c == '!' ||
 			c == '=';
 }
 
@@ -238,6 +251,30 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 					else if(matchop(str + tok->offset, tok->length, "/"))
 						{
 							tok->kind = TDIV;
+						}
+					else if(matchop(str + tok->offset, tok->length, "=="))
+						{
+							tok->kind = TEQL;
+						}
+					else if(matchop(str + tok->offset, tok->length, "!="))
+						{
+							tok->kind = TNQL;
+						}
+					else if(matchop(str + tok->offset, tok->length, "<"))
+						{
+							tok->kind = TLSS;
+						}
+					else if(matchop(str + tok->offset, tok->length, "<="))
+						{
+							tok->kind = TLEQ;
+						}
+					else if(matchop(str + tok->offset, tok->length, ">"))
+						{
+							tok->kind = TGRT;
+						}
+					else if(matchop(str + tok->offset, tok->length, ">="))
+						{
+							tok->kind = TGEQ;
 						}
 					else if(matchop(str + tok->offset, tok->length, "="))
 						{
@@ -1010,6 +1047,12 @@ static inline _Bool isbinop(Token *tok)
 			tok->kind == '-' || 
 			tok->kind == '*' || 
 			tok->kind == '/' ||
+			tok->kind == '<' ||
+			tok->kind == '>' ||
+			tok->kind == TLEQ ||
+			tok->kind == TGEQ ||
+			tok->kind == TEQL ||
+			tok->kind == TNQL ||
 			tok->kind == '=';
 }
 
@@ -1029,13 +1072,21 @@ static inline int precedenceof(Token *tok)
 			case '=':
 			return 0;
 
+			case '<':
+			case '>':
+			case TLEQ:
+			case TGEQ:
+			case TEQL:
+			case TNQL:
+			return 1;
+
 			case '+':
 			case '-':
-			return 1;
+			return 2;
 
 			case '*':
 			case '/':
-			return 2;
+			return 3;
 			
 			default:
 			return -100000000;
@@ -1087,6 +1138,12 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 						case '-': temp->base.kind = EXPR_SUB; break;
 						case '*': temp->base.kind = EXPR_MUL; break;
 						case '/': temp->base.kind = EXPR_DIV; break;
+						case '<': temp->base.kind = EXPR_LSS; break;
+						case '>': temp->base.kind = EXPR_GRT; break;
+						case TLEQ: temp->base.kind = EXPR_LEQ; break;
+						case TGEQ: temp->base.kind = EXPR_GEQ; break;
+						case TEQL: temp->base.kind = EXPR_EQL; break;
+						case TNQL: temp->base.kind = EXPR_NQL; break;
 						case '=': temp->base.kind = EXPR_ASS; break;
 
 						default:
