@@ -11,6 +11,8 @@ typedef enum {
 	NODE_RETURN,
 	NODE_FUNC,
 	NODE_ARG,
+	NODE_WHILE,
+	NODE_DOWHILE,
 } NodeKind;
 
 typedef enum {
@@ -82,17 +84,29 @@ typedef struct {
 
 typedef struct {
 	ExprNode base;
-	Node *func;
-	Node *argv;
-	int   argc;
+	Node    *func;
+	Node    *argv;
+	int      argc;
 } CallExprNode;
 
 typedef struct {
-	Node base;
+	Node  base;
 	Node *condition;
 	Node *true_branch;
 	Node *false_branch;
 } IfElseNode;
+
+typedef struct {
+	Node  base;
+	Node *condition;
+	Node *body;
+} WhileNode;
+
+typedef struct {
+	Node  base;
+	Node *body;
+	Node *condition;
+} DoWhileNode;
 
 typedef struct {
 	Node  base;

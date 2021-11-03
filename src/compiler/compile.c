@@ -225,6 +225,92 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				return 1;
 			}
 
+			case NODE_WHILE:
+			{
+				WhileNode *whl = (WhileNode*) node;
+
+				/* 
+				 * start:
+				 *   <condition>
+				 * 	 JUMPIFNOTANDPOP end
+				 *   <body>
+				 *   JUMP start
+				 * end:
+				 */
+
+				Promise *start_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+				Promise   *end_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+
+				if(start_offset == NULL || end_offset == NULL)
+					{
+						Error_Report(error, 1, "No memory");
+						return 0;
+					}
+
+				long long int temp = ExeBuilder_InstrCount(exeb);
+				Promise_Resolve(start_offset, &temp, sizeof(temp));
+
+				if(!emit_instr_for_node(exeb, whl->condition, error))
+					return 0;
+
+				Operand op = { .type = OPTP_PROMISE, .as_promise = end_offset };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &op, 1, whl->condition->offset, whl->condition->length))
+					return 0;
+
+				if(!emit_instr_for_node(exeb, whl->body, error))
+					return 0;
+
+				if(whl->body->kind == NODE_EXPR)
+					{
+						Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+						if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, whl->body->offset, 0))
+							return 0;
+					}
+				
+				op = (Operand) { .type = OPTP_PROMISE, .as_promise = start_offset };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
+					return 0;
+
+				temp = ExeBuilder_InstrCount(exeb);
+				Promise_Resolve(end_offset, &temp, sizeof(temp));
+
+				Promise_Free(start_offset);
+				Promise_Free(  end_offset);
+				return 1;
+			}
+
+			case NODE_DOWHILE:
+			{
+				DoWhileNode *dowhl = (DoWhileNode*) node;
+
+				/*
+				 * start:
+				 *   <body>
+				 *   <condition>
+				 *   JUMPIFANDPOP start
+				 */
+
+				long long int start = ExeBuilder_InstrCount(exeb);
+
+				if(!emit_instr_for_node(exeb, dowhl->body, error))
+					return 0;
+
+				if(dowhl->body->kind == NODE_EXPR)
+					{
+						Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+						if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, dowhl->body->offset, 0))
+							return 0;
+					}
+
+				if(!emit_instr_for_node(exeb, dowhl->condition, error))
+					return 0;
+
+				Operand op = { .type = OPTP_INT, .as_int = start };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFANDPOP, &op, 1, dowhl->condition->offset, dowhl->condition->length))
+					return 0;
+				return 1;
+			}
+
 			case NODE_COMP:
 			{
 				CompoundNode *comp = (CompoundNode*) node;

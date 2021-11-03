@@ -62,6 +62,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_RETURN] = {"RETURN", 0, NULL},
 
 	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_JUMPIFANDPOP] = {"JUMPIFANDPOP", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_JUMP] = {"JUMP", 1, (OperandType[]) {OPTP_INT}},
 };
 

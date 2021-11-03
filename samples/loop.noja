@@ -1,0 +1,16 @@
+
+p = true;
+
+while p: 
+	{
+		print('Hello!\n');
+		p = false;
+	}
+
+
+
+do { 
+	
+	print('Hello 2!\n'); 
+
+} while true;

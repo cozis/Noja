@@ -31,6 +31,8 @@ typedef enum {
 	TKWTRUE,
 	TKWFALSE,
 	TKWRETURN,
+	TKWWHILE,
+	TKWDO,
 } TokenKind;
 
 typedef struct Token Token;
@@ -54,6 +56,8 @@ static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
 static Node *parse_function_definition(Context *ctx);
 static Node *parse_postfix_expression(Context *ctx);
+static Node *parse_while_statement(Context *ctx);
+static Node *parse_dowhile_statement(Context *ctx);
 
 static inline _Bool isoper(char c)
 {
@@ -151,6 +155,14 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 					else if(matchstr(str + tok->offset, tok->length, "return"))
 						{
 							tok->kind = TKWRETURN;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "while"))
+						{
+							tok->kind = TKWWHILE;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "do"))
+						{
+							tok->kind = TKWDO;
 						}
 
 					#undef matchstr
@@ -437,6 +449,12 @@ static Node *parse_statement(Context *ctx)
 
 			case TKWFUN:
 			return parse_function_definition(ctx);
+
+			case TKWWHILE:
+			return parse_while_statement(ctx);
+
+			case TKWDO:
+			return parse_dowhile_statement(ctx);
 		}
 
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
@@ -449,10 +467,15 @@ static Node *parse_expression_statement(Context *ctx)
 	assert(ctx != NULL);
 
 	Node *expr = parse_expression(ctx);
-	if(expr == NULL) return NULL;
+	
+	if(expr == NULL) 
+		return NULL;
 
-	// The final statement doesn't need a ';'.
-	if(done(ctx)) return expr;
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended right after an expression, where a ';' was expected");
+			return NULL;
+		}
 
 	if(current(ctx) != ';')
 		{
@@ -1377,4 +1400,152 @@ static Node *parse_function_definition(Context *ctx)
 	}
 
 	return (Node*) func;
+}
+
+static Node *parse_while_statement(Context *ctx)
+{
+	assert(ctx != NULL);
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a while statement was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != TKWWHILE)
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	Token *while_token = current_token(ctx);
+	assert(while_token != NULL);
+
+	next(ctx); // Consume the "while" keyword.
+
+	Node *condition = parse_expression(ctx);
+	
+	if(condition == NULL) 
+		return NULL;
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended right after a while loop condition, where a ':' was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != ':')
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a while loop condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	next(ctx); // Skip the ':'.
+
+	Node *body = parse_statement(ctx);
+	
+	if(body == NULL) 
+		return NULL;
+
+	WhileNode *whl;
+	{
+		whl = BPAlloc_Malloc(ctx->alloc, sizeof(WhileNode));
+		
+		if(whl == NULL)
+			{
+				// ERROR: No memory.
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		whl->base.kind = NODE_WHILE;
+		whl->base.next = NULL;
+		whl->base.offset = while_token->offset;
+		whl->base.length = ctx->token->offset + ctx->token->length - while_token->offset;
+		whl->condition = condition;
+		whl->body = body;
+	}
+
+	return (Node*) whl;
+}
+
+static Node *parse_dowhile_statement(Context *ctx)
+{
+	assert(ctx != NULL);
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a do-while statement was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != TKWDO)
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a do-while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	Token *do_token = current_token(ctx);
+	assert(do_token != NULL);
+
+	next(ctx); // Consume the "do" keyword.
+
+	Node *body = parse_statement(ctx);
+	
+	if(body == NULL) 
+		return NULL;
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended right after a do-while body, where the \"while\" keyword was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != TKWWHILE)
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a do-while body, where the \"while\" keyword was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	next(ctx); // Consume the "while" keyword.
+
+	Node *condition = parse_expression(ctx);
+	
+	if(condition == NULL) 
+		return NULL;
+
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended right after a do-while condition, where a ';' was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != ';')
+		{
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a do-while conditnion, where a ';' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	next(ctx); // Skip the ';'.
+
+	DoWhileNode *dowhl;
+	{
+		dowhl = BPAlloc_Malloc(ctx->alloc, sizeof(DoWhileNode));
+		
+		if(dowhl == NULL)
+			{
+				// ERROR: No memory.
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		dowhl->base.kind = NODE_DOWHILE;
+		dowhl->base.next = NULL;
+		dowhl->base.offset = do_token->offset;
+		dowhl->base.length = ctx->token->offset + ctx->token->length - do_token->offset;
+		dowhl->condition = condition;
+		dowhl->body = body;
+	}
+
+	return (Node*) dowhl;
 }
