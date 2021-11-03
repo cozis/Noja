@@ -4,9 +4,19 @@
 static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
 	for(int i = 0; i < (int) argc; i += 1)
-		Object_Print(argv[i], stdout, error);
+		Object_Print(argv[i], stdout);
 
 	return Object_NewNone(Runtime_GetHeap(runtime), error);
+}
+
+static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	int n = Object_Count(argv[0], error);
+
+	if(error->occurred)
+		return NULL;
+
+	return Object_FromInt(n, Runtime_GetHeap(runtime), error);
 }
 
 typedef struct {
@@ -17,6 +27,7 @@ typedef struct {
 
 BuiltinNativeFunctions builtins[] = {
 	{"print", -1, bin_print},
+	{"count",  1, bin_count},
 };
 
 _Bool add_builtins(Runtime *runtime, Error *error)
@@ -29,7 +40,7 @@ _Bool add_builtins(Runtime *runtime, Error *error)
 	if(dest == NULL)
 		return 0;
 
-	for(int i = 0; i < (int) (sizeof(builtins) / sizeof(builtins[0])); i += 1)
+	for(int i = 0; (unsigned int) i < sizeof(builtins) / sizeof(builtins[0]); i += 1)
 		{
 			Object *name = Object_FromString(builtins[i].name, -1, heap, error);
 

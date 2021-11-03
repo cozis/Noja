@@ -58,6 +58,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_ASS]  = {"ASS", 1, (OperandType[]) {OPTP_STRING}},
 	[OPCODE_POP]  = {"POP", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_CALL] = {"CALL", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_INSERT] = {"INSERT", 0, NULL},
 	[OPCODE_PUSHINT] = {"PUSHINT", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_PUSHFLT] = {"PUSHFLT", 1, (OperandType[]) {OPTP_FLOAT}},
 	[OPCODE_PUSHSTR] = {"PUSHSTR", 1, (OperandType[]) {OPTP_STRING}},
@@ -66,6 +67,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, NULL},
 	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, NULL},
 	[OPCODE_PUSHFUN] = {"PUSHFUN", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
+	[OPCODE_PUSHLST] = {"PUSHLST", 1, (OperandType[]) {OPTP_INT}},
 
 	[OPCODE_RETURN] = {"RETURN", 0, NULL},
 

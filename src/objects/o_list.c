@@ -11,6 +11,7 @@ typedef struct {
 static Object *select(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
+static void	   print(Object *obj, FILE *fp);
 
 static const Type t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -19,6 +20,7 @@ static const Type t_list = {
 	.select = select,
 	.insert = insert,
 	.count = count,
+	.print = print,
 };
 
 static inline int calc_capacity(int mapper_size)
@@ -151,4 +153,17 @@ static int count(Object *self)
 	ListObject *list = (ListObject*) self;
 
 	return list->count;
+}
+
+static void print(Object *self, FILE *fp)
+{
+	ListObject *list = (ListObject*) self;
+
+	for(int i = 0; i < list->count; i += 1)
+		{
+			Object_Print(list->vals[i], fp);
+
+			if(i+1 < list->count)
+				fprintf(fp, ", ");
+		}
 }

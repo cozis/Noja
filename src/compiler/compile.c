@@ -113,6 +113,42 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							return ExeBuilder_Append(exeb, error, OPCODE_PUSHVAR, &op, 1, node->offset, node->length);
 						}
 
+						case EXPR_LIST:
+						{
+							// PUSHLST
+							// PUSHINT
+							// <expr>
+							// INSERT
+
+							ListExprNode *l = (ListExprNode*) node;
+
+							Operand op;
+
+							op = (Operand) { .type = OPTP_INT, .as_int = l->itemc };
+							if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHLST, &op, 1, node->offset, node->length))
+								return 0;
+
+							Node *item = l->items;
+							int i = 0;
+
+							while(item)
+								{
+									op = (Operand) { .type = OPTP_INT, .as_int = i };
+									if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHINT, &op, 1, item->offset, item->length))
+										return 0;
+
+									if(!emit_instr_for_node(exeb, item, error))
+										return 0;
+
+									if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT, NULL, 0, item->offset, item->length))
+										return 0;
+										
+									i += 1;
+									item = item->next;
+								}
+							return 1;
+						}
+
 						case EXPR_CALL:
 						{
 							CallExprNode *p = (CallExprNode*) expr;

@@ -75,6 +75,7 @@ gcc src/main.c src/debug.c \
 	temp/utils/bucketlist.o \
 	temp/objects/o_map.o \
 	temp/objects/o_none.o \
+	temp/objects/o_list.o \
 	temp/objects/o_bool.o \
 	temp/objects/o_string.o \
 	temp/runtime/runtime.o \

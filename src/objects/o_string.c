@@ -94,7 +94,12 @@ static _Bool op_eql(Object *self, Object *other)
 	StringObject *s1 = (StringObject*) self;
 	StringObject *s2 = (StringObject*) other;
 
-	return s1->size == s2->size && !strncmp(s1->body, s2->body, s1->size);
+	_Bool match = s1->size == s2->size && !strncmp(s1->body, s2->body, s1->size);
+
+#warning "TEMP"
+	fprintf(stderr, "%s == %s ? %s\n", s1->body, s2->body, match ? "yes" : "no");
+
+	return match;
 }
 
 static void print(Object *obj, FILE *fp)

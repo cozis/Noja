@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 							RuntimeError_Free(&error);
 							return 1;
 						}
-
+					
 					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0);
 
 					if(result == NULL)

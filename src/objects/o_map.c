@@ -13,6 +13,7 @@ typedef struct {
 static Object *select(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
+static void print(Object *self, FILE *fp);
 
 static const Type t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -21,6 +22,7 @@ static const Type t_map = {
 	.select = select,
 	.insert = insert,
 	.count = count,
+	.print = print,
 };
 
 static inline int calc_capacity(int mapper_size)
@@ -74,6 +76,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	assert(heap != NULL);
 	assert(error != NULL);
 
+	fprintf(stderr, "Selecting from:\n\t");
+	Object_Print(self, stderr);
+	fprintf(stderr, "\n");
+
 	MapObject *map = (MapObject*) self;
 
 	int mask = map->mapper_size - 1;
@@ -86,9 +92,14 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 
 	int i = hash & mask;
 
+#warning "TEMP"
+	fprintf(stderr, "-----------------\n");
+
 	while(1)
 		{
 			int k = map->mapper[i];
+
+			fprintf(stderr, "map->mapper[%d] = %d\n", i, k);
 
 			if(k == -1)
 				{
@@ -102,6 +113,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 					// Is it the right one?
 					
 					assert(k >= 0);
+#warning "TEMP"
+					fprintf(stderr, "map->keys[%d] = ", k);
+					Object_Print(map->keys[k], stderr);
+					fprintf(stderr, " (of type %s)\n", Object_GetName(map->keys[k]));
 
 					if(Object_Compare(key, map->keys[k], error))
 						// Found it!
@@ -114,8 +129,12 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 					// Not the one we wanted.
 				}
 
+			int old_i = i;
+
 			pert >>= 5;
 			i = (i * 5 + pert + 1) & mask;
+
+			fprintf(stderr, "%d -> %d\n", old_i, i);
 		}
 
 	UNREACHABLE;
@@ -258,4 +277,19 @@ static int count(Object *self)
 	MapObject *map = (MapObject*) self;
 
 	return map->count;
+}
+
+static void print(Object *self, FILE *fp)
+{
+	MapObject *map = (MapObject*) self;
+
+	for(int i = 0; i < map->count; i += 1)
+		{
+			Object_Print(map->keys[i], fp);
+			fprintf(fp, ": ");
+			Object_Print(map->vals[i], fp);
+
+			if(i+1 < map->count)
+				fprintf(fp, ", ");
+		}
 }

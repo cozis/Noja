@@ -106,22 +106,17 @@ Object *Object_Call(Object *obj, Object **argv, unsigned int argc, Heap *heap, E
 	return type->call(obj, argv, argc, heap, err);
 }
 
-_Bool Object_Print(Object *obj, FILE *fp, Error *error)
+void Object_Print(Object *obj, FILE *fp)
 {
-	assert(error != NULL);
 	assert(obj != NULL);
 
 	const Type *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->print == NULL)
-		{
-			Error_Report(error, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
-			return 0;
-		}
-
-	type->print(obj, fp);
-	return 1;
+		fprintf(fp, "<%s is unprintable>", Object_GetName(obj));
+	else
+		type->print(obj, fp);
 }
 
 Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)

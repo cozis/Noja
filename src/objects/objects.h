@@ -74,7 +74,7 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err);
 int 		 Object_Hash  (Object *obj, Error *err);
 Object*		 Object_Copy  (Object *obj, Heap *heap, Error *err);
 Object*		 Object_Call  (Object *obj, Object **argv, unsigned int argc, Heap *heap, Error *err);
-_Bool 		 Object_Print (Object *obj, FILE *fp, Error *error);
+void 		 Object_Print (Object *obj, FILE *fp);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);
 _Bool		 Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *err);

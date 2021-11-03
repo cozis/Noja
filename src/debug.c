@@ -452,10 +452,7 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 				{
 					Stack *stack = Runtime_GetStack(runtime);
 					assert(stack != NULL);
-
-					Error error;
-					Error_Init(&error);
-
+					
 					if(Stack_Size(stack) == 0)
 						fprintf(stderr, "The stack is empty.\n");
 
@@ -465,15 +462,7 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 							assert(obj != NULL);
 
 							fprintf(stderr, "  %d | ", i);
-							Object_Print(obj, stderr, &error);
-
-							if(error.occurred)
-								{
-									Error_Free(&error);
-									Error_Init(&error);
-									fprintf(stderr, "(unprintable)");
-								}
-
+							Object_Print(obj, stderr);
 							fprintf(stderr, "\n");
 						}
 				}

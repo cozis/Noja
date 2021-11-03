@@ -651,6 +651,96 @@ static Node *parse_string_primary_expression(Context *ctx)
 	return (Node*) node;
 }
 
+static Node *parse_list_primary_expression(Context *ctx)
+{
+	assert(ctx != NULL);
+	
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a list literal was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != '[')
+		{
+			Error_Report(ctx->error, 0, "Got token \"%.*s\" where a list literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	int offset = current_token(ctx)->offset;
+
+	Node *items = NULL;
+	int   itemc = 0;
+		
+	next(ctx); // Skip the '['.
+
+	if(current(ctx) != ']')
+		{
+			Node *tail = NULL;
+
+			while(1)
+				{
+					// Parse.
+					Node *item = parse_expression(ctx);
+
+					if(item == NULL)
+						return NULL;
+
+					// Append.
+					if(tail)
+						tail->next = item;
+					else
+						items = item;
+					tail = item;
+					itemc += 1;
+
+					// Get ',' or ']'.
+
+					if(current(ctx) == ']')
+						break;
+
+					if(current(ctx) != ',')
+						{
+							if(current(ctx) == TDONE)
+								Error_Report(ctx->error, 0, "Source ended inside a list literal");
+							else
+								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside list literal, where ',' or ']' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+							return NULL;
+						}
+
+					next(ctx); // Skip the ','.
+				}
+		}
+
+	int length = current_token(ctx)->offset
+			   + current_token(ctx)->length
+			   - offset;
+
+	next(ctx); // Skip the ']'.
+
+	ListExprNode *list;
+	{
+		list = BPAlloc_Malloc(ctx->alloc, sizeof(ListExprNode));
+
+		if(list == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		list->base.base.kind = NODE_EXPR;
+		list->base.base.next = NULL;
+		list->base.base.offset = offset;
+		list->base.base.length = length;
+		list->base.kind = EXPR_LIST;
+		list->items = items;
+		list->itemc = itemc;
+	}
+
+	return (Node*) list;
+						
+}
+
 static char *copy_token_text(Context *ctx)
 {
 	char *copy = BPAlloc_Malloc(ctx->alloc, ctx->token->length + 1);
@@ -704,6 +794,9 @@ static Node *parse_primary_expresion(Context *ctx)
 				}
 				return (Node*) temp;
 			}
+
+			case '[':
+			return parse_list_primary_expression(ctx);
 
 			case '(':
 			{

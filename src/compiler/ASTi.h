@@ -33,6 +33,7 @@ typedef enum {
 	EXPR_ASS,
 	EXPR_INT,
 	EXPR_CALL,
+	EXPR_LIST,
 	EXPR_NONE,
 	EXPR_TRUE,
 	EXPR_FALSE,
@@ -77,6 +78,12 @@ typedef struct {
 	char *val;
 	int   len;
 } StringExprNode;
+
+typedef struct {
+	ExprNode base;
+	Node    *items;
+	int      itemc;
+} ListExprNode;
 
 typedef struct {
 	ExprNode base;
