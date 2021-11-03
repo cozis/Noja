@@ -1,6 +1,8 @@
+p = (true);
 
-if true
-	a = 1;
+if p
+	(a = 1);
 else
 	a = 2;
+
 return a;

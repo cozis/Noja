@@ -338,19 +338,15 @@ static inline _Bool done(Context *ctx)
 	return current(ctx) == TDONE;
 }
 
+#warning "TEMP"
+#include <stdio.h>
+
 static Node *parse_statement(Context *ctx)
 {
 	assert(ctx != NULL);
 
 	switch(current(ctx))
 		{
-			case '*':
-			case '/':
-			case TASS:
-			case TDONE:
-			UNREACHABLE;
-			break;
-
 			case '(':
 			case '+':
 			case '-':
@@ -408,7 +404,7 @@ static Node *parse_statement(Context *ctx)
 			case TKWFUN:
 			return parse_function_definition(ctx);
 		}
-
+	
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
 		ctx->token->length, ctx->src + ctx->token->offset);
 	return NULL;
