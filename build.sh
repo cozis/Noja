@@ -17,6 +17,7 @@ mkdir temp/objects
 gcc -c src/objects/heap.c     -o temp/objects/heap.o     $FLAGS
 gcc -c src/objects/o_int.c    -o temp/objects/o_int.o    $FLAGS
 gcc -c src/objects/o_map.c    -o temp/objects/o_map.o    $FLAGS
+gcc -c src/objects/o_list.c   -o temp/objects/o_list.o   $FLAGS
 gcc -c src/objects/o_none.c   -o temp/objects/o_none.o   $FLAGS
 gcc -c src/objects/o_bool.c   -o temp/objects/o_bool.o   $FLAGS
 gcc -c src/objects/o_float.c  -o temp/objects/o_float.o  $FLAGS

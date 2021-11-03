@@ -83,6 +83,7 @@ Object*		 Object_Next  (Object *iter, Heap *heap, Error *err);
 Object*		 Object_Prev  (Object *iter, Heap *heap, Error *err);
 
 Object*		 Object_NewMap(int num, Heap *heap, Error *error);
+Object*		 Object_NewList(int capacity, Heap *heap, Error *error);
 Object*		 Object_NewNone(Heap *heap, Error *error);
 
 Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);

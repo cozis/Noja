@@ -1,17 +1,5 @@
-p = (false);
 
-if p: 
-	{
-		a = 1; 
-	}
+if 'hello' == 'hello': 
+	print('Yup!\n'); 
 else 
-	a = 2;
-
-if 'hello2' == 'hello': print('Yup!'); else print('Nop!');
-print('\n');
-print(a);
-
-print(1 < 1 < 1);
-
-
-return a;
+	print('Nop!\n');
