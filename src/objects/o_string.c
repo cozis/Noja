@@ -96,9 +96,6 @@ static _Bool op_eql(Object *self, Object *other)
 
 	_Bool match = s1->size == s2->size && !strncmp(s1->body, s2->body, s1->size);
 
-#warning "TEMP"
-	fprintf(stderr, "%s == %s ? %s\n", s1->body, s2->body, match ? "yes" : "no");
-
 	return match;
 }
 

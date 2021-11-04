@@ -1,7 +1,6 @@
 
 
-l = [1, 2, 3];
+l = [1, 2, 3, 4];
 
-print(count);
-print(count(l));
-print(l, '\n');
+print('The list contains ', count(l), ' items.\n');
+print('The list is: ', l, '.\n');

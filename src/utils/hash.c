@@ -3,7 +3,7 @@
 
 int hashbytes(unsigned char *str, int len)
 {
-	int x = (intptr_t) str; // just to not use 0.
+	int x = 0; // Temp?
 
 	x ^= *str << 7;
 

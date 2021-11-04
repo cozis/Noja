@@ -13,7 +13,7 @@ typedef struct {
 static Object *select(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
-static void print(Object *self, FILE *fp);
+static void	print(Object *self, FILE *fp);
 
 static const Type t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -76,10 +76,6 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	assert(heap != NULL);
 	assert(error != NULL);
 
-	fprintf(stderr, "Selecting from:\n\t");
-	Object_Print(self, stderr);
-	fprintf(stderr, "\n");
-
 	MapObject *map = (MapObject*) self;
 
 	int mask = map->mapper_size - 1;
@@ -92,14 +88,9 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 
 	int i = hash & mask;
 
-#warning "TEMP"
-	fprintf(stderr, "-----------------\n");
-
 	while(1)
 		{
 			int k = map->mapper[i];
-
-			fprintf(stderr, "map->mapper[%d] = %d\n", i, k);
 
 			if(k == -1)
 				{
@@ -113,10 +104,6 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 					// Is it the right one?
 					
 					assert(k >= 0);
-#warning "TEMP"
-					fprintf(stderr, "map->keys[%d] = ", k);
-					Object_Print(map->keys[k], stderr);
-					fprintf(stderr, " (of type %s)\n", Object_GetName(map->keys[k]));
 
 					if(Object_Compare(key, map->keys[k], error))
 						// Found it!
@@ -133,8 +120,6 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 
 			pert >>= 5;
 			i = (i * 5 + pert + 1) & mask;
-
-			fprintf(stderr, "%d -> %d\n", old_i, i);
 		}
 
 	UNREACHABLE;
@@ -263,6 +248,8 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 
 					// Collision.
 				}
+
+			int old_i = i;
 
 			pert >>= 5;
 			i = (i * 5 + pert + 1) & mask;
