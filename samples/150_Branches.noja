@@ -1,0 +1,38 @@
+
+# ------------------------------------------------------------------------- #
+# --- Branches ------------------------------------------------------------ #
+#
+# It's possible to make the execution of a statement optional, based on the
+# result of an expression. Like in other languages, you do this using if-else
+# statements:
+
+if 1 < 2:
+	print('Took the branch!\n'); # This is executed!
+
+if 1 > 2:
+	print('Didn\'t take the branch\n'); # This isn't!
+
+# or you can specify an alternative branch, which is executed when the 
+# condition isn't true:
+
+if 1 > 2:
+	print('Not executed..\n');
+else
+	print('Executed!\n');
+
+# You can have multiple statements inside a branch by having them inside a 
+# compound statement. Compound statements are statement lists wrapped inside
+# curly brackets, like this:
+
+{ print('Hello from a '); print('compound statement!\n'); }
+
+# This way they count as one statement.
+
+if 1 == 1:
+	{
+		print('Executed\n');
+		print('Also executed\n');
+	}
+#
+# ------------------------------------------------------------------------- #
+# ------------------------------------------------------------------------- #

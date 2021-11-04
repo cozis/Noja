@@ -1,5 +1,7 @@
 
-if false:
+define = true;
+
+if define:
 	a = 33;
 
 print(a, '\n');

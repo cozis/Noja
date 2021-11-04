@@ -209,8 +209,20 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 
 					i += 1; // Skip the starting quote.
 
-					while(i < len && str[i] != f)
-						i += 1;
+					while(1)
+						{
+							while(i < len && str[i] != '\\' && str[i] != f)
+								i += 1;
+
+							if(str[i] == '\\')
+								{
+									i += 1; // Consume the \.
+
+									if(i < len && (str[i] == '\'' || str[i] == '"'))
+										i += 1;
+								}
+							else break;
+						}
 
 					if(i == len)
 						{
@@ -577,7 +589,7 @@ static Node *parse_string_primary_expression(Context *ctx)
 			if(src[i] == '\\')
 				{
 					i += 1; // Consume the \.
-					
+						
 					if(temp_used + 1 >= (int) sizeof(temp))
 						{
 							Error_Report(ctx->error, 1, "String is too big to be rendered inside the fixed size buffer");
@@ -593,10 +605,13 @@ static Node *parse_string_primary_expression(Context *ctx)
 						{
 							switch(src[i])
 								{
+									case '"': temp[temp_used++] = '"'; break;
 									case 'n': temp[temp_used++] = '\n'; break;
 									case 't': temp[temp_used++] = '\t'; break;
 									case 'r': temp[temp_used++] = '\r'; break;
-
+									case '\\': temp[temp_used++] = '\\'; break;
+									case '\'': temp[temp_used++] = '\''; break;
+									
 									default:
 									Error_Report(ctx->error, 0, "Invalid escape sequence \\%c", src[i]);
 									return NULL;
