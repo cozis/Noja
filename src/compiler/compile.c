@@ -9,7 +9,8 @@
  * which walks the tree and writes instructions to the `ExeBuilder`.
  *   Some semantic errors are catched at this phase, in which 
  * case, they are reported by filling out the `error` structure 
- * and aborting.
+ * and aborting. It's also possible that the compilation fails
+ * bacause of internal errors (which usually means "out of memory").
  *
  */
 
@@ -505,6 +506,26 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 	return 0;
 }
 
+/* Symbol: compile
+ * 
+ *   Serializes an AST into bytecode format.
+ *
+ *
+ * Arguments:
+ *
+ *   ast: The AST to be serialized.
+ *   alloc: The allocator that will be used to get new
+ *			memory. (optional)
+ *   error: Error information structure that is filled out if
+ *          an error occurres.
+ *
+ *
+ * Returns:
+ *   A pointer to an `Executable` that is the object that
+ *	 contains the bytecode. If an error occurres, NULL is 
+ *   returned and the `error` structure is filled out.
+ *
+ */
 Executable *compile(AST *ast, BPAlloc *alloc, Error *error)
 {
 	assert(ast != NULL);
