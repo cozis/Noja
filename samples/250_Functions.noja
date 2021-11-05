@@ -54,6 +54,7 @@ test_func = 5;
 
 # test_func();
 
+#
 # ------------------------------------------------------------------------- #
 # --- Returns ------------------------------------------------------------- #
 #
@@ -68,6 +69,7 @@ r = multiply(p, q);
 
 print(p, ' * ', q, ' = ', r, '\n');
 
+#
 # ------------------------------------------------------------------------- #
 # --- Scopes -------------------------------------------------------------- #
 #
@@ -80,8 +82,8 @@ print(p, ' * ', q, ' = ', r, '\n');
 # The only exception is made for the "built in" variables, which are 
 # provided by the runtime of the language and can't be modified by the
 # user. The print function is one of these variables. One may override
-# these variables but the effect only lasts for the local context.
-#
+# these variables but the effect only lasts for the lifetame of the
+# context local to the assignment.
 
 # Overwrite the print variable inside the global scope..
 print = 5;
