@@ -2,6 +2,13 @@
 # The Noja language
 
 ## Table of contents
+1. [Introduction](#introduction)
+2. [Implementation overview](#implementation-overview)
+3. [The first program](#the-first-program)
+4. [Expressions](#expressions)
+5. [Branches](#branches)
+6. [Loops](#loops)
+7. [Functions](#functions)
 
 ## Introduction
 
@@ -31,6 +38,7 @@ does things like:
   - referring to instructions by their index.
 
 For example, by compiling the following snippet
+
 ```py
 define = true;
 
@@ -39,7 +47,9 @@ if define:
 
 print(a, '\n');
 ```
+
 one would obtain the following bytecode:
+
 ```
 	 0: PUSHTRU 
 	 1: ASS     "define" 
@@ -57,10 +67,11 @@ one would obtain the following bytecode:
 	13: RETURN
 
 ```
-as you can see, there are instructions like ASS and PUSHVAR that
+
+as you can see, there are instructions like `ASS` and `PUSHVAR` that
 assign to and read from variables by specifying names, and jumps
 that refer to other points of the "executable" by specifying indices
-(like JUMPIFNOTANDPOP) instead of raw addresses.
+(like `JUMPIFNOTANDPOP`) instead of raw addresses.
 
   All values (objects) are allocated on a garbage-collected heap. 
 For this reason all variables are simply references to these objects.
@@ -84,19 +95,22 @@ is a list of statements that can be of multiple kinds:
   - composit statements
 
 In general, unless it's inside strings, whitespace is ignored and 
-comments start with the # character. 
+comments start with the `#` character. 
 
 The most basic yet interesting program is:
+
 ```py
 print('Hello, world!\n'); 
 ```
+
 as in other languages, this kind of statement is an expression.
 Expression statements require a ';' to determine their end.
 
 The print function can take any number of arguments of any type
 and doesn't add any spaces or newlines to the output. 
+
 ```py
-print(1, 2, 3, '\n');
+print(1, 2, 3, true, '\n');
 ```
 
 ## Expressions
@@ -159,12 +173,6 @@ print(6 != 6, '\n'); # false
 ```
 The equal and not equal operators are available on every type of object,
 while the others are only available for numeric types.
-
-### Booleans
-TODO
-
-### None
-TODO
 
 ## Branches
 
@@ -265,12 +273,11 @@ body are shared with the parent's context.
 Functions can be defined using the following syntax:
 
 ```py
-# Define it ..
+# Define it
 fun say_hello_to(name)
 	print('Hello, ', name, '!\n\n');
 
-# .. call it.
-
+# .. and then call it.
 say_hello_to('Francesco');
 ```
 
@@ -318,7 +325,7 @@ test_func = 5;
 # The following line, if executed, returns an error because the test_func
 # identifier is now associated to 5, which is not a function. 
 
-# test_func();
+test_func(); # Error!!
 ```
 
 Functions can return values exactly like in other languages:
