@@ -1,3 +1,18 @@
+
+/*  -- WHAT IS THIS FILE? --
+ *
+ *   This file implements the routines that transform the AST
+ * into a list of bytecodes. The functionalities of this file
+ * are exposed through the `compile` function, that takes as
+ * input an `AST` and outputs an `Executable`.
+ *   The function that does the heavy lifting is `emit_instr_for_node`
+ * which walks the tree and writes instructions to the `ExeBuilder`.
+ *   Some semantic errors are catched at this phase, in which 
+ * case, they are reported by filling out the `error` structure 
+ * and aborting.
+ *
+ */
+
 #include <assert.h>
 #include <setjmp.h>
 #include <stdlib.h>

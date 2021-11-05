@@ -341,6 +341,13 @@ r = multiply(p, q);
 print(p, ' * ', q, ' = ', r, '\n');
 ```
 
+If the function doesn't return any values, then the `none` value is returned.
+As an example, the `print` function always returns `none`
+
+```py
+print(print()); # none
+```
+
 Functions are always "pure", in the sense that the only values that the
 function body can access are the ones provided as arguments. Usually in
 other languages, functions can access the global scope and the parent
@@ -354,24 +361,26 @@ these variables but the effect only lasts for the lifetame of the
 context local to the assignment.
 
 ```py
-# Overwrite the print variable inside the global scope..
+# Overwrite the print variable inside the global 
+# scope..
 print = 5;
+
+# The reference to the print function is lost 
+# withing this scope.
 
 fun test()
 	{
-		# Now call print from inside the function.
+		# If the previous assignment were to overwrite the 
+		# print function globally, the next statement would 
+		# fail because the value 5 isn't a function. But
+		# it doesn't fail!
 		print('Not overwritten here!\n');
-
-		# If the previous assignment were to overwrite the print function
-		# globally, the previous statement would fail because the value 5
-		# isn't a function.
 	}
 
 test();
 
-# Now that i think about it, we lost the reference to the print function
-# inside this scope. But we can take it back by returning it from a 
-# function!
+# We can take the reference to the print function 
+# by taking it from a function!
 
 fun get_print_back()
 	return print;
