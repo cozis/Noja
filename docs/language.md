@@ -111,10 +111,10 @@ In this language, assignments are considered as expressions, in fact
 you can do things like
 ```py
 a = (b = 1) + 1;
-```
-The value resulting from an assignment is the assigned value.
-After this expression, b's value is 1 and a's value is 2. 
-```py
+
+# The value resulting from an assignment is the assigned value.
+# After this expression, b's value is 1 and a's value is 2. 
+
 print('b = ', b, '\n'); # b = 1
 print('a = ', a, '\n'); # a = 2
 ```
@@ -141,12 +141,9 @@ print('w = ', w, '\n');
 ```
 Arithmetic operators are only available for numeric types of objects.
 If you try to apply them on other kinds of types, you get a runtime
-error:
-```py
-(Uncomment the following line and run this file to get the error)
-# p = 5 + 'hello'; 
-```
-And relational operators are also available:
+error.
+
+Relational operators are also available:
 ```py
 print(1 < 2, '\n');  # true
 print(1 > 2, '\n');  # false
@@ -182,8 +179,9 @@ if 1 < 2:
 if 1 > 2:
 	print('Didn\'t take the branch\n'); # This isn't!
 ```
-or you can specify an alternative branch, which is executed when the 
+..or you can specify an alternative branch, which is executed when the 
 condition isn't true:
+
 ```py
 if 1 > 2:
 	print('Not executed..\n');
@@ -193,10 +191,12 @@ else
 You can have multiple statements inside a branch by having them inside a 
 compound statement. Compound statements are statement lists wrapped inside
 curly brackets, like this:
+
 ```py
 { print('Hello from a '); print('compound statement!\n'); }
 ```
 This way they count as one statement.
+
 ```py
 if 1 == 1:
 	{
@@ -204,14 +204,172 @@ if 1 == 1:
 		print('Also executed\n');
 	}
 ```
+
 Variables defined inside an if-else statement's branch are defined
 in the parent's context. This implies that variables may or may not
 be defined when you access them, based on which branch is taken.
+
 ```py
 a = 1;
 
 if a < 2:
 	x = 100;
+
+# Now x is defined, but if "a" were to be higher or equal to 2, it 
+# wouldn't be defined and the runtime would return an error.
 ```
-Now x is defined, but if "a" were to be higher or equal to 2, it 
-wouldn't be defined and the runtime would return an error.
+
+## Loops
+
+Looping constructs are available in the form of while and do-while 
+statements. The while statement checks the condition before each
+iteration:
+
+```py
+i = 0;
+while i < 10:
+	i = i + 1;
+```
+
+This loop runs for 10 times. As for the if-else statement, a single
+statement is expected as the body of the while statement. You can
+provide it a compound statement tho.
+
+```py
+i = 0;
+while i < 10:
+	{
+		print('While iteration no. ', i, '\n');
+		i = i + 1;
+	}
+```
+
+The do-while statement checks the condition at the end of each
+iteration. This means that at least one iteration is performed!
+
+```py
+i = 0;
+do
+	{
+		print('Do-while iteration no. ', i, '\n');
+		i = i + 1;
+	}
+while i < 10;
+```
+
+Like for if-else statements, variables defined inside the loop
+body are shared with the parent's context.
+
+## Functions
+
+Functions can be defined using the following syntax:
+
+```py
+# Define it ..
+fun say_hello_to(name)
+	print('Hello, ', name, '!\n\n');
+
+# .. call it.
+
+say_hello_to('Francesco');
+```
+
+Functions can have an arbitrary amount of arguments. If the function is
+called with more arguments than it expected, the extra values are thrown
+away. If the function is called with less arguments than it expected,
+the argument set if filled up with none values.
+
+```py
+fun test_func(a, b, c)
+	{
+		print('a = ', a, '\n');
+		print('b = ', b, '\n');
+		print('c = ', c, '\n\n');
+	}
+
+test_func();
+# a = none
+# b = none
+# c = none
+
+test_func(1, 2);
+# a = 1
+# b = 2
+# c = none
+
+test_func(1, 2, 3);
+# a = 1
+# b = 2
+# c = 3
+
+test_func(1, 2, 3, 4);
+# a = 1
+# b = 2
+# c = 3
+```
+
+Functions are actually variables like the ones that are be defined using
+the assignment operator. In fact, you can reassign them new values if you
+want.
+
+```py
+test_func = 5;
+
+# The following line, if executed, returns an error because the test_func
+# identifier is now associated to 5, which is not a function. 
+
+# test_func();
+```
+
+Functions can return values exactly like in other languages:
+
+```py
+fun multiply(x, y)
+	return x * y;
+
+p = 4;
+q = 7;
+r = multiply(p, q);
+
+print(p, ' * ', q, ' = ', r, '\n');
+```
+
+Functions are always "pure", in the sense that the only values that the
+function body can access are the ones provided as arguments. Usually in
+other languages, functions can access the global scope and the parent
+scope (closures). There's no such mechanism in this language (at the 
+moment).
+
+The only exception is made for the "built in" variables, which are 
+provided by the runtime of the language and can't be modified by the
+user. The print function is one of these variables. One may override
+these variables but the effect only lasts for the lifetame of the
+context local to the assignment.
+
+```py
+# Overwrite the print variable inside the global scope..
+print = 5;
+
+fun test()
+	{
+		# Now call print from inside the function.
+		print('Not overwritten here!\n');
+
+		# If the previous assignment were to overwrite the print function
+		# globally, the previous statement would fail because the value 5
+		# isn't a function.
+	}
+
+test();
+
+# Now that i think about it, we lost the reference to the print function
+# inside this scope. But we can take it back by returning it from a 
+# function!
+
+fun get_print_back()
+	return print;
+
+print = get_print_back();
+
+print('Hei! Print is back!\n');
+```
