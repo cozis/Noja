@@ -3,15 +3,18 @@
 # --- The first program --------------------------------------------------- #
 #
 # The sintax is similar to Python's but is more C-like. A Noja script 
-# is a list of statements that can be:
+# is a list of statements that can be of multiple kinds:
 # 
 #   - function declaractions
-#	- expressions
-#	- if-else branches
-#	- while loops
-#	- do-while loops
-#	- return statements
-#	- composit statements
+#   - expressions
+#   - if-else branches
+#   - while loops
+#   - do-while loops
+#   - return statements
+#   - composit statements
+#
+# In general, unless it's inside strings, whitespace is ignored and 
+# comments start with the # character. 
 #
 # The most basic yet interesting program is:
 

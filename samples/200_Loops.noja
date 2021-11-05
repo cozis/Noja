@@ -32,6 +32,8 @@ do
 	}
 while i < 10;
 
+# Like for if-else statements, variables defined inside the loop
+# body are shared with the parent's context.
 #
 # ------------------------------------------------------------------------- #
 # ------------------------------------------------------------------------- #

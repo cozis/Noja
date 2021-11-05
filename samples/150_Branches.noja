@@ -33,6 +33,18 @@ if 1 == 1:
 		print('Executed\n');
 		print('Also executed\n');
 	}
+
+# Variables defined inside an if-else statement's branch are defined
+# in the parent's context. This implies that variables may or may not
+# be defined when you access them, based on which branch is taken.
+
+a = 1;
+
+if a < 2:
+	x = 100;
+
+# Now x is defined, but is a were to be higher or equal to 2, it wouldn't
+# be defined and the runtime would return an error.
 #
 # ------------------------------------------------------------------------- #
 # ------------------------------------------------------------------------- #
