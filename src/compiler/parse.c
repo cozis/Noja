@@ -1,28 +1,30 @@
 
-/*  -- WHAT IS THIS FILE? --
- *
- *   This file implements the parser of the language, that transforms
- * `Source` objects into `AST` objects. The functionalities of this
- * file are exposed throigh the `parse` function.
- *
- *   It's mainly composed by routines that can each parse specific 
- * parts of a noja source string. For example, `parse_expression` 
- * parses expressions and `parse_while_statement` parses while statements.
- * These functions call each other recursively to parse the source
- * and build the abstract syntax tree (AST) that can be then compiled
- * into bytecode. If at any point the parsing fails because of an 
- * external or internal error, then the error is reported and the parsing 
- * is aborted.
- *   Since the nodes of the AST always have the same lifetime (they're 
- * allocated at the same time and die all together), the allocator 
- * scheme of choise is a bump-pointer allocator. This way each of the
- * parsing routines can allocate memory if it need it but doesn't need
- * to free it if an error occurres. 
- *   The parsing routines don't operate directly on the source text, but
- * on the tokenized version of it. Before parsing a linked list of
- * tokens is produced through the `tokenize` function.
- *
- */
+/* WHAT IS THIS FILE?
+**
+** This file implements the parser of the language, that transforms
+** `Source` objects into `AST` objects. The functionalities of this
+** file are exposed throigh the `parse` function.
+**
+** It's mainly composed by routines that can each parse specific 
+** parts of a noja source string. For example, `parse_expression` 
+** parses expressions and `parse_while_statement` parses while statements.
+** These functions call each other recursively to parse the source
+** and build the abstract syntax tree (AST) that can be then compiled
+** into bytecode. If at any point the parsing fails because of an 
+** external or internal error, then the error is reported and the parsing 
+** is aborted.
+** 
+** Since the nodes of the AST always have the same lifetime (they're 
+** allocated at the same time and die all together), the allocator 
+** scheme of choise is a bump-pointer allocator. This way each of the
+** parsing routines can allocate memory if it need it but doesn't need
+** to free it if an error occurres. 
+** 
+** The parsing routines don't operate directly on the source text, but
+** on the tokenized version of it. Before parsing a linked list of
+** tokens is produced through the `tokenize` function.
+**
+*/
 
 #include <stdlib.h>
 #include <string.h>

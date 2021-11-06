@@ -11,6 +11,8 @@ static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Err
 
 static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
+	assert(argc == 1);
+
 	int n = Object_Count(argv[0], error);
 
 	if(error->occurred)
