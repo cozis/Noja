@@ -1,6 +1,8 @@
 
 # The Noja language
 
+This file was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts (variables, expressions and branches). This way, there is more space for the comparison of the language's features with the mainstream languages.
+
 ## Table of contents
 3. [The first program](#the-first-program)
 4. [Expressions](#expressions)
