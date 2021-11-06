@@ -17,4 +17,5 @@ format and executing it. The bytecode is very high level since it does things li
 
   - referring to instructions by their index.
 
-All values (objects) are allocated on a garbage-collected heap. For this reason all variables are simply references to these objects. The garbage collection algorithm is a copy-and-compact one. It behaves as a bump-pointer allocator until there is space left, and when space runs out, it creates a new heap, copies all of the alive object into it, calls the destructors of the dead objects and frees the old one.
+All values (objects) are allocated on a garbage-collected heap. All variables are simply references to these objects. The garbage collection algorithm is a copy-and-compact. It behaves as a bump-pointer allocator until there is space left, and when space runs out, it creates a new heap, copies all of the alive object into it, calls the destructors of the dead objects and frees the old one.
+
