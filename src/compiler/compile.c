@@ -188,6 +188,19 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							return ExeBuilder_Append(exeb, error, OPCODE_CALL, &op, 1, node->offset, node->length);
 						}
 
+						case EXPR_SELECT:
+						{
+							IndexSelectionExprNode *sel = (IndexSelectionExprNode*) expr;
+					
+							if(!emit_instr_for_node(exeb, sel->set, error))
+								return 0;
+
+							if(!emit_instr_for_node(exeb, sel->idx, error))
+								return 0;
+
+							return ExeBuilder_Append(exeb, error, OPCODE_SELECT, NULL, 0, node->offset, node->length);
+						}
+
 						case EXPR_NONE:
 						return ExeBuilder_Append(exeb, error, OPCODE_PUSHNNE, NULL, 0, node->offset, node->length);
 

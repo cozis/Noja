@@ -1160,6 +1160,44 @@ static Node *parse_postfix_expression(Context *ctx)
 		{
 			switch(current(ctx))
 				{
+					case '[':
+					{
+						Node *idx = parse_list_primary_expression(ctx);
+
+						if(idx == NULL)
+							return NULL;
+
+						ListExprNode *ls = (ListExprNode*) idx;
+
+						if(ls->itemc == 0)
+							{
+								Error_Report(ctx->error, 0, "Missing index in index selection expression");
+								return NULL;
+							}
+
+						IndexSelectionExprNode *sel;
+						{
+							sel = BPAlloc_Malloc(ctx->alloc, sizeof(IndexSelectionExprNode));
+
+							if(sel == NULL)
+								{
+									Error_Report(ctx->error, 1, "No memory");
+									return NULL;
+								}
+
+							sel->base.base.kind = NODE_EXPR;
+							sel->base.base.next = NULL;
+							sel->base.base.offset = node->offset;
+							sel->base.base.length = idx->offset + idx->length - node->offset;
+							sel->base.kind = EXPR_SELECT;
+							sel->set = node;
+							sel->idx = ls->itemc == 1 ? ls->items : (Node*) ls;
+						}
+
+						node = (Node*) sel;
+						break;
+					}
+
 					case '(':
 					{
 						int offset = current_token(ctx)->offset;

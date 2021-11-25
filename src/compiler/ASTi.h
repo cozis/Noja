@@ -40,6 +40,7 @@ typedef enum {
 	EXPR_FLOAT,
 	EXPR_STRING,
 	EXPR_IDENT,
+	EXPR_SELECT,
 } ExprKind;
 
 typedef struct Node Node;
@@ -103,6 +104,12 @@ typedef struct {
 	Node    *argv;
 	int      argc;
 } CallExprNode;
+
+typedef struct {
+	ExprNode base;
+	Node    *idx;
+	Node    *set;
+} IndexSelectionExprNode;
 
 typedef struct {
 	Node  base;

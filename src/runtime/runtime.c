@@ -665,6 +665,34 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
+			case OPCODE_SELECT:
+			{
+				assert(opc == 0);
+
+				if(runtime->frame->used < 2)
+					{
+						Error_Report(error, 1, "Frame has not enough values on the stack to run SELECT instruction");
+						return NULL;
+					}
+
+				Object *col = Stack_Top(runtime->stack, -1);
+				Object *key = Stack_Top(runtime->stack,  0);
+
+				assert(col != NULL && key != NULL);
+
+				if(!Runtime_Pop(runtime, error, 2))
+					return 0;
+
+				Object *val = Object_Select(col, key, runtime->heap, error);
+
+				if(val == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, val))
+					return 0;
+				return 1;
+			}
+
 			case OPCODE_PUSHINT:
 			{
 				assert(opc == 1);
