@@ -116,8 +116,6 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 					// Not the one we wanted.
 				}
 
-			int old_i = i;
-
 			pert >>= 5;
 			i = (i * 5 + pert + 1) & mask;
 		}
@@ -248,8 +246,6 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 
 					// Collision.
 				}
-
-			int old_i = i;
 
 			pert >>= 5;
 			i = (i * 5 + pert + 1) & mask;

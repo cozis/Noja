@@ -55,7 +55,8 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 		{
 			// Some arguments are missing.
 			argv2 = malloc(sizeof(Object*) * expected_argc);
-
+			argc2 = expected_argc;
+			
 			if(argv2 == NULL)
 				{
 					Error_Report(error, 1, "No memory");

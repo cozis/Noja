@@ -1,3 +1,22 @@
+
+/* WHAT IS THIS FILE?
+**
+** This file implements the routines that serialize the AST
+** into JSON format. The JSON manipulation is handled by the
+** third party library xJSON (written by me, still). 
+**
+** The serialization functionality is exposed through the 
+** `serialize` function, that takes as an `AST` as argument
+** and outputs a string of valid JSON. Therefore the xJSON
+** dependency isn't exposed to the caller and can be regarded
+** as an implementation detail.
+**
+** The way the serialization occurres is by converting the
+** AST's representation native to the compiler to one native
+** to xJSON, an then calling xj_encode on the converted AST.
+**
+*/
+
 #include <assert.h>
 #include <xjson.h>
 #include "serialize.h"

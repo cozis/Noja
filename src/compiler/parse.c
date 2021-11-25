@@ -1,3 +1,31 @@
+
+/* WHAT IS THIS FILE?
+**
+** This file implements the parser of the language, that transforms
+** `Source` objects into `AST` objects. The functionalities of this
+** file are exposed throigh the `parse` function.
+**
+** It's mainly composed by routines that can each parse specific 
+** parts of a noja source string. For example, `parse_expression` 
+** parses expressions and `parse_while_statement` parses while statements.
+** These functions call each other recursively to parse the source
+** and build the abstract syntax tree (AST) that can be then compiled
+** into bytecode. If at any point the parsing fails because of an 
+** external or internal error, then the error is reported and the parsing 
+** is aborted.
+** 
+** Since the nodes of the AST always have the same lifetime (they're 
+** allocated at the same time and die all together), the allocator 
+** scheme of choise is a bump-pointer allocator. This way each of the
+** parsing routines can allocate memory if it need it but doesn't need
+** to free it if an error occurres. 
+** 
+** The parsing routines don't operate directly on the source text, but
+** on the tokenized version of it. Before parsing a linked list of
+** tokens is produced through the `tokenize` function.
+**
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -81,20 +109,35 @@ static inline _Bool isoper(char c)
 			c == '=';
 }
 
-AST *parse(Source *src, BPAlloc *alloc, Error *error)
+/* Symbol: tokenize
+ * 
+ *   Build a list of tokens that represents the 
+ *   provided source code.
+ *
+ *
+ * Arguments:
+ *
+ *   src: The source code to be tokenized.
+ *   alloc: The allocator that will contain all of the
+ *          generated tokens.
+ *   error: Error information structure that is filled out if
+ *          an error occurres.
+ *
+ *   None of the arguments are optional.
+ *
+ *
+ * Returns:
+ *   A pointer to the first node of a linked list of tokens.
+ *   If an error occurres, NULL is returned and the `error` 
+ *   structure is filled out.
+ *
+ */
+static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 {
-	assert(src != NULL);
-	assert(alloc != NULL);
-
 	const char *str = Source_GetBody(src);
 	int 		len = Source_GetSize(src);
 	assert(str != NULL);
 	assert(len >= 0);
-
-	AST *ast = BPAlloc_Malloc(alloc, sizeof(AST));
-
-	if(ast == NULL)
-		return NULL;
 
 	Token *head = NULL, 
 		  *tail = NULL;
@@ -343,9 +386,58 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 		tail = tok;
 	}
 
+	return head;
+}
+
+/* Symbol: parse
+ * 
+ *   Build an AST that represents the provided source code.
+ *
+ *
+ * Arguments:
+ *
+ *   src: The source code to be parsed.
+ *   alloc: The allocator that will contain all of the garbage
+ *          the function needs and the final AST.
+ *   error: Error information structure that is filled out if
+ *          an error occurres.
+ *
+ *   None of the arguments are optional.
+ *
+ *
+ * Returns:
+ *
+ *   A pointer to the generated AST object. The AST object and
+ *   all of the stuff that's referenced by it will be stored
+ *   onto the provided allocator, therefore the AST will have
+ *   the same lifetime of the allocator. If an error occurres,
+ *   NULL is returned and the `error` structure is filled out.
+ *
+ * Notes:
+ *   The AST structure holds a weak reference to the source
+ *   object, therefore it will be invalidated if the source
+ *   is freed before the AST. 
+ *
+ */
+AST *parse(Source *src, BPAlloc *alloc, Error *error)
+{
+	assert(src != NULL);
+	assert(alloc != NULL);
+	assert(error != NULL);
+
+	AST *ast = BPAlloc_Malloc(alloc, sizeof(AST));
+
+	if(ast == NULL)
+		return NULL;
+
+	Token *tokens = tokenize(src, alloc, error);
+
+	if(tokens == NULL)
+		return NULL;
+
 	Context ctx;
-	ctx.src   = str;
-	ctx.token = head;
+	ctx.src   = Source_GetBody(src);
+	ctx.token = tokens;
 	ctx.alloc = alloc;
 	ctx.error = error;
 
