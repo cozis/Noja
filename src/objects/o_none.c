@@ -2,6 +2,7 @@
 #include <string.h>
 #include "objects.h"
 
+static _Bool op_eql(Object *self, Object *other);
 static void print(Object *obj, FILE *fp);
 
 static const Type t_none = {
@@ -9,6 +10,7 @@ static const Type t_none = {
 	.name = "none",
 	.size = sizeof (Object),
 	.print = print,
+	.op_eql = op_eql,
 };
 
 static Object the_none_object = {
@@ -31,4 +33,12 @@ static void print(Object *obj, FILE *fp)
 	assert(obj->type == &t_none);
 
 	fprintf(fp, "none");
+}
+
+static _Bool op_eql(Object *self, Object *other)
+{
+	(void) self;
+	
+	assert(other->type == &t_none);
+	return 1;
 }

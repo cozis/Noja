@@ -21,6 +21,22 @@ static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Err
 	return Object_FromInt(n, Runtime_GetHeap(runtime), error);
 }
 
+static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+
+	if(Object_ToBool(argv[0], error))
+		{
+			return Object_NewNone(Runtime_GetHeap(runtime), error);
+		}
+	else
+		{
+			if(!error->occurred)
+				Error_Report(error, 0, "Assertion failed");
+			return NULL;
+		}
+}
+
 typedef struct {
 	const char *name;
 	int 		argc;
@@ -28,8 +44,9 @@ typedef struct {
 } BuiltinNativeFunctions;
 
 BuiltinNativeFunctions builtins[] = {
-	{"print", -1, bin_print},
-	{"count",  1, bin_count},
+	{"print",  -1, bin_print},
+	{"count",   1, bin_count},
+	{"assert",  1, bin_assert},
 };
 
 _Bool add_builtins(Runtime *runtime, Error *error)

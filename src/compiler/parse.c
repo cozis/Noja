@@ -631,6 +631,52 @@ static Node *parse_expression_statement(Context *ctx)
 	return expr;
 }
 
+static Node *makeStringExprNode(Context *ctx, const char *str, int len)
+{
+	if(str == NULL)
+		str = "";
+
+	if(len < 0)
+		len = strlen(str);
+
+	char *copy;
+	int   copyl;
+	{
+		copy = BPAlloc_Malloc(ctx->alloc, len + 1);
+
+		if(copy == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		memcpy(copy, str, len);
+		copy[len] = '\0';
+		copyl = len;
+	}
+
+	StringExprNode *node;
+	{
+		node = BPAlloc_Malloc(ctx->alloc, sizeof(StringExprNode));
+
+		if(node == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		node->base.base.kind = NODE_EXPR;
+		node->base.base.next = NULL;
+		node->base.base.offset = ctx->token->offset;
+		node->base.base.length = ctx->token->length;
+		node->base.kind = EXPR_STRING;
+		node->val = copy;
+		node->len = copyl;
+	}
+
+	return (Node*) node;
+}
+
 static Node *parse_string_primary_expression(Context *ctx)
 {
 	assert(ctx != NULL);
@@ -719,43 +765,9 @@ static Node *parse_string_primary_expression(Context *ctx)
 
 	temp[temp_used] = '\0';
 
-	char *copy;
-	int   copyl;
-
-	{
-		copy = BPAlloc_Malloc(ctx->alloc, temp_used + 1);
-
-		if(copy == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
-
-		strcpy(copy, temp);
-		copyl = temp_used;
-	}
-
-	StringExprNode *node;
-	{
-		node = BPAlloc_Malloc(ctx->alloc, sizeof(StringExprNode));
-
-		if(node == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
-
-		node->base.base.kind = NODE_EXPR;
-		node->base.base.next = NULL;
-		node->base.base.offset = ctx->token->offset;
-		node->base.base.length = ctx->token->length;
-		node->base.kind = EXPR_STRING;
-		node->val = copy;
-		node->len = copyl;
-	}
-
 	next(ctx);
-	return (Node*) node;
+
+	return makeStringExprNode(ctx, temp, temp_used);
 }
 
 static Node *parse_list_primary_expression(Context *ctx)
@@ -879,7 +891,30 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 			while(1)
 				{
-					Node *key = parse_expression(ctx);
+					Node *key;
+
+					_Bool key_is_a_single_ident;
+					{
+						_Bool key_starts_with_an_ident = current(ctx) == TIDENT;
+
+						next(ctx);
+
+						key_is_a_single_ident = key_starts_with_an_ident && (current(ctx) == TDONE || current(ctx) == ':');
+
+						prev(ctx);
+					}
+
+					if(key_is_a_single_ident)
+						{
+							assert(current(ctx) == TIDENT);
+							key = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
+
+							next(ctx);
+						}
+					else
+						{
+							key = parse_expression(ctx);
+						}
 
 					if(key == NULL)
 						return NULL;
@@ -980,6 +1015,39 @@ static char *copy_token_text(Context *ctx)
 	copy[ctx->token->length] = '\0';
 
 	return copy;
+}
+
+static Node *makeIdentExprNode(Context *ctx)
+{
+	char *copy  = copy_token_text(ctx);
+	int   copyl = ctx->token->length;
+
+	if(copy == NULL)
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
+
+	IdentExprNode *node;
+	{
+		node = BPAlloc_Malloc(ctx->alloc, sizeof(IdentExprNode));
+
+		if(node == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		node->base.base.kind = NODE_EXPR;
+		node->base.base.next = NULL;
+		node->base.base.offset = ctx->token->offset;
+		node->base.base.length = ctx->token->length;
+		node->base.kind = EXPR_IDENT;
+		node->val = copy;
+		node->len = copyl;
+	}
+
+	return (Node*) node;
 }
 
 static Node *parse_primary_expresion(Context *ctx)
@@ -1224,33 +1292,10 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			case TIDENT:
 			{
-				char *copy  = copy_token_text(ctx);
-				int   copyl = ctx->token->length;
+				Node *node = makeIdentExprNode(ctx);
 
-				if(copy == NULL)
-					{
-						Error_Report(ctx->error, 1, "No memory");
-						return NULL;
-					}
-
-				IdentExprNode *node;
-				{
-					node = BPAlloc_Malloc(ctx->alloc, sizeof(IdentExprNode));
-
-					if(node == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					node->base.base.kind = NODE_EXPR;
-					node->base.base.next = NULL;
-					node->base.base.offset = ctx->token->offset;
-					node->base.base.length = ctx->token->length;
-					node->base.kind = EXPR_IDENT;
-					node->val = copy;
-					node->len = copyl;
-				}
+				if(node == NULL)
+					return NULL;
 
 				next(ctx);
 
@@ -1270,6 +1315,26 @@ static Node *parse_primary_expresion(Context *ctx)
 	return NULL;
 }
 
+static Node *makeIndexSelectionExprNode(Context *ctx, Node *set, Node *idx)
+{
+	IndexSelectionExprNode *sel = BPAlloc_Malloc(ctx->alloc, sizeof(IndexSelectionExprNode));
+
+	if(sel == NULL)
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
+
+	sel->base.base.kind = NODE_EXPR;
+	sel->base.base.next = NULL;
+	sel->base.base.offset = -1;
+	sel->base.base.length = -1;
+	sel->base.kind = EXPR_SELECT;
+	sel->set = set;
+	sel->idx = idx;
+	return (Node*) sel;
+}
+
 static Node *parse_postfix_expression(Context *ctx)
 {
 	assert(ctx != NULL);
@@ -1283,6 +1348,43 @@ static Node *parse_postfix_expression(Context *ctx)
 		{
 			switch(current(ctx))
 				{
+					case '.':
+					{
+						next(ctx);
+
+						// We expect an identifier after the dot.
+
+						if(done(ctx))
+							{
+								Error_Report(ctx->error, 0, "Source ended after dot of dot selection expression");
+								return NULL;
+							}
+
+						if(current(ctx) != TIDENT)
+							{
+								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after fot of dot selection expression where an identifier was expected", ctx->token->length, ctx->src + ctx->token->offset);
+								return NULL;
+							}
+
+						Node *idx = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
+
+						if(idx == NULL)
+							return NULL;
+
+						Node *sel = makeIndexSelectionExprNode(ctx, node, idx);
+
+						if(sel == NULL)
+							return NULL;
+
+						sel->offset = node->offset;
+						sel->length = idx->offset + idx->length - node->offset;
+
+						next(ctx); // Get to the token after the identifier.
+
+						node = (Node*) sel;
+						break;
+					}
+
 					case '[':
 					{
 						Node *idx = parse_list_primary_expression(ctx);
@@ -1298,24 +1400,13 @@ static Node *parse_postfix_expression(Context *ctx)
 								return NULL;
 							}
 
-						IndexSelectionExprNode *sel;
-						{
-							sel = BPAlloc_Malloc(ctx->alloc, sizeof(IndexSelectionExprNode));
+						Node *sel = makeIndexSelectionExprNode(ctx, node, ls->itemc == 1 ? ls->items : (Node*) ls);
 
-							if(sel == NULL)
-								{
-									Error_Report(ctx->error, 1, "No memory");
-									return NULL;
-								}
+						if(sel == NULL)
+							return NULL;
 
-							sel->base.base.kind = NODE_EXPR;
-							sel->base.base.next = NULL;
-							sel->base.base.offset = node->offset;
-							sel->base.base.length = idx->offset + idx->length - node->offset;
-							sel->base.kind = EXPR_SELECT;
-							sel->set = node;
-							sel->idx = ls->itemc == 1 ? ls->items : (Node*) ls;
-						}
+						sel->offset = node->offset;
+						sel->length = idx->offset + idx->length - node->offset;
 
 						node = (Node*) sel;
 						break;

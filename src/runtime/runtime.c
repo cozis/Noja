@@ -456,7 +456,19 @@ static _Bool step(Runtime *runtime, Error *error)
 			Error_Report(error, 1, "Invalid instruction index");
 			return 0;
 		}
+/*
+#warning "TEMPORARY"
+	{
+		int index = runtime->frame->index;
+		Executable *exe = runtime->frame->exe;
+		Source 	   *src = Executable_GetSource(exe);
+		int offset = Executable_GetInstrOffset(exe, index);
+		int length = Executable_GetInstrLength(exe, index);
+		const char *str = Source_GetBody(src);
 
+		printf("Executing [%.*s]\n", length, str + offset);
+	}
+*/
 	runtime->frame->index += 1;
 
 	switch(opcode)
@@ -641,30 +653,6 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
-			case OPCODE_INSERT:
-			{
-				assert(opc == 0);
-
-				if(runtime->frame->used < 3)
-					{
-						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT instruction");
-						return NULL;
-					}
-
-				Object *col = Stack_Top(runtime->stack, -2);
-				Object *key = Stack_Top(runtime->stack, -1);
-				Object *val = Stack_Top(runtime->stack,  0);
-
-				assert(col != NULL && key != NULL && val != NULL);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				if(!Object_Insert(col, key, val, runtime->heap, error))
-					return 0;
-				return 1;
-			}
-
 			case OPCODE_SELECT:
 			{
 				assert(opc == 0);
@@ -689,6 +677,54 @@ static _Bool step(Runtime *runtime, Error *error)
 					return 0;
 
 				if(!Runtime_Push(runtime, error, val))
+					return 0;
+				return 1;
+			}
+
+			case OPCODE_INSERT:
+			{
+				assert(opc == 0);
+
+				if(runtime->frame->used < 3)
+					{
+						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT instruction");
+						return NULL;
+					}
+
+				Object *col = Stack_Top(runtime->stack, -2);
+				Object *key = Stack_Top(runtime->stack, -1);
+				Object *val = Stack_Top(runtime->stack,  0);
+
+				assert(col != NULL && key != NULL && val != NULL);
+
+				if(!Runtime_Pop(runtime, error, 2))
+					return 0;
+
+				if(!Object_Insert(col, key, val, runtime->heap, error))
+					return 0;
+				return 1;
+			}
+
+			case OPCODE_INSERT2:
+			{
+				assert(opc == 0);
+
+				if(runtime->frame->used < 3)
+					{
+						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT2 instruction");
+						return NULL;
+					}
+
+				Object *val = Stack_Top(runtime->stack, -2);
+				Object *col = Stack_Top(runtime->stack, -1);
+				Object *key = Stack_Top(runtime->stack,  0);
+
+				assert(col != NULL && key != NULL && val != NULL);
+
+				if(!Runtime_Pop(runtime, error, 2))
+					return 0;
+
+				if(!Object_Insert(col, key, val, runtime->heap, error))
 					return 0;
 				return 1;
 			}

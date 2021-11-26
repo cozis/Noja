@@ -88,19 +88,38 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							lop = oper->head;
 							rop = lop->next;
 
-							if(((ExprNode*) lop)->kind != EXPR_IDENT)
-								{
-									Error_Report(error, 0, "Assignment left operand must be an identifier");
-									return 0;
-								}
-
 							if(!emit_instr_for_node(exeb, rop, error))
 								return 0;
 
-							const char *name = ((IdentExprNode*) lop)->val;
+							if(((ExprNode*) lop)->kind == EXPR_IDENT)
+								{
+									const char *name = ((IdentExprNode*) lop)->val;
 
-							Operand op = { .type = OPTP_STRING, .as_string = name };
-							return ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1, node->offset, node->length);
+									Operand op = { .type = OPTP_STRING, .as_string = name };
+									if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1, node->offset, node->length))
+										return 0;
+								}
+							else if(((ExprNode*) lop)->kind == EXPR_SELECT)
+								{
+									Node *idx = ((IndexSelectionExprNode*) lop)->idx;
+									Node *set = ((IndexSelectionExprNode*) lop)->set;
+
+									if(!emit_instr_for_node(exeb, set, error))
+										return 0;
+
+									if(!emit_instr_for_node(exeb, idx, error))
+										return 0;
+
+									if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT2, NULL, 0, node->offset, node->length))
+										return 0;
+								}
+							else
+								{
+									Error_Report(error, 0, "Assignment left operand can't be assigned to");
+									return 0;
+								}
+
+							return 1;
 						}
 
 						case EXPR_INT:
