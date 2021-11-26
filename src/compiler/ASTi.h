@@ -32,6 +32,7 @@ typedef enum {
 
 	EXPR_ASS,
 	EXPR_INT,
+	EXPR_MAP,
 	EXPR_CALL,
 	EXPR_LIST,
 	EXPR_NONE,
@@ -85,6 +86,13 @@ typedef struct {
 	Node    *items;
 	int      itemc;
 } ListExprNode;
+
+typedef struct {
+	ExprNode base;
+	Node    *keys;
+	Node    *items;
+	int      itemc;
+} MapExprNode;
 
 typedef struct {
 	ExprNode base;

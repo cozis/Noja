@@ -69,6 +69,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, NULL},
 	[OPCODE_PUSHFUN] = {"PUSHFUN", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
 	[OPCODE_PUSHLST] = {"PUSHLST", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_PUSHMAP] = {"PUSHMAP", 1, (OperandType[]) {OPTP_INT}},
 
 	[OPCODE_RETURN] = {"RETURN", 0, NULL},
 

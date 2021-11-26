@@ -167,6 +167,37 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							return 1;
 						}
 
+						case EXPR_MAP:
+						{
+							MapExprNode *m = (MapExprNode*) node;
+
+							Operand op;
+
+							op = (Operand) { .type = OPTP_INT, .as_int = m->itemc };
+							if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHMAP, &op, 1, node->offset, node->length))
+								return 0;
+
+							Node *key  = m->keys;
+							Node *item = m->items;
+								
+							while(item)
+								{
+									if(!emit_instr_for_node(exeb, key, error))
+										return 0;
+
+									if(!emit_instr_for_node(exeb, item, error))
+										return 0;
+
+									if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT, NULL, 0, item->offset, item->length))
+										return 0;
+									
+									key  =  key->next;
+									item = item->next;
+								}
+
+							return 1;
+						}
+
 						case EXPR_CALL:
 						{
 							CallExprNode *p = (CallExprNode*) expr;

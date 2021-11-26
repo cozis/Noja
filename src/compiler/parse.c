@@ -848,6 +848,126 @@ static Node *parse_list_primary_expression(Context *ctx)
 						
 }
 
+
+static Node *parse_map_primary_expression(Context *ctx)
+{
+	assert(ctx != NULL);
+	
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a map literal was expected");
+			return NULL;
+		}
+
+	if(current(ctx) != '{')
+		{
+			Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+			return NULL;
+		}
+
+	int offset = current_token(ctx)->offset;
+
+	Node *keys  = NULL;
+	Node *items = NULL;
+	int   itemc = 0;
+		
+	next(ctx); // Skip the '['.
+
+	if(current(ctx) != '}')
+		{
+			Node *ktail = NULL, *tail = NULL;
+
+			while(1)
+				{
+					Node *key = parse_expression(ctx);
+
+					if(key == NULL)
+						return NULL;
+
+					if(done(ctx))
+						{
+							Error_Report(ctx->error, 0, "Source ended where a map key-value separator ':' was expected");
+							return NULL;
+						}
+
+					if(current(ctx) != ':')
+						{
+							Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map key-value separator ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+							return NULL;
+						}
+
+					next(ctx);
+
+					// Parse.
+					Node *item = parse_expression(ctx);
+
+					if(item == NULL)
+						return NULL;
+
+					// Append.
+					if(tail)
+						{
+							ktail->next = key;
+							tail->next = item;
+						}
+					else
+						{
+							keys = key;
+							items = item;
+						}
+
+					ktail = key;
+					tail = item;
+					itemc += 1;
+
+					// Get ',' or '}'.
+
+					if(current(ctx) == '}')
+						break;
+
+					if(current(ctx) != ',')
+						{
+							if(current(ctx) == TDONE)
+								Error_Report(ctx->error, 0, "Source ended inside a map literal");
+							else
+								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside map literal, where ',' or '}' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+							return NULL;
+						}
+
+					next(ctx); // Skip the ','.
+				}
+		}
+
+	int length = current_token(ctx)->offset
+			   + current_token(ctx)->length
+			   - offset;
+
+	next(ctx); // Skip the ']'.
+
+	MapExprNode *map;
+	{
+		map = BPAlloc_Malloc(ctx->alloc, sizeof(MapExprNode));
+
+		if(map == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+		map->base.base.kind = NODE_EXPR;
+		map->base.base.next = NULL;
+		map->base.base.offset = offset;
+		map->base.base.length = length;
+		map->base.kind = EXPR_MAP;
+		map->keys = keys;
+		map->items = items;
+		map->itemc = itemc;
+	}
+
+	return (Node*) map;
+						
+}
+
 static char *copy_token_text(Context *ctx)
 {
 	char *copy = BPAlloc_Malloc(ctx->alloc, ctx->token->length + 1);
@@ -904,6 +1024,9 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			case '[':
 			return parse_list_primary_expression(ctx);
+
+			case '{':
+			return parse_map_primary_expression(ctx);
 
 			case '(':
 			{

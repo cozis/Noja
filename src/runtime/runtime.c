@@ -848,6 +848,21 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
+			case OPCODE_PUSHMAP:
+			{
+				assert(opc == 1);
+				assert(ops[0].type == OPTP_INT);
+
+				Object *obj = Object_NewMap(ops[0].as_int, runtime->heap, error);
+
+				if(obj == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, obj))
+					return 0;
+				return 1;
+			}
+
 			case OPCODE_RETURN:
 			return 0;
 
