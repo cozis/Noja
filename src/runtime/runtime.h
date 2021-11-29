@@ -22,9 +22,9 @@ Snapshot *Snapshot_New(Runtime *runtime);
 void 	  Snapshot_Free(Snapshot *snapshot);
 void 	  Snapshot_Print(Snapshot *snapshot, FILE *fp);
 
-_Bool add_builtins(Runtime *runtime, Error *error);
 Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc);
 
+Object *Object_NewBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
 Object*	Object_FromNativeFunction(Runtime *runtime, Object *(*callback)(Runtime*, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error);
 Object* Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Heap *heap, Error *error);
 #endif

@@ -18,6 +18,7 @@ typedef enum {
 	ATMTP_INT,
 	ATMTP_BOOL,
 	ATMTP_FLOAT,
+	ATMTP_STRING,
 } AtomicType;
 
 struct Type {
@@ -94,10 +95,12 @@ Object*		 Object_FromString(const char *str, int len, Heap *heap, Error *error);
 _Bool		 Object_IsInt  (Object *obj);
 _Bool		 Object_IsBool (Object *obj);
 _Bool		 Object_IsFloat(Object *obj);
+_Bool		 Object_IsString(Object *obj);
 
 long long int Object_ToInt  (Object *obj, Error *err);
 _Bool 		  Object_ToBool (Object *obj, Error *err);
 double		  Object_ToFloat(Object *obj, Error *err);
+const char	 *Object_ToString(Object *obj, int *size, Heap *heap, Error *err);
 
 _Bool 		  Object_Compare(Object *obj1, Object *obj2, Error *error);
 

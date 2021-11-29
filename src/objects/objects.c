@@ -10,7 +10,7 @@ const Type t_type = {
 
 const char *Object_GetName(const Object *obj)
 {
-	assert(obj);
+	assert(obj != NULL);
 
 	const Type *type = Object_GetType(obj);
 	assert(type);
@@ -23,15 +23,15 @@ const char *Object_GetName(const Object *obj)
 
 const Type *Object_GetType(const Object *obj)
 {
-	assert(obj);
-	assert(obj->type);
+	assert(obj != NULL);
+	assert(obj->type != NULL);
 	return obj->type;
 }
 
 unsigned int Object_GetSize(const Object *obj, Error *err)
 {
-	assert(err);
-	assert(obj);
+	assert(err != NULL);
+	assert(obj != NULL);
 
 	const Type *type = Object_GetType(obj);
 	assert(type);
@@ -41,8 +41,8 @@ unsigned int Object_GetSize(const Object *obj, Error *err)
 
 unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 {
-	assert(err);
-	assert(obj);
+	assert(err != NULL);
+	assert(obj != NULL);
 
 	const Type *type = Object_GetType(obj);
 	assert(type);
@@ -58,10 +58,10 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 
 int Object_Hash(Object *obj, Error *err)
 {
-	assert(obj);
+	assert(obj != NULL);
 
 	const Type *type = Object_GetType(obj);
-	assert(type);
+	assert(type != NULL);
 
 	if(type->hash == NULL)
 		{
@@ -74,11 +74,11 @@ int Object_Hash(Object *obj, Error *err)
 
 Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(obj);
+	assert(err != NULL);
+	assert(obj != NULL);
 
 	const Type *type = Object_GetType(obj);
-	assert(type);
+	assert(type != NULL);
 
 	if(type->copy == NULL)
 		{
@@ -245,6 +245,13 @@ _Bool Object_IsFloat(Object *obj)
 	return obj->type->atomic == ATMTP_FLOAT;
 }
 
+_Bool Object_IsString(Object *obj)
+{
+	assert(obj != NULL);
+	assert(obj->type != NULL);
+	return obj->type->atomic == ATMTP_STRING;
+}
+
 long long int Object_ToInt(Object *obj, Error *err)
 {
 	assert(err);
@@ -312,6 +319,29 @@ double Object_ToFloat(Object *obj, Error *err)
 		}
 
 	return type->to_float(obj, err);
+}
+
+const char *Object_ToString(Object *obj, int *size, Heap *heap, Error *err)
+{
+	assert(err != NULL);
+	assert(obj != NULL);
+
+	if(!Object_IsString(obj))
+		{
+			Error_Report(err, 0, "Object is not a string");
+			return NULL;
+		}
+
+	const Type *type = Object_GetType(obj);
+	assert(type);
+
+	if(type->to_string == NULL)
+		{
+			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+			return NULL;
+		}
+
+	return type->to_string(obj, size, heap, err);
 }
 
 _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)

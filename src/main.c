@@ -217,16 +217,6 @@ int main(int argc, char **argv)
 
 					RuntimeError error;
 					RuntimeError_Init(&error, runtime);
-
-					if(!add_builtins(runtime, (Error*) &error))
-						{
-							fprintf(stderr, "Couldn't load builtins: %s\n", error.base.message);
-							Debug_Free(dbg);
-							Source_Free(src);
-							Executable_Free(exe);
-							RuntimeError_Free(&error);
-							return 1;
-						}
 					
 					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0);
 

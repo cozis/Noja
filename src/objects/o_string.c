@@ -14,18 +14,37 @@ static int hash(Object *self);
 static int count(Object *self);
 static Object *copy(Object *self, Heap *heap, Error *err);
 static void print(Object *obj, FILE *fp);
+static char *to_string(Object *self, int *size, Heap *heap, Error *err);
 static _Bool op_eql(Object *self, Object *other);
 
 static const Type t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "string",
-	.size = sizeof (StringObject),
+	.atomic = ATMTP_STRING,
+	.size = sizeof(StringObject),
 	.hash = hash,
 	.count = count,
 	.copy = copy,
 	.print = print,
+	.to_string = to_string,
 	.op_eql = op_eql,
 };
+
+static char *to_string(Object *self, int *size, Heap *heap, Error *err)
+{
+	assert(self != NULL);
+	assert(self->type == &t_string);
+
+	(void) heap;
+	(void) err;
+
+	StringObject *s = (StringObject*) self;
+
+	if(size)
+		*size = s->size;
+
+	return s->body;
+}
 
 Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 {

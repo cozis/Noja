@@ -104,8 +104,11 @@ void Runtime_Free(Runtime *runtime)
 Object *Runtime_GetBuiltins(Runtime *runtime, Error *error)
 {
 	if(runtime->builtins == NULL)
-		runtime->builtins = Object_NewMap(-1, runtime->heap, error);
-
+		{
+			runtime->builtins = Object_NewBuiltinsMap(runtime, Runtime_GetHeap(runtime), error);
+			if(runtime->builtins == NULL)
+				return NULL;
+		}
 	return runtime->builtins;
 }
 
@@ -790,8 +793,13 @@ static _Bool step(Runtime *runtime, Error *error)
 					{
 						// Variable not defined locally.
 
-						if(runtime->builtins != NULL)
-							obj = Object_Select(runtime->builtins, key, runtime->heap, error);
+						Object *builtins = Runtime_GetBuiltins(runtime, error);
+
+						if(builtins == NULL)
+							// Failed to create builtins map.
+							return 0;
+
+						obj = Object_Select(runtime->builtins, key, runtime->heap, error);
 
 						if(obj == NULL)
 							{
