@@ -6,8 +6,12 @@ print('The list contains ', count(l), ' items.\n');
 print('The list is: ', l, '.\n');
 
 
-fun fail()
-	assert(false);
+fun fail(p, fail)
+{
+	if p == 5:
+		assert(false);
+	else
+		fail(p+1, fail);
+}
 
-
-fail();
+fail(0, fail);

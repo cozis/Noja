@@ -68,11 +68,9 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *err)
 					return Object_FromNativeFunction(bm->runtime, bin_assert, -1, heap, err);
 				return NULL;
 			}
-			
-			default: NULL;
 		}
 
-	UNREACHABLE;
+	// Not found.
 	return NULL;
 }
 
