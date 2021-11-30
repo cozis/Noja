@@ -10,7 +10,8 @@ typedef struct Frame Frame;
 
 struct Frame {
 	Frame  *prev;
-	Object *vars;
+	Object *locals;
+	Object *globals;
 	Executable *exe;
 	int index, used;
 };
@@ -645,7 +646,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(key == NULL)
 					return 0;
 				
-				if(!Object_Insert(runtime->frame->vars, key, val, runtime->heap, error))
+				if(!Object_Insert(runtime->frame->locals, key, val, runtime->heap, error))
 					return 0;
 				return 1;
 			}
@@ -835,28 +836,29 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(key == NULL)
 					return 0;
 
-				Object *obj = Object_Select(runtime->frame->vars, key, runtime->heap, error);
+				Object *locations[] = {
+					runtime->frame->locals,
+					runtime->frame->globals,
+					Runtime_GetBuiltins(runtime),
+				};
+				
+				Object *obj = NULL;
 
-				if(obj == NULL && error->occurred == 0)
+				for(int p = 0; obj == NULL && (unsigned int) p < sizeof(locations)/sizeof(locations[0]); p += 1)
 					{
-						// Variable not defined locally.
+						if(locations[p] == NULL)
+							continue;
 
-						Object *builtins = Runtime_GetBuiltins(runtime);
-
-						if(builtins != NULL)
-							obj = Object_Select(builtins, key, runtime->heap, error);
-
-						if(obj == NULL)
-							{
-								if(error->occurred == 0)
-									// There's no such variable.
-									Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
-								return 0;
-							}
+						obj = Object_Select(locations[p], key, Runtime_GetHeap(runtime), error);
 					}
-				else 
-					if(obj == NULL)
+
+				if(obj == NULL)
+					{
+						if(error->occurred == 0)
+							// There's no such variable.
+							Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
 						return 0;
+					}
 
 				if(!Runtime_Push(runtime, error, obj))
 					return 0;
@@ -912,7 +914,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				assert(ops[0].type == OPTP_INT);
 				assert(ops[1].type == OPTP_INT);
 
-				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, runtime->heap, error);
+				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, runtime->frame->globals, runtime->heap, error);
 
 				if(obj == NULL)
 					return 0;
@@ -1033,7 +1035,7 @@ static _Bool step(Runtime *runtime, Error *error)
 	return 1;
 }
 
-Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object **argv, int argc)
+Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *globals, _Bool is_global_scope, Object **argv, int argc)
 {
 	assert(runtime != NULL);
 	assert(error != NULL);
@@ -1053,13 +1055,27 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	Frame frame;
 	{
 		frame.prev = NULL;
-		frame.vars = Object_NewMap(-1, runtime->heap, error);
+
+		if(is_global_scope)
+			{
+				if(globals == NULL)
+					globals = Object_NewMap(-1, runtime->heap, error);
+
+				frame.globals = globals;
+				frame.locals = frame.globals;
+			}
+		else
+			{
+				frame.globals = globals;
+				frame.locals = Object_NewMap(-1, runtime->heap, error);
+			}
+
+		if(frame.locals == NULL)
+			return NULL;
+
 		frame.exe  = Executable_Copy(exe);
 		frame.index = index;
 		frame.used  = 0;
-
-		if(frame.vars == NULL)
-			return NULL;
 
 		if(frame.exe == NULL)
 			{

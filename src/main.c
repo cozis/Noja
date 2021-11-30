@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 
 					Runtime_SetBuiltins(runtime, builtins);
 
-					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0);
+					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 1, NULL, 0);
 
 					if(result == NULL)
 						{

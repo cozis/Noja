@@ -1,0 +1,24 @@
+
+depth = 9;
+
+fun fail(p)
+{
+	if p < depth:
+		fail(p+1, depth, fail);
+	else
+		assert(false);
+}
+
+#fail(0);
+
+fun a()
+{
+	fun b()
+	{
+		print(depth, '\n');
+	}
+
+	b();
+}
+
+a();

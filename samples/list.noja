@@ -1,17 +1,5 @@
 
-
 l = [1, 2, 3, 4];
 
 print('The list contains ', count(l), ' items.\n');
 print('The list is: ', l, '.\n');
-
-
-fun fail(p, fail)
-{
-	if p == 5:
-		assert(false);
-	else
-		fail(p+1, fail);
-}
-
-fail(0, fail);
