@@ -9,29 +9,4 @@ fun fail(p)
 		assert(false);
 }
 
-#fail(0);
-
-defined_globally = 111;
-
-fun A()
-{
-	print('Hello from A!\n');
-
-	defined_in_A = 10;
-
-	fun B()
-	{
-		defined_in_B = 33;
-
-		print('Hello from B!\n');
-		print('defined_globally = ', defined_globally, '\n');
-		print('defined_in_A = ', defined_in_A, '\n');
-		print('defined_in_B = ', defined_in_B, '\n');
-	}
-
-	B();
-
-	print('defined_in_B = ', defined_in_B, '\n');
-}
-
-A();
+fail(0);
