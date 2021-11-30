@@ -11,14 +11,27 @@ fun fail(p)
 
 #fail(0);
 
-fun a()
+defined_globally = 111;
+
+fun A()
 {
-	fun b()
+	print('Hello from A!\n');
+
+	defined_in_A = 10;
+
+	fun B()
 	{
-		print(depth, '\n');
+		defined_in_B = 33;
+
+		print('Hello from B!\n');
+		print('defined_globally = ', defined_globally, '\n');
+		print('defined_in_A = ', defined_in_A, '\n');
+		print('defined_in_B = ', defined_in_B, '\n');
 	}
 
-	b();
+	B();
+
+	print('defined_in_B = ', defined_in_B, '\n');
 }
 
-a();
+A();

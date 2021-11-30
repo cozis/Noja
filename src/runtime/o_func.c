@@ -9,7 +9,7 @@ typedef struct {
 	Runtime *runtime;
 	Executable *exe;
 	int index, argc;
-	Object *globals;
+	Object *closure;
 } FunctionObject;
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error);
@@ -74,7 +74,7 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 		// The right amount of arguments was provided.
 		argv2 = argv;
 
-	Object *result = run(func->runtime, error, func->exe, func->index, func->globals, 0, argv2, expected_argc);
+	Object *result = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc);
 
 	if(argv2 != argv)
 		free(argv2);
@@ -82,7 +82,7 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	return result;
 }
 
-Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *globals, Heap *heap, Error *error)
+Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error)
 {
 	assert(runtime != NULL);
 	assert(exe != NULL);
@@ -108,7 +108,7 @@ Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, in
 	func->exe = exe_copy;
 	func->index = index;
 	func->argc = argc;
-	func->globals = globals;
+	func->closure = closure;
 
 	return (Object*) func;
 }

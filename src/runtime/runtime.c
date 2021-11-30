@@ -7,11 +7,10 @@
 #define MAX_FRAMES 16
 
 typedef struct Frame Frame;
-
 struct Frame {
 	Frame  *prev;
 	Object *locals;
-	Object *globals;
+	Object *closure;
 	Executable *exe;
 	int index, used;
 };
@@ -838,7 +837,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 				Object *locations[] = {
 					runtime->frame->locals,
-					runtime->frame->globals,
+					runtime->frame->closure,
 					Runtime_GetBuiltins(runtime),
 				};
 				
@@ -914,7 +913,12 @@ static _Bool step(Runtime *runtime, Error *error)
 				assert(ops[0].type == OPTP_INT);
 				assert(ops[1].type == OPTP_INT);
 
-				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, runtime->frame->globals, runtime->heap, error);
+				Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
+
+				if(closure == NULL)
+					return 0;
+
+				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, closure, runtime->heap, error);
 
 				if(obj == NULL)
 					return 0;
@@ -1035,7 +1039,7 @@ static _Bool step(Runtime *runtime, Error *error)
 	return 1;
 }
 
-Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *globals, _Bool is_global_scope, Object **argv, int argc)
+Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc)
 {
 	assert(runtime != NULL);
 	assert(error != NULL);
@@ -1055,27 +1059,14 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	Frame frame;
 	{
 		frame.prev = NULL;
-
-		if(is_global_scope)
-			{
-				if(globals == NULL)
-					globals = Object_NewMap(-1, runtime->heap, error);
-
-				frame.globals = globals;
-				frame.locals = frame.globals;
-			}
-		else
-			{
-				frame.globals = globals;
-				frame.locals = Object_NewMap(-1, runtime->heap, error);
-			}
-
-		if(frame.locals == NULL)
-			return NULL;
-
+		frame.closure = closure;
+		frame.locals = Object_NewMap(-1, runtime->heap, error);
 		frame.exe  = Executable_Copy(exe);
 		frame.index = index;
 		frame.used  = 0;
+
+		if(frame.locals == NULL)
+			return NULL;
 
 		if(frame.exe == NULL)
 			{
