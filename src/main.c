@@ -217,7 +217,22 @@ int main(int argc, char **argv)
 
 					RuntimeError error;
 					RuntimeError_Init(&error, runtime);
-					
+						
+					Object *builtins = Object_NewBuiltinsMap(runtime, Runtime_GetHeap(runtime), (Error*) &error);
+
+					if(builtins == NULL)
+						{
+							fprintf(stderr, "Couldn't initialize runtime.\n");
+							Debug_Free(dbg);
+							Source_Free(src);
+							Executable_Free(exe);
+							RuntimeError_Free(&error);
+							Runtime_Free(runtime);
+							return 1;	
+						}
+
+					Runtime_SetBuiltins(runtime, builtins);
+
 					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, 0);
 
 					if(result == NULL)

@@ -101,15 +101,14 @@ void Runtime_Free(Runtime *runtime)
 	free(runtime);
 }
 
-Object *Runtime_GetBuiltins(Runtime *runtime, Error *error)
+Object *Runtime_GetBuiltins(Runtime *runtime)
 {
-	if(runtime->builtins == NULL)
-		{
-			runtime->builtins = Object_NewBuiltinsMap(runtime, Runtime_GetHeap(runtime), error);
-			if(runtime->builtins == NULL)
-				return NULL;
-		}
 	return runtime->builtins;
+}
+
+void Runtime_SetBuiltins(Runtime *runtime, Object *builtins)
+{
+	runtime->builtins = builtins;
 }
 
 _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
@@ -239,7 +238,56 @@ void Snapshot_Print(Snapshot *snapshot, FILE *fp)
 	assert(snapshot != NULL);
 	assert(fp != NULL);
 
-	fprintf(fp, "  (Snapshot can't be printed yet)\n");
+	fprintf(fp, "Stack trace:\n");
+
+	for(int i = 0; i < snapshot->depth; i += 1)
+		{
+			SnapshotNode node = snapshot->nodes[i];
+
+			Executable *exe = node.exe;
+			Source     *src = Executable_GetSource(exe);
+
+			const char *name;
+			{
+				name = NULL;
+
+				if(src != NULL) 
+					name = Source_GetName(src);
+
+				if(name == NULL)
+					name = "(unnamed)";
+			}
+
+			int line;
+			{
+				if(src == NULL)
+					line = 0;
+				else
+					{
+						line = 1;
+
+						const char *body = Source_GetBody(src);
+						int offset = Executable_GetInstrOffset(exe, node.index);
+
+						int i = 0;
+				
+						while(i < offset)
+							{
+								if(body[i] == '\n')
+									line += 1;
+
+								i += 1;
+							}
+					}
+			}
+
+			if(line == 0)
+				fprintf(fp, "\t#%d %s\n", i, name);
+			else
+				fprintf(fp, "\t#%d %s:%d\n", i, name, line);
+		}
+
+	//fprintf(fp, "  (Snapshot can't be printed yet)\n");
 }
 
 static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, Error *error)
@@ -793,13 +841,10 @@ static _Bool step(Runtime *runtime, Error *error)
 					{
 						// Variable not defined locally.
 
-						Object *builtins = Runtime_GetBuiltins(runtime, error);
+						Object *builtins = Runtime_GetBuiltins(runtime);
 
-						if(builtins == NULL)
-							// Failed to create builtins map.
-							return 0;
-
-						obj = Object_Select(runtime->builtins, key, runtime->heap, error);
+						if(builtins != NULL)
+							obj = Object_Select(builtins, key, runtime->heap, error);
 
 						if(obj == NULL)
 							{

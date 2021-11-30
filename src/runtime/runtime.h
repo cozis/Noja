@@ -13,7 +13,8 @@ _Bool 		Runtime_Pop(Runtime *runtime, Error *error, unsigned int n);
 _Bool 		Runtime_Push(Runtime *runtime, Error *error, Object *obj);
 Heap*		Runtime_GetHeap(Runtime *runtime);
 Stack*		Runtime_GetStack(Runtime *runtime);
-Object*		Runtime_GetBuiltins(Runtime *runtime, Error *error);
+Object*		Runtime_GetBuiltins(Runtime *runtime);
+void 		Runtime_SetBuiltins(Runtime *runtime, Object *builtins);
 int 		Runtime_GetCurrentIndex(Runtime *runtime);
 Executable *Runtime_GetCurrentExecutable(Runtime *runtime);
 

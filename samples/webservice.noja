@@ -1,0 +1,10 @@
+
+fun index(req)
+	return {code: 200, 'body': 'Hello, world!'};
+
+routes = {
+	'/': index,
+	'/groups': list_groups
+}
+
+res = serve(8080, routes);
