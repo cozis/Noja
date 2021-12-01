@@ -507,19 +507,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			Error_Report(error, 1, "Invalid instruction index");
 			return 0;
 		}
-/*
-#warning "TEMPORARY"
-	{
-		int index = runtime->frame->index;
-		Executable *exe = runtime->frame->exe;
-		Source 	   *src = Executable_GetSource(exe);
-		int offset = Executable_GetInstrOffset(exe, index);
-		int length = Executable_GetInstrLength(exe, index);
-		const char *str = Source_GetBody(src);
-
-		printf("Executing [%.*s]\n", length, str + offset);
-	}
-*/
+	
 	runtime->frame->index += 1;
 
 	switch(opcode)
