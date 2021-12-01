@@ -25,8 +25,6 @@ void 	  Snapshot_Print(Snapshot *snapshot, FILE *fp);
 
 Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc);
 
-Object *Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);
-Object *Object_NewBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
 Object*	Object_FromNativeFunction(Runtime *runtime, Object *(*callback)(Runtime*, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error);
 Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error);
 #endif

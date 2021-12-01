@@ -14,6 +14,8 @@
  * $ noja -f <file> -o <file>
  */
 
+Object *Object_NewBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
+
 typedef enum { RUN, HELP, PARSE, VERSION, DISASSEMBLY } Action;
 
 typedef struct {

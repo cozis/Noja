@@ -1,8 +1,5 @@
-// NOTE: This data structure doesn't strictly depend on
-//       the runtime, so it could be moved to src/objects.
-
 #include "../utils/defs.h"
-#include "../objects/objects.h"
+#include "objects.h"
 
 typedef struct ClosureObject ClosureObject;
 

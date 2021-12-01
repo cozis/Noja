@@ -2,8 +2,8 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "runtime.h"
-#include "../utils/defs.h"
+#include "runtime/runtime.h"
+#include "utils/defs.h"
 
 static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 static int      count(Object *self);
