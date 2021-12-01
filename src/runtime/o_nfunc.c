@@ -73,7 +73,10 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 					argv2[i] = Object_NewNone(heap, error);
 
 					if(argv2[i] == NULL)
-						return 0;
+						{
+							free(argv2);
+							return NULL;
+						}
 				}
 		}
 	else UNREACHABLE;

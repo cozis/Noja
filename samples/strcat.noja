@@ -11,7 +11,7 @@ fun append_esclamation_mark(A, n)
 	
 	i = 0;
 	while i < n:
-		{
+		{	
 			A = strcat(A, '!');
 			i = i + 1;
 		}
@@ -19,4 +19,4 @@ fun append_esclamation_mark(A, n)
 	return A;
 }
 
-print(append_esclamation_mark(D, 7), '\n');
+print(append_esclamation_mark(D, 3), '\n');
