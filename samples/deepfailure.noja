@@ -1,12 +1,14 @@
 
-depth = 9;
-
-fun fail(p)
+fun fail_at_depth(depth)
 {
-	if p < depth:
-		fail(p+1, depth, fail);
-	else
-		assert(false);
+	fun fail(current_depth)
+	{
+		assert(current_depth < depth);
+		fail(current_depth + 1);
+	}
+
+	fail(0);
 }
 
-fail(0);
+
+fail_at_depth(9);

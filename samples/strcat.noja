@@ -1,0 +1,22 @@
+
+A = 'Hello';
+B = ', ';
+C = 'world';
+D = strcat(A, B, C);
+
+fun append_esclamation_mark(A, n)
+{
+	if n == none:
+		n = 1;
+	
+	i = 0;
+	while i < n:
+		{
+			A = strcat(A, '!');
+			i = i + 1;
+		}
+
+	return A;
+}
+
+print(append_esclamation_mark(D, 7), '\n');
