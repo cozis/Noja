@@ -1,0 +1,6 @@
+
+b = newBuffer(16);
+
+b[2] = 10;
+
+print(b);

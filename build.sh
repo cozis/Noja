@@ -22,6 +22,7 @@ gcc -c src/objects/o_none.c    -o temp/objects/o_none.o    $FLAGS
 gcc -c src/objects/o_bool.c    -o temp/objects/o_bool.o    $FLAGS
 gcc -c src/objects/o_float.c   -o temp/objects/o_float.o   $FLAGS
 gcc -c src/objects/o_string.c  -o temp/objects/o_string.o  $FLAGS
+gcc -c src/objects/o_buffer.c  -o temp/objects/o_buffer.o  $FLAGS
 gcc -c src/objects/o_closure.c -o temp/objects/o_closure.o $FLAGS
 gcc -c src/objects/objects.c   -o temp/objects/objects.o   $FLAGS
 
@@ -81,6 +82,7 @@ gcc src/main.c \
 	temp/objects/o_none.o \
 	temp/objects/o_list.o \
 	temp/objects/o_bool.o \
+	temp/objects/o_buffer.o \
 	temp/objects/o_string.o \
 	temp/objects/o_closure.o \
 	temp/runtime/runtime.o \

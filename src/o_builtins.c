@@ -12,6 +12,7 @@ static Object *bin_print (Runtime *runtime, Object **argv, unsigned int argc, Er
 static Object *bin_count (Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
+static Object *bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 
 typedef struct {
 	Object base;
@@ -75,6 +76,14 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 			{
 				if(!strcmp(s, "strcat"))
 					return Object_FromNativeFunction(bm->runtime, bin_strcat, -1, heap, err);
+
+				return NULL;
+			}
+
+			case PAIR(sizeof("newBuffer")-1, 'n'):
+			{
+				if(!strcmp(s, "newBuffer"))
+					return Object_FromNativeFunction(bm->runtime, bin_newBuffer, -1, heap, err);
 
 				return NULL;
 			}
@@ -196,3 +205,14 @@ done:
 	return result;
 }
 
+static Object *bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+
+	int size = Object_ToInt(argv[0], error);
+
+	if(error->occurred == 1)
+		return NULL;
+
+	return Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
+}
