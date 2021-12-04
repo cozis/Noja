@@ -48,6 +48,21 @@ Object *Object_NewBuffer(int size, Heap *heap, Error *error)
 	return (Object*) obj;
 }
 
+void *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error)
+{
+	if(obj->type != &t_buffer)
+		{
+			Error_Report(error, 0, "Not a buffer");
+			return NULL;
+		}
+
+	BufferObject *buf = (BufferObject*) obj;
+
+	if(size)
+		*size = buf->size;
+	return buf->body;
+}
+
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 {
 	assert(self != NULL);

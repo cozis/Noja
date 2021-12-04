@@ -72,6 +72,7 @@ const Type*	 Object_GetType(const Object *obj);
 const char*	 Object_GetName(const Object *obj);
 unsigned int Object_GetSize(const Object *obj, Error *err);
 unsigned int Object_GetDeepSize(const Object *obj, Error *err);
+void        *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error);
 int 		 Object_Hash  (Object *obj, Error *err);
 Object*		 Object_Copy  (Object *obj, Heap *heap, Error *err);
 Object*		 Object_Call  (Object *obj, Object **argv, unsigned int argc, Heap *heap, Error *err);

@@ -22,6 +22,8 @@ static Object *bin_htonl(Runtime *runtime, Object **argv, unsigned int argc, Err
 static Object *bin_ntohl(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_htons(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_ntohs(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
+static Object *bin_send(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
+static Object *bin_recv(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 
 
 typedef struct {
@@ -59,6 +61,22 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 
 	switch(PAIR(n, s[0]))
 		{
+			case PAIR(4, 's'):
+			{
+				if(!strcmp(s, "send"))
+					return Object_FromNativeFunction(bm->runtime, bin_send, 3, heap, err);
+				
+				return NULL;
+			}
+
+			case PAIR(4, 'r'):
+			{
+				if(!strcmp(s, "recv"))
+					return Object_FromNativeFunction(bm->runtime, bin_recv, 3, heap, err);
+				
+				return NULL;
+			}
+
 			case PAIR(10, 'I'):
 			{
 				if(!strcmp(s, "INADDR_ANY"))
@@ -669,5 +687,47 @@ static Object *bin_accept(Runtime *runtime, Object **argv, unsigned int argc, Er
 			return NULL;
 	}
 
-	return Object_FromInt(r, heap, error); 
+	return Object_FromInt(r, heap, error);
+}
+
+static Object *bin_send(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 3);
+
+	Heap *heap = Runtime_GetHeap(runtime);
+
+	int sockfd = Object_ToInt(argv[0], error);
+	if(error->occurred) return NULL;
+
+	int   size;
+	void *addr = Object_GetBufferAddrAndSize(argv[1], &size, error);
+	if(addr == NULL) return NULL;
+
+	int flags = Object_ToInt(argv[2], error);
+	if(error->occurred) return NULL;
+
+	ssize_t r = send(sockfd, addr, size, flags);
+
+	return Object_FromInt(r, heap, error);
+}
+
+static Object *bin_recv(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 3);
+
+	Heap *heap = Runtime_GetHeap(runtime);
+
+	int sockfd = Object_ToInt(argv[0], error);
+	if(error->occurred) return NULL;
+
+	int   size;
+	void *addr = Object_GetBufferAddrAndSize(argv[1], &size, error);
+	if(addr == NULL) return NULL;
+
+	int flags = Object_ToInt(argv[2], error);
+	if(error->occurred) return NULL;
+
+	ssize_t r = recv(sockfd, addr, size, flags);
+
+	return Object_FromInt(r, heap, error);
 }

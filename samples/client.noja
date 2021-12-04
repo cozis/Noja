@@ -24,3 +24,13 @@ if net.connect(fd, { sin_family: net.AF_INET, sin_port: net.htons(port), sin_add
 	}
 
 print('Connected!\n');
+
+buffer = newBuffer(16);
+
+buffer[0] = 9;
+buffer[1] = 7;
+buffer[2] = 255;
+
+n = net.send(fd, buffer, 0);
+
+print('Sent ', n, ' bytes: ', buffer, '\n');
