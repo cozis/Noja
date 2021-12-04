@@ -79,9 +79,9 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 				return NULL;
 			}
 
-			case PAIR(sizeof("network")-1, 'n'):
+			case PAIR(sizeof("net")-1, 'n'):
 			{
-				if(!strcmp(s, "network"))
+				if(!strcmp(s, "net"))
 					return Object_NewNetworkBuiltinsMap(bm->runtime, heap, err);
 
 				return NULL;

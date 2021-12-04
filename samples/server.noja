@@ -1,0 +1,38 @@
+
+port = 8080;
+backlog = 5;
+
+fd = net.socket(net.AF_INET, net.SOCK_STREAM, 0);
+
+if fd < 0:
+	{
+		print('Failed to create socket.\n');
+		return none;
+	}
+
+if net.bind(fd, {sin_family: net.AF_INET, sin_port: net.htons(port), sin_addr: {s_addr: net.htonl(net.INADDR_ANY)}}) != 0:
+	{
+		print('Failed to bind.\n');
+		return none;
+	}
+
+if net.listen(fd, backlog) != 0:
+	{
+		print('Failed to listen.\n');
+		return none;
+	}
+
+while true:
+	{
+		client_addr = {};
+		client_fd   = net.accept(fd, client_addr);
+
+		if client_fd < 0:
+			print('Warning! Failed to accept!\n');
+
+		print('Got a connection!\n');
+		print('client_fd   = ', client_fd, '\n');
+		print('client_addr = {', client_addr, '}\n');
+		
+		# ..continue..
+	}
