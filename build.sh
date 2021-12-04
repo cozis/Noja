@@ -40,7 +40,8 @@ gcc -c src/runtime/runtime.c 	   -o temp/runtime/runtime.o       $FLAGS
 gcc -c src/runtime/o_nfunc.c       -o temp/runtime/o_nfunc.o       $FLAGS
 gcc -c src/runtime/o_func.c        -o temp/runtime/o_func.o        $FLAGS
 
-gcc -c src/o_builtins.c    -o temp/o_builtins.o    $FLAGS
+gcc -c src/o_builtins.c         -o temp/o_builtins.o         $FLAGS
+gcc -c src/o_network_builtins.c -o temp/o_network_builtins.o $FLAGS
 
 rm -rf build
 mkdir build
@@ -73,6 +74,7 @@ gcc tests/src/test-objects.c -o build/test-objects $FLAGS -Lbuild/ -lnoja-object
 gcc src/main.c \
 	src/debug.c \
 	temp/o_builtins.o \
+	temp/o_network_builtins.o \
 	temp/utils/hash.o \
 	temp/utils/stack.o \
 	temp/utils/source.o \

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include "../utils/defs.h"
 #include "objects.h"
 
@@ -40,6 +41,8 @@ Object *Object_NewBuffer(int size, Heap *heap, Error *error)
 
 		if(obj->body == NULL)
 			return NULL;
+
+		memset(obj->body, 0, size);
 	}
 
 	return (Object*) obj;
@@ -71,7 +74,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 		}
 
 	unsigned char byte = buffer->body[idx];
-	
+
 	return Object_FromInt(byte, heap, error);
 }
 

@@ -5,8 +5,9 @@
 #include "runtime/runtime.h"
 #include "utils/defs.h"
 
+Object *Object_NewNetworkBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
+
 static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
-static int      count(Object *self);
 
 static Object *bin_print (Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_count (Runtime *runtime, Object **argv, unsigned int argc, Error *error);
@@ -24,8 +25,6 @@ static const Type t_builtins_map = {
 	.name = "builtins map",
 	.size = sizeof(BuiltinsMapOjbect),
 	.select = select_,
-	.count = count,
-	.print = NULL,
 };
 
 static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
@@ -80,6 +79,14 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 				return NULL;
 			}
 
+			case PAIR(sizeof("network")-1, 'n'):
+			{
+				if(!strcmp(s, "network"))
+					return Object_NewNetworkBuiltinsMap(bm->runtime, heap, err);
+
+				return NULL;
+			}
+
 			case PAIR(sizeof("newBuffer")-1, 'n'):
 			{
 				if(!strcmp(s, "newBuffer"))
@@ -91,12 +98,6 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 
 	// Not found.
 	return NULL;
-}
-
-static int count(Object *self)
-{
-	(void) self;
-	return 3;
 }
 
 Object *Object_NewBuiltinsMap(Runtime *runtime, Heap *heap, Error *err)

@@ -713,7 +713,12 @@ static _Bool step(Runtime *runtime, Error *error)
 				Object *val = Object_Select(col, key, runtime->heap, error);
 
 				if(val == NULL)
-					return 0;
+					{
+						val = Object_NewNone(runtime->heap, error);
+
+						if(val == NULL)
+							return 0;
+					}
 
 				if(!Runtime_Push(runtime, error, val))
 					return 0;

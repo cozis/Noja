@@ -3,4 +3,18 @@ b = newBuffer(16);
 
 b[2] = 10;
 
-print(b);
+print(b, '\n');
+
+fun toArray(buffer)
+	{
+		i = 0;
+		r = [];
+		while i < count(buffer):
+			{
+				r[i] = buffer[i];
+				i = i+1;
+			}
+		return r;
+	}
+
+print(toArray(b), '\n');
