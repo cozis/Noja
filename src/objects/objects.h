@@ -89,6 +89,7 @@ Object*		 Object_NewList(int capacity, Heap *heap, Error *error);
 Object*		 Object_NewNone(Heap *heap, Error *error);
 Object*		 Object_NewBuffer(int size, Heap *heap, Error *error);
 Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);
+Object*		 Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, Error *error);
 
 Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);
 Object*		 Object_FromBool  (_Bool		 val, Heap *heap, Error *error);

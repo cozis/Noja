@@ -14,6 +14,7 @@ static Object *bin_count (Runtime *runtime, Object **argv, unsigned int argc, Er
 static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
+static Object *bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 
 typedef struct {
 	Object base;
@@ -75,6 +76,14 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 			{
 				if(!strcmp(s, "strcat"))
 					return Object_FromNativeFunction(bm->runtime, bin_strcat, -1, heap, err);
+
+				return NULL;
+			}
+
+			case PAIR(sizeof("sliceBuffer")-1, 's'):
+			{
+				if(!strcmp(s, "sliceBuffer"))
+					return Object_FromNativeFunction(bm->runtime, bin_sliceBuffer, 3, heap, err);
 
 				return NULL;
 			}
@@ -210,10 +219,23 @@ static Object *bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc,
 {
 	assert(argc == 1);
 
-	int size = Object_ToInt(argv[0], error);
+	long long int size = Object_ToInt(argv[0], error);
 
 	if(error->occurred == 1)
 		return NULL;
 
 	return Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
+}
+
+static Object *bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 3);
+
+	long long int offset = Object_ToInt(argv[1], error);
+	if(error->occurred == 1) return NULL;
+
+	long long int length = Object_ToInt(argv[2], error);
+	if(error->occurred == 1) return NULL;
+
+	return Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
 }

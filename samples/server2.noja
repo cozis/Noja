@@ -21,7 +21,13 @@ fun startServer(callbacks, port, backlog)
 			return none;
 		}
 
-	if net.bind(fd, {sin_family: net.AF_INET, sin_port: net.htons(port), sin_addr: {s_addr: net.htonl(net.INADDR_ANY)}}) != 0:
+	if net.bind(fd, {
+			sin_family: net.AF_INET, 
+			sin_port: net.htons(port), 	
+			sin_addr: {
+				s_addr: net.htonl(net.INADDR_ANY)
+			}
+		}) != 0:
 		{
 			print('Failed to bind.\n');
 			return none;
@@ -33,15 +39,25 @@ fun startServer(callbacks, port, backlog)
 			return none;
 		}
 
-	on_datain     = callbacks.on_datain;
-	on_connect    = callbacks.on_connect;
-	on_disconnect = callbacks.on_disconnect;
+	{
+		on_datain     = callbacks.on_datain;
+		on_connect    = callbacks.on_connect;
+		on_disconnect = callbacks.on_disconnect;
 
-	if on_datain     == none: fun on_datain() none;
-	if on_connect    == none: fun on_connect() none;
-	if on_disconnect == none: fun on_disconnect() none;
+		if on_datain == none: 
+			fun on_datain() 
+				none;
 
-	buffer = newBuffer(16);
+		if on_connect == none: 
+			fun on_connect() 
+				none;
+		
+		if on_disconnect == none: 
+			fun on_disconnect() 
+				none;
+	}
+
+	buffer = newBuffer(1024);
 
 	while true:
 		{
@@ -67,7 +83,7 @@ fun startServer(callbacks, port, backlog)
 					else if n == 0:
 						on_disconnect(addr_str);
 					else
-						on_datain(addr_str, buffer, n);
+						on_datain(addr_str, sliceBuffer(buffer, 0, n));
 				}
 			while n > 0;
 		}
@@ -78,9 +94,9 @@ fun on_connect(addr)
 	print(addr, ' connected.\n');
 }
 
-fun on_datain(addr, buf, len)
+fun on_datain(addr, data)
 {
-	print('Received ', len, ' bytes from ', addr);
+	print('Received ', count(data), ' bytes from ', addr, '\n');
 }
 
 fun on_disconnect(addr)
