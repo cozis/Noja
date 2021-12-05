@@ -18,6 +18,7 @@ static Object *bin_socket(Runtime *runtime, Object **argv, unsigned int argc, Er
 static Object *bin_accept(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_connect(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_inet_aton(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
+static Object *bin_inet_ntoa(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_htonl(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_ntohl(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_htons(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
@@ -135,6 +136,10 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 			{
 				if(!strcmp(s, "inet_aton"))
 					return Object_FromNativeFunction(bm->runtime, bin_inet_aton, 2, heap, err);
+
+				if(!strcmp(s, "inet_ntoa"))
+					return Object_FromNativeFunction(bm->runtime, bin_inet_ntoa, 1, heap, err);
+
 				return NULL;
 			}
 
@@ -513,6 +518,23 @@ static Object *bin_inet_aton(Runtime *runtime, Object **argv, unsigned int argc,
 	return Object_FromInt(r, heap, error);
 }
 
+static Object *bin_inet_ntoa(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+
+	Heap *heap = Runtime_GetHeap(runtime);
+
+	struct in_addr in_addr;
+
+	if(!get_in_addr_from_map(argv[0], &in_addr, heap, error))
+		return NULL;
+
+	const char *addr = inet_ntoa(in_addr);
+	assert(addr != NULL);
+
+	return Object_FromString(addr, -1, heap, error);
+}
+
 static Object *bin_htonl(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
 	assert(argc == 1);
@@ -632,7 +654,7 @@ static Object *bin_accept(Runtime *runtime, Object **argv, unsigned int argc, Er
 
 	Heap *heap = Runtime_GetHeap(runtime);
 
-	int sockfd = Object_ToInt(argv[0], error);
+	long long int sockfd = Object_ToInt(argv[0], error);
 	if(error->occurred) return NULL;
 
 	struct sockaddr_in addr;

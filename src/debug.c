@@ -268,7 +268,8 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 						"quit .............. Stop execution\n"
 						"continue .......... Run until a breakpoint or the end of the code is reached\n"
 						"breakpoint ........ Add a breakpoint\n"
-						"stack ............. Show the contents of the stack\n");
+						"stack ............. Show the contents of the stack\n"
+						"disassembly ....... Show the current file's bytecode\n");
 						}
 					else if(!strcmp(argv[1], "help"))
 						{
@@ -314,6 +315,17 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 								"             | \n"
 								" Description | Run until a breakpoint or the end of the code is\n"
 								"             | reached.\n"
+								"\n");
+						}
+					else if(!strcmp(argv[1], "disassembly"))
+						{
+							fprintf(stderr, 
+								"\n"
+								"     Command | disassembly\n"
+								"             | \n"
+								"       Usage | > disassembly\n"
+								"             | \n"
+								" Description | Show the current file's bytecode.\n"
 								"\n");
 						}
 					else if(!strcmp(argv[1], "breakpoint"))
@@ -442,6 +454,11 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 			else if(!strcmp(argv[0], "continue"))
 				{
 					dbg->continuing = 1;
+					return 1;
+				}
+			else if(!strcmp(argv[0], "disassembly"))
+				{
+					Executable_Dump(Runtime_GetCurrentExecutable(runtime));
 					return 1;
 				}
 			else if(!strcmp(argv[0], "step"))

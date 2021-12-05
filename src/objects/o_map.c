@@ -78,9 +78,9 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 
 	MapObject *map = (MapObject*) self;
 
-	int mask = map->mapper_size - 1;
-	int hash = Object_Hash(key, error);
-	int pert = hash;
+	unsigned int mask = map->mapper_size - 1;
+	unsigned int hash = Object_Hash(key, error);
+	unsigned int pert = hash;
 
 	if(error->occurred)
 		// No hash function.
@@ -200,9 +200,9 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 		if(!grow(map, heap, error))
 			return 0;
 
-	int mask = map->mapper_size - 1;
-	int hash = Object_Hash(key, error);
-	int pert = hash;
+	unsigned int mask = map->mapper_size - 1;
+	unsigned int hash = Object_Hash(key, error);
+	unsigned int pert = hash;
 
 	if(error->occurred)
 		// No hash function.
