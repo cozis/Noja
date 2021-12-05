@@ -11,7 +11,7 @@ typedef struct {
 	long long int val;
 } IntObject;
 
-static const Type t_int = {
+static TypeObject t_int = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "int",
 	.size = sizeof (IntObject),

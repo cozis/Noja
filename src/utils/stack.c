@@ -54,6 +54,26 @@ void *Stack_Top(Stack *s, int n)
 	return s->body[s->used + n - 1];
 }
 
+void **Stack_TopRef(Stack *s, int n)
+{
+	assert(n <= 0);
+
+	if(Stack_IsReadOnlyCopy(s))
+		return NULL;
+
+	// Remove readonly bit.
+	s = unmark(s);
+
+	if(s->used == 0)
+		return NULL;
+
+	if((int) s->used + n - 1 < 0)
+		return NULL;
+
+	return &s->body[s->used + n - 1];
+}
+
+
 _Bool Stack_Pop(Stack *s, unsigned int n)
 {
 	if(Stack_IsReadOnlyCopy(s))

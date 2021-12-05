@@ -2,17 +2,17 @@
 #include "../utils/defs.h"
 #include "objects.h"
 
-const Type t_type = {
+TypeObject t_type = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "type",
-	.size = sizeof (Type),
+	.size = sizeof (TypeObject),
 };
 
 const char *Object_GetName(const Object *obj)
 {
 	assert(obj != NULL);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	const char *name = type->name;
@@ -21,7 +21,7 @@ const char *Object_GetName(const Object *obj)
 	return name;
 }
 
-const Type *Object_GetType(const Object *obj)
+const TypeObject *Object_GetType(const Object *obj)
 {
 	assert(obj != NULL);
 	assert(obj->type != NULL);
@@ -33,7 +33,7 @@ unsigned int Object_GetSize(const Object *obj, Error *err)
 	assert(err != NULL);
 	assert(obj != NULL);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	return type->size;
@@ -44,7 +44,7 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 	assert(err != NULL);
 	assert(obj != NULL);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->deepsize == NULL)
@@ -60,7 +60,7 @@ int Object_Hash(Object *obj, Error *err)
 {
 	assert(obj != NULL);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type != NULL);
 
 	if(type->hash == NULL)
@@ -77,7 +77,7 @@ Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 	assert(err != NULL);
 	assert(obj != NULL);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type != NULL);
 
 	if(type->copy == NULL)
@@ -94,7 +94,7 @@ Object *Object_Call(Object *obj, Object **argv, unsigned int argc, Heap *heap, E
 	assert(err);
 	assert(obj);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->call == NULL)
@@ -110,7 +110,7 @@ void Object_Print(Object *obj, FILE *fp)
 {
 	assert(obj != NULL);
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->print == NULL)
@@ -125,7 +125,7 @@ Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)
 	assert(key);
 	assert(coll);
 
-	const Type *type = Object_GetType(coll);
+	const TypeObject *type = Object_GetType(coll);
 	assert(type);
 
 	if(type->select == NULL)
@@ -143,7 +143,7 @@ Object *Object_Delete(Object *coll, Object *key, Heap *heap, Error *err)
 	assert(key);
 	assert(coll);
 
-	const Type *type = Object_GetType(coll);
+	const TypeObject *type = Object_GetType(coll);
 	assert(type);
 
 	if(type->delete == NULL)
@@ -161,7 +161,7 @@ _Bool Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *e
 	assert(key);
 	assert(coll);
 
-	const Type *type = Object_GetType(coll);
+	const TypeObject *type = Object_GetType(coll);
 	assert(type);
 
 	if(type->insert == NULL)
@@ -178,7 +178,7 @@ int	Object_Count(Object *coll, Error *err)
 	assert(err);
 	assert(coll);
 
-	const Type *type = Object_GetType(coll);
+	const TypeObject *type = Object_GetType(coll);
 	assert(type);
 
 	if(type->count == NULL)
@@ -195,7 +195,7 @@ Object *Object_Next(Object *iter, Heap *heap, Error *err)
 	assert(err);
 	assert(iter);
 
-	const Type *type = Object_GetType(iter);
+	const TypeObject *type = Object_GetType(iter);
 	assert(type);
 
 	if(type->next == NULL)
@@ -212,7 +212,7 @@ Object *Object_Prev(Object *iter, Heap *heap, Error *err)
 	assert(err);
 	assert(iter);
 
-	const Type *type = Object_GetType(iter);
+	const TypeObject *type = Object_GetType(iter);
 	assert(type);
 
 	if(type->prev == NULL)
@@ -263,7 +263,7 @@ long long int Object_ToInt(Object *obj, Error *err)
 			return 0;
 		}
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->to_int == NULL)
@@ -286,7 +286,7 @@ _Bool Object_ToBool(Object *obj, Error *err)
 			return 0;
 		}
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->to_bool == NULL)
@@ -309,7 +309,7 @@ double Object_ToFloat(Object *obj, Error *err)
 			return 0;
 		}
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->to_float == NULL)
@@ -332,7 +332,7 @@ const char *Object_ToString(Object *obj, int *size, Heap *heap, Error *err)
 			return NULL;
 		}
 
-	const Type *type = Object_GetType(obj);
+	const TypeObject *type = Object_GetType(obj);
 	assert(type);
 
 	if(type->to_string == NULL)
@@ -360,4 +360,16 @@ _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)
 		}
 
 	return obj1->type->op_eql(obj1, obj2);
+}
+
+void Object_WalkReferences(Object *parent, void (*callback)(Object **referer, void *userp), void *userp)
+{
+	if(parent->type->walk != NULL)
+		parent->type->walk(parent, callback, userp);
+}
+
+void Object_WalkExtensions(Object *parent, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
+{
+	if(parent->type->walkexts != NULL)
+		parent->type->walkexts(parent, callback, userp);
 }

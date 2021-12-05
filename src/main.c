@@ -237,6 +237,8 @@ int main(int argc, char **argv)
 
 					Object *result = run(runtime, (Error*) &error, exe, 0, NULL, NULL, 0);
 
+					// NOTE: The `builtins` pointer is invalidated now.
+
 					if(result == NULL)
 						{
 							fprintf(stderr, "RUNTIME ERROR: %s.\n", error.base.message);

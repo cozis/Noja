@@ -5,7 +5,7 @@
 static _Bool to_bool(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 
-static const Type t_bool = {
+static TypeObject t_bool = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "bool",
 	.size = sizeof (Object),

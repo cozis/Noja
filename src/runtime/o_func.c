@@ -13,13 +13,21 @@ typedef struct {
 } FunctionObject;
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error);
+static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
 
-static const Type t_func = {
+static TypeObject t_func = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "function",
 	.size = sizeof (FunctionObject),
-	.call = call,	
+	.call = call,
+	.walk = walk,
 };
+
+static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp)
+{
+	FunctionObject *func = (FunctionObject*) self;
+	callback(&func->closure, userp);
+}
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error)
 {

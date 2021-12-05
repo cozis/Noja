@@ -20,7 +20,7 @@ static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error 
 static int     count(Object *self);
 static void	   print(Object *obj, FILE *fp);
 
-static const Type t_buffer = {
+static TypeObject t_buffer = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "buffer",
 	.size = sizeof (BufferObject),

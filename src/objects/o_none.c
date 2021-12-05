@@ -5,7 +5,7 @@
 static _Bool op_eql(Object *self, Object *other);
 static void print(Object *obj, FILE *fp);
 
-static const Type t_none = {
+static TypeObject t_none = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "none",
 	.size = sizeof (Object),

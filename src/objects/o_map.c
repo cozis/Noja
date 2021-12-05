@@ -14,8 +14,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
 static void	print(Object *self, FILE *fp);
+static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
+static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
 
-static const Type t_map = {
+static TypeObject t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "map",
 	.size = sizeof (MapObject),
@@ -23,6 +25,8 @@ static const Type t_map = {
 	.insert = insert,
 	.count = count,
 	.print = print,
+	.walk = walk,
+	.walkexts = walkexts,
 };
 
 static inline int calc_capacity(int mapper_size)
@@ -66,6 +70,26 @@ Object *Object_NewMap(int num, Heap *heap, Error *error)
 		obj->mapper[i] = -1;
 
 	return (Object*) obj;
+}
+
+static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp)
+{
+	MapObject *map = (MapObject*) self;
+
+	for(int i = 0; i < map->count; i += 1)
+		{
+			callback(&map->keys[i], userp);
+			callback(&map->vals[i], userp);
+		}
+}
+
+static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
+{
+	MapObject *map = (MapObject*) self;
+	
+	callback((void**) &map->mapper, sizeof(int) * map->mapper_size, userp);
+	callback((void**) &map->keys, sizeof(Object) * calc_capacity(map->mapper_size), userp);
+	callback((void**) &map->vals, sizeof(Object) * calc_capacity(map->mapper_size), userp);
 }
 
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)

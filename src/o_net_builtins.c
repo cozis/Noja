@@ -32,7 +32,7 @@ typedef struct {
 	Runtime *runtime;
 } NetworkBuiltinsMapOjbect;
 
-static const Type t_builtins_map = {
+static TypeObject t_builtins_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "network builtins map",
 	.size = sizeof(NetworkBuiltinsMapOjbect),

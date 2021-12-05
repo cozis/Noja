@@ -21,7 +21,7 @@ typedef struct {
 	Runtime *runtime;
 } BuiltinsMapOjbect;
 
-static const Type t_builtins_map = {
+static TypeObject t_builtins_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "builtins map",
 	.size = sizeof(BuiltinsMapOjbect),

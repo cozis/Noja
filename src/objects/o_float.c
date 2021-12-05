@@ -9,7 +9,7 @@ typedef struct {
 	double val;
 } FloatObject;
 
-static const Type t_float = {
+static TypeObject t_float = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "float",
 	.size = sizeof (FloatObject),

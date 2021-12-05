@@ -16,8 +16,9 @@ static Object *copy(Object *self, Heap *heap, Error *err);
 static void print(Object *obj, FILE *fp);
 static char *to_string(Object *self, int *size, Heap *heap, Error *err);
 static _Bool op_eql(Object *self, Object *other);
+static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
 
-static const Type t_string = {
+static TypeObject t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "string",
 	.atomic = ATMTP_STRING,
@@ -28,6 +29,7 @@ static const Type t_string = {
 	.print = print,
 	.to_string = to_string,
 	.op_eql = op_eql,
+	.walkexts = walkexts,
 };
 
 static char *to_string(Object *self, int *size, Heap *heap, Error *err)
@@ -127,4 +129,11 @@ static void print(Object *obj, FILE *fp)
 	StringObject *str = (StringObject*) obj;
 
 	fprintf(fp, "%.*s", str->size, str->body);
+}
+
+static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
+{
+	StringObject *str = (StringObject*) self;
+	
+	callback((void**) &str->body, str->size+1, userp);
 }

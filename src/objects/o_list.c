@@ -12,8 +12,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
 static void	   print(Object *obj, FILE *fp);
+static void    walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
+static void    walkexts(Object *self, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
 
-static const Type t_list = {
+static TypeObject t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "list",
 	.size = sizeof (ListObject),
@@ -21,6 +23,8 @@ static const Type t_list = {
 	.insert = insert,
 	.count = count,
 	.print = print,
+	.walk = walk,
+	.walkexts = walkexts,
 };
 
 static inline int calc_capacity(int mapper_size)
@@ -51,6 +55,21 @@ Object *Object_NewList(int capacity, Heap *heap, Error *error)
 	}
 
 	return (Object*) obj;
+}
+
+static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp)
+{
+	ListObject *list = (ListObject*) self;
+
+	for(int i = 0; i < list->count; i += 1)
+		callback(&list->vals[i], userp);
+}
+
+static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
+{
+	ListObject *list = (ListObject*) self;
+	
+	callback((void**) &list->vals, sizeof(Object) * list->capacity, userp);
 }
 
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)

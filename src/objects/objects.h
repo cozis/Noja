@@ -4,14 +4,19 @@
 #include <stdio.h>
 #include "../utils/error.h"
 
-typedef struct Type Type;
+typedef struct TypeObject TypeObject;
 typedef struct Object Object;
 typedef struct xHeap Heap;
 
 struct Object {
-	const Type *type;
+	TypeObject *type;
 	unsigned int flags;
 };
+
+typedef struct {
+	Object base;
+	Object *new_location;
+} MovedObject;
 
 typedef enum {
 	ATMTP_NOTATOMIC = 0,
@@ -21,7 +26,7 @@ typedef enum {
 	ATMTP_STRING,
 } AtomicType;
 
-struct Type {
+struct TypeObject {
 
 	Object base;
 	
@@ -57,18 +62,27 @@ struct Type {
 	};
 
 	_Bool (*op_eql)(Object *self, Object *other);
+
+	// All.
+	void (*walk)    (Object *self, void (*callback)(Object **referer,                    void *userp), void *userp);
+	void (*walkexts)(Object *self, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
 };
 
 enum {
 	Object_STATIC = 1,
+	Object_MOVED  = 2,
 };
 
 Heap*		 Heap_New(int size);
 void		 Heap_Free(Heap *heap);
-void*		 Heap_Malloc   (Heap *heap, const Type *type, Error *err);
-void*		 Heap_RawMalloc(Heap *heap, int         size, Error *err);
+void*		 Heap_Malloc   (Heap *heap, TypeObject *type, Error *err);
+void*		 Heap_RawMalloc(Heap *heap, int size, Error *err);
+_Bool 	 	 Heap_StartCollection(Heap *heap, Error *error);
+_Bool 	  	 Heap_StopCollection(Heap *heap);
+void  	 	 Heap_CollectReference(Object **referer, Heap *heap);
+float 		 Heap_GetUsagePercentage(Heap *heap);
 
-const Type*	 Object_GetType(const Object *obj);
+const TypeObject* Object_GetType(const Object *obj);
 const char*	 Object_GetName(const Object *obj);
 unsigned int Object_GetSize(const Object *obj, Error *err);
 unsigned int Object_GetDeepSize(const Object *obj, Error *err);
@@ -83,6 +97,8 @@ _Bool		 Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error 
 int 		 Object_Count (Object *coll, Error *err);
 Object*		 Object_Next  (Object *iter, Heap *heap, Error *err);
 Object*		 Object_Prev  (Object *iter, Heap *heap, Error *err);
+void 		 Object_WalkReferences(Object *parent, void (*callback)(Object **referer,                    void *userp), void *userp);
+void 		 Object_WalkExtensions(Object *parent, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
 
 Object*		 Object_NewMap(int num, Heap *heap, Error *error);
 Object*		 Object_NewList(int capacity, Heap *heap, Error *error);
@@ -108,5 +124,5 @@ const char	 *Object_ToString(Object *obj, int *size, Heap *heap, Error *err);
 
 _Bool 		  Object_Compare(Object *obj1, Object *obj2, Error *error);
 
-extern const Type t_type;
+extern TypeObject t_type;
 #endif

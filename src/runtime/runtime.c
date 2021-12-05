@@ -1032,6 +1032,33 @@ static _Bool step(Runtime *runtime, Error *error)
 	return 1;
 }
 
+static _Bool collect(Runtime *runtime, Error *error)
+{
+	Frame *frame = runtime->frame;
+
+	if(!Heap_StartCollection(runtime->heap, error))
+		return 0;
+
+	Heap_CollectReference(&runtime->builtins,  runtime->heap);
+
+	while(frame)
+		{
+			Heap_CollectReference(&frame->locals,  runtime->heap);
+			Heap_CollectReference(&frame->closure, runtime->heap);
+			frame = frame->prev;
+		}
+
+	for(unsigned int i = 0; i < Stack_Size(runtime->stack); i += 1)
+		{
+			Object **ref = (Object**) Stack_TopRef(runtime->stack, -i);
+			assert(ref != NULL);
+
+			Heap_CollectReference(ref, runtime->heap);
+		}
+
+	return Heap_StopCollection(runtime->heap);
+}
+
 Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc)
 {
 	assert(runtime != NULL);
@@ -1086,14 +1113,29 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 				Error_Report(error, 0, "Forced abortion");
 			else
 				while(step(runtime, error))
-					if(!runtime->callback_addr(runtime, runtime->callback_userp))
-						{
-							Error_Report(error, 0, "Forced abortion");
-							break;
-						}
+					{
+						if(!runtime->callback_addr(runtime, runtime->callback_userp))
+							{
+								Error_Report(error, 0, "Forced abortion");
+								break;
+							}
+
+						//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
+
+						if(Heap_GetUsagePercentage(runtime->heap) > 100)
+							if(!collect(runtime, error))
+								break;
+					}
 		}
 	else
-		while(step(runtime, error));
+		while(step(runtime, error))
+			{
+				if(Heap_GetUsagePercentage(runtime->heap) > 100)
+					if(!collect(runtime, error))
+						break;
+
+				//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
+			}
 
 	// This is what the function will return.
 	Object *result = NULL;

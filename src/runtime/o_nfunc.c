@@ -13,7 +13,7 @@ typedef struct {
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error);
 
-static const Type t_nfunc = {
+static TypeObject t_nfunc = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "native function",
 	.size = sizeof (NativeFunctionObject),
