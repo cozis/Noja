@@ -79,7 +79,7 @@ void*		 Heap_Malloc   (Heap *heap, TypeObject *type, Error *err);
 void*		 Heap_RawMalloc(Heap *heap, int size, Error *err);
 _Bool 	 	 Heap_StartCollection(Heap *heap, Error *error);
 _Bool 	  	 Heap_StopCollection(Heap *heap);
-void  	 	 Heap_CollectReference(Object **referer, Heap *heap);
+void  	 	 Heap_CollectReference(Object **referer, void *heap);
 float 		 Heap_GetUsagePercentage(Heap *heap);
 
 const TypeObject* Object_GetType(const Object *obj);

@@ -14,6 +14,7 @@ typedef struct {
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error);
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
+static _Bool free_(Object *self, Error *error);
 
 static TypeObject t_func = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -21,7 +22,17 @@ static TypeObject t_func = {
 	.size = sizeof (FunctionObject),
 	.call = call,
 	.walk = walk,
+	.free = free_,
 };
+
+static _Bool free_(Object *self, Error *error)
+{
+	(void) error;
+	
+	FunctionObject *func = (FunctionObject*) self;
+	Executable_Free(func->exe);	
+	return 1;
+}
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp)
 {
@@ -34,7 +45,7 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	assert(self != NULL);
 	assert(heap != NULL);
 	assert(error != NULL);
-			
+	
 	FunctionObject *func = (FunctionObject*) self;
 
 	assert(func->exe != NULL);
@@ -83,6 +94,8 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 		argv2 = argv;
 
 	Object *result = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc);
+
+	// NOTE: Every object reference is invalidated from here.
 
 	if(argv2 != argv)
 		free(argv2);

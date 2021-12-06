@@ -14,15 +14,23 @@ struct OflowAlloc {
 	char body[];
 };
 
+typedef struct {
+	Object *object;
+	_Bool (*destructor)(Object*, Error*);
+} PendingDestruct;
+
 struct xHeap {
 	int   size;
 	int   used;
 	int   total;
 	void *body;
 	OflowAlloc *oflow;
+	PendingDestruct *pend;
+	int pend_size, pend_used;
 
 	_Bool collecting;
 	_Bool collection_failed;
+	int moved_with_destructors;
 	void *old_body;
 	int   old_used;
 	int   old_total;
@@ -44,6 +52,9 @@ Heap *Heap_New(int size)
 	heap->size = size;
 	heap->used = 0;
 	heap->body = malloc(size);
+	heap->pend = NULL;
+	heap->pend_size = 0;
+	heap->pend_used = 0;
 	heap->oflow = 0;
 	heap->collecting = 0;
 
@@ -67,6 +78,21 @@ void Heap_Free(Heap *heap)
 	VALGRIND_DESTROY_MEMPOOL(heap);
 #endif
 
+	Error error;
+	Error_Init(&error);
+
+	for(int i = 0; i < heap->pend_used; i += 1)
+		{
+			heap->pend[i].destructor(heap->pend[i].object, &error);
+			if(error.occurred)
+				{
+					// Errors occurred! We can't do anything about
+					// it now though.
+					Error_Free(&error);
+					Error_Init(&error);
+				}
+		}
+
 	while(heap->oflow)
 		{
 			OflowAlloc *prev = heap->oflow->prev;
@@ -74,6 +100,7 @@ void Heap_Free(Heap *heap)
 			heap->oflow = prev;
 		}
 
+	free(heap->pend);
 	free(heap->body);
 	free(heap);
 }
@@ -85,6 +112,51 @@ float Heap_GetUsagePercentage(Heap *heap)
 
 void *Heap_Malloc(Heap *heap, TypeObject *type, Error *err)
 {
+	_Bool requires_destruct = type->free != NULL;
+
+	if(requires_destruct)
+		{
+			// This type of object requires
+			// a destructor to be called.
+			if(heap->pend == NULL)
+				{
+					int n = 8;
+
+					heap->pend = malloc(n * sizeof(PendingDestruct));
+				
+					if(heap->pend == NULL)
+						{
+							Error_Report(err, 1, "No memory");
+							return NULL;
+						}
+
+					heap->pend_used = 0;
+					heap->pend_size = n;
+				}
+			else if(heap->pend_size == heap->pend_used)
+				{
+					int factor = 2;
+
+					void *new_pend = realloc(heap->pend, factor * heap->pend_size * sizeof(PendingDestruct));
+
+					if(new_pend == NULL)
+						{
+							Error_Report(err, 1, "No memory");
+							return NULL;
+						}
+
+					heap->pend = new_pend;
+					heap->pend_size *= factor;
+				}
+
+			assert(heap->pend_size > heap->pend_used);
+		}
+
+	int size = type->size;
+
+	if(size < (int) sizeof(MovedObject))
+		size = sizeof(MovedObject);
+
 	void *addr = Heap_RawMalloc(heap, type->size, err);
 
 	if(addr == NULL)
@@ -101,6 +173,9 @@ void *Heap_Malloc(Heap *heap, TypeObject *type, Error *err)
 	obj->type = type;
 	obj->flags = 0;
 
+	if(requires_destruct)
+		heap->pend[heap->pend_used++] = (PendingDestruct) { .object = obj, .destructor = obj->type->free };
+
 	return (Object*) addr;
 }
 
@@ -112,7 +187,14 @@ void *Heap_RawMalloc(Heap *heap, int size, Error *err)
 
 	void *addr;
 
-	if(heap->used + size >= heap->size)
+	int padding = heap->used;
+
+	if(heap->used & 7)
+		heap->used = (heap->used & ~7) + 8;
+
+	padding = heap->used - padding;
+
+	if(heap->used + size > heap->size)
 		{
 			OflowAlloc *oflow = malloc(sizeof(OflowAlloc) + size);
 
@@ -123,21 +205,15 @@ void *Heap_RawMalloc(Heap *heap, int size, Error *err)
 			heap->oflow = oflow;
 
 			addr = oflow->body;
-
-			heap->total += size;
 		}
 	else
 		{
-			int prev_used = heap->used;
-
-			if(heap->used & 7)
-				heap->used = (heap->used & ~7) + 8;
-
+			assert(heap->used + size <= heap->size);
 			addr = heap->body + heap->used;
-
 			heap->used += size;
-			heap->total += heap->used - prev_used;
 		}
+
+	heap->total += size + padding;
 
 	assert(((intptr_t) addr) % 8 == 0);
 
@@ -170,6 +246,7 @@ _Bool Heap_StartCollection(Heap *heap, Error *error)
 	heap->oflow = NULL;
 	heap->collecting = 1;
 	heap->collection_failed = 0;
+	heap->moved_with_destructors = 0;
 	heap->error = error;
 	return 1;
 }
@@ -185,6 +262,44 @@ _Bool Heap_StopCollection(Heap *heap)
 		}
 
 	/* Call destructors here */
+	{
+		int i = 0;
+	
+		while(i < heap->pend_used)
+			{
+				Object *obj = heap->pend[i].object;
+
+				if(obj->flags & Object_MOVED)
+					{
+						heap->pend[i].object = ((MovedObject*) heap->pend[i].object)->new_location;
+						i += 1;
+					}
+				else
+					{
+						// We need to call the destructor.
+
+						heap->pend[i].destructor(obj, heap->error);
+						
+						if(heap->error->occurred) 
+							return 0; // There will be leaks.
+					
+						heap->pend[i] = heap->pend[heap->pend_used-1];
+						heap->pend_used -= 1;
+					}
+			}
+
+		if(heap->pend_size / 2 > heap->pend_used)
+			{
+				// Downsize
+				void *temp = realloc(heap->pend, heap->pend_size / 2 * sizeof(PendingDestruct));
+
+				if(temp != NULL)
+					{
+						heap->pend = temp;
+						heap->pend_size /= 2;
+					}
+			}
+	}
 
 	while(heap->old_oflow)
 		{
@@ -199,8 +314,10 @@ _Bool Heap_StopCollection(Heap *heap)
 	return 1;
 }
 
-void Heap_CollectExtension(void **referer, int size, Heap *heap)
+void Heap_CollectExtension(void **referer, unsigned int size, void *userp)
 {
+	Heap *heap = userp;
+
 	assert(referer != NULL);
 	assert(heap->collecting);
 
@@ -222,8 +339,10 @@ void Heap_CollectExtension(void **referer, int size, Heap *heap)
 	*referer = new_location;
 }
 
-void Heap_CollectReference(Object **referer, Heap *heap)
+void Heap_CollectReference(Object **referer, void *userp)
 {
+	Heap *heap = userp;
+
 	assert(referer != NULL);
 	assert(heap->collecting);
 
@@ -232,64 +351,69 @@ void Heap_CollectReference(Object **referer, Heap *heap)
 	if(heap->collection_failed || old_location == NULL)
 		return;
 
-	Object *new_location;
-
-	if(old_location->flags & Object_STATIC)
-	
-		// The object doesn't need to be moved
-		// since it was statically allocated.
-		new_location = old_location;
-
-	else if(old_location->flags & Object_MOVED)
+	if(old_location->flags & Object_MOVED)
 	
 		// The object was already moved.
-		new_location = ((MovedObject*) old_location)->new_location;
+		*referer = ((MovedObject*) old_location)->new_location;
 
 	else
 		{
+			Object *new_location;
+
 			// This object wasn't moved to
 			// the new heap yet.
 
-			// Get some information.
-			TypeObject *type = old_location->type;
-			int size         = type->size;
+			if(old_location->flags & Object_STATIC)
+	
+				// The object doesn't need to be moved
+				// since it was statically allocated.
+				new_location = old_location;
+			else
+				{
+					// Get some information.
+					TypeObject *type = old_location->type;
+					int size         = type->size;
 
-			// Copy the object to a new location.
-			{
-				new_location = Heap_RawMalloc(heap, size, heap->error);
-
-				if(new_location == NULL)
+					// Copy the object to a new location.
 					{
-						heap->collection_failed = 1;
-						return;
+						new_location = Heap_RawMalloc(heap, size, heap->error);
+
+						if(new_location == NULL)
+							{
+								heap->collection_failed = 1;
+								return;
+							}
+
+						memcpy(new_location, old_location, size);
 					}
 
-				memcpy(new_location, old_location, size);
-			}
+					// Set the old location as moved and
+					// leave the reference to the new
+					// location.
+					{
+						old_location->flags |= Object_MOVED;
 
-			// Set the old location as moved and
-			// leave the reference to the new
-			// location.
-			{
-				old_location->flags |= Object_MOVED;
+						assert((int) sizeof(MovedObject) <= size);
+						((MovedObject*) old_location)->new_location = new_location;
+					}
 
-				assert((int) sizeof(MovedObject) <= size);
-				((MovedObject*) old_location)->new_location = new_location;
-			}
+					if(type->free != NULL)
+						heap->moved_with_destructors += 1;
+				}
+
+			// Collect the reference to the type.
+			if((Object*) new_location->type != new_location)
+				Heap_CollectReference((Object**) &new_location->type, heap);
+
+			// Collect all of the references to
+			// extensions allocate using the GC'd
+			// heap.
+			Object_WalkExtensions(new_location, Heap_CollectExtension, heap);
+
+			// Now collect all of the children.
+			Object_WalkReferences(new_location, Heap_CollectReference, heap);
+		
+			// Update the referer
+			*referer = new_location;
 		}
-
-	// Update the referer
-	*referer = new_location;
-
-	// Collect the reference to the type.
-	if((Object*) new_location->type != new_location)
-		Heap_CollectReference((Object**) &new_location->type, heap);
-
-	// Collect all of the references to
-	// extensions allocate using the GC'd
-	// heap.
-	Object_WalkExtensions(new_location, Heap_CollectExtension, heap);
-
-	// Now collect all of the children.
-	Object_WalkReferences(new_location, Heap_CollectReference, heap);
 }

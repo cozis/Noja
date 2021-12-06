@@ -85,11 +85,15 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
 {
+	assert(self->type == &t_map);
+
 	MapObject *map = (MapObject*) self;
+
+	int capacity = calc_capacity(map->mapper_size);
 	
 	callback((void**) &map->mapper, sizeof(int) * map->mapper_size, userp);
-	callback((void**) &map->keys, sizeof(Object) * calc_capacity(map->mapper_size), userp);
-	callback((void**) &map->vals, sizeof(Object) * calc_capacity(map->mapper_size), userp);
+	callback((void**) &map->keys, sizeof(Object*) * capacity, userp);
+	callback((void**) &map->vals, sizeof(Object*) * capacity, userp);
 }
 
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)

@@ -683,7 +683,8 @@ static _Bool step(Runtime *runtime, Error *error)
 				assert(error->occurred == 0);
 
 				Object *obj = Object_Call(callable, argv, argc, runtime->heap, error);
-
+				// NOTE: Every local object reference is invalidated from here.
+				
 				if(obj == NULL)
 					return 0;
 

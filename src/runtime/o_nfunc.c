@@ -84,6 +84,8 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	assert(func->callback != NULL);
 	Object *result = func->callback(func->runtime, argv2, argc2, error);
 
+	// NOTE: Every object reference is invalidated from here.
+
 	if(result == NULL && error->occurred == 0)
 		Error_Report(error, 1, "Native callback returned NULL but didn't report errors");
 
