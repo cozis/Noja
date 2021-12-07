@@ -7,6 +7,7 @@
 #include "../common/executable.h"
 
 typedef struct xRuntime Runtime;
+typedef void CallStackScanner;
 Runtime*	Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*));
 void 		Runtime_Free(Runtime *runtime);
 _Bool 		Runtime_Pop(Runtime *runtime, Error *error, unsigned int n);
@@ -22,6 +23,10 @@ typedef struct xSnapshot Snapshot;
 Snapshot *Snapshot_New(Runtime *runtime);
 void 	  Snapshot_Free(Snapshot *snapshot);
 void 	  Snapshot_Print(Snapshot *snapshot, FILE *fp);
+
+CallStackScanner *CallStackScanner_New(Runtime *runtime);
+_Bool             CallStackScanner_Next(CallStackScanner **scanner, Object **locals, Object **closure, Executable **exe, int *index);
+
 
 Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc);
 

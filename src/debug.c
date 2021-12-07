@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include "debug.h"
 #include "utils/defs.h"
+#include "heap_reconst.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -269,6 +270,7 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 						"continue .......... Run until a breakpoint or the end of the code is reached\n"
 						"breakpoint ........ Add a breakpoint\n"
 						"stack ............. Show the contents of the stack\n"
+						"heap .............. Show the contents of the heap\n"
 						"disassembly ....... Show the current file's bytecode\n");
 						}
 					else if(!strcmp(argv[1], "help"))
@@ -361,6 +363,17 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 								"       Usage | > stack\n"
 								"             | \n"
 								" Description | Show the contents of the stack.\n"
+								"\n");
+						}
+					else if(!strcmp(argv[1], "heap"))
+						{
+							fprintf(stderr, 
+								"\n"
+								"     Command | heap\n"
+								"             | \n"
+								"       Usage | > heap\n"
+								"             | \n"
+								" Description | Show the contents of the heap.\n"
 								"\n");
 						}
 					else
@@ -481,6 +494,59 @@ _Bool Debug_Callback(Runtime *runtime, void *userp)
 							fprintf(stderr, "  %d | ", i);
 							Object_Print(obj, stderr);
 							fprintf(stderr, "\n");
+						}
+				}
+			else if(!strcmp(argv[0], "heap"))
+				{
+					ReconstructedHeap *rh = reconstruct_heap(runtime);
+
+					if(rh == NULL)
+						{
+							fprintf(stderr, "Something went wrong.\n");
+						}
+					else
+						{
+							if(rh->count == 0)
+								{
+									printf("The heap is empty.\n");
+								}
+							else 
+								{
+									_Bool in_pool = 0;
+								
+									for(int i = 0; i < rh->count; i += 1)
+										{
+											MemoryChunk *chunk = rh->chunks + i;
+
+											if(in_pool == 0 && chunk->in_pool == 1)
+												{
+													printf("-- Pool start --\n");
+													in_pool = 1;
+												}
+											else if(in_pool == 1 && chunk->in_pool == 0)
+												{
+													printf("-- Pool end --\n");
+													in_pool = 0;
+												}
+
+											if(chunk->parent == NULL)
+												printf("%d bytes at %p (%s)\n", 
+													chunk->size, 
+													chunk->addr, 
+													Object_GetName(chunk->addr));
+											else
+												printf("%d bytes at %p, extension of %p (%s)\n", 
+													chunk->size, 
+													chunk->addr, 
+													chunk->parent, 
+													Object_GetName(chunk->parent));
+										}
+
+									if(in_pool)
+										printf("-- Pool end --\n");
+								}
+
+							free(rh);
 						}
 				}
 			else if(!strcmp(argv[0], "quit"))

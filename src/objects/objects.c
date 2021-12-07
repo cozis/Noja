@@ -364,12 +364,14 @@ _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)
 
 void Object_WalkReferences(Object *parent, void (*callback)(Object **referer, void *userp), void *userp)
 {
+	assert(parent != NULL);
 	if(parent->type->walk != NULL)
 		parent->type->walk(parent, callback, userp);
 }
 
 void Object_WalkExtensions(Object *parent, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
 {
+	assert(parent != NULL);
 	if(parent->type->walkexts != NULL)
 		parent->type->walkexts(parent, callback, userp);
 }

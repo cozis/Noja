@@ -10,7 +10,7 @@ while i < n:
 		i = i + 1;
 
 		fun printPercent()
-			print('\r', 100.0 * i / n, '% ');
+			print(100.0 * i / n, '%\n');
 	
 		printPercent();
 	}

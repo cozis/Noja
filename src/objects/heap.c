@@ -20,6 +20,7 @@ typedef struct {
 } PendingDestruct;
 
 struct xHeap {
+	int objcount;
 	int   size;
 	int   used;
 	int   total;
@@ -30,7 +31,7 @@ struct xHeap {
 
 	_Bool collecting;
 	_Bool collection_failed;
-	int moved_with_destructors;
+	int movedcount;
 	void *old_body;
 	int   old_used;
 	int   old_total;
@@ -48,6 +49,7 @@ Heap *Heap_New(int size)
 	if(heap == NULL)
 		return NULL;
 
+	heap->objcount = 0;
 	heap->total = 0;
 	heap->size = size;
 	heap->used = 0;
@@ -103,6 +105,21 @@ void Heap_Free(Heap *heap)
 	free(heap->pend);
 	free(heap->body);
 	free(heap);
+}
+
+void *Heap_GetPointer(Heap *heap)
+{
+	return heap->body;
+}
+
+unsigned int Heap_GetSize(Heap *heap)
+{
+	return heap->size;
+}
+
+unsigned int Heap_GetObjectCount(Heap *heap)
+{
+	return heap->objcount;
 }
 
 float Heap_GetUsagePercentage(Heap *heap)
@@ -176,6 +193,8 @@ void *Heap_Malloc(Heap *heap, TypeObject *type, Error *err)
 	if(requires_destruct)
 		heap->pend[heap->pend_used++] = (PendingDestruct) { .object = obj, .destructor = obj->type->free };
 
+	heap->objcount += 1;
+
 	return (Object*) addr;
 }
 
@@ -246,7 +265,7 @@ _Bool Heap_StartCollection(Heap *heap, Error *error)
 	heap->oflow = NULL;
 	heap->collecting = 1;
 	heap->collection_failed = 0;
-	heap->moved_with_destructors = 0;
+	heap->movedcount = 0;
 	heap->error = error;
 	return 1;
 }
@@ -311,6 +330,7 @@ _Bool Heap_StopCollection(Heap *heap)
 	free(heap->old_body);
 
 	heap->collecting = 0;
+	heap->objcount = heap->movedcount;
 	return 1;
 }
 
@@ -397,8 +417,7 @@ void Heap_CollectReference(Object **referer, void *userp)
 						((MovedObject*) old_location)->new_location = new_location;
 					}
 
-					if(type->free != NULL)
-						heap->moved_with_destructors += 1;
+					heap->movedcount += 1;
 				}
 
 			// Collect the reference to the type.

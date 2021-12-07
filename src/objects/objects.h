@@ -81,6 +81,9 @@ _Bool 	 	 Heap_StartCollection(Heap *heap, Error *error);
 _Bool 	  	 Heap_StopCollection(Heap *heap);
 void  	 	 Heap_CollectReference(Object **referer, void *heap);
 float 		 Heap_GetUsagePercentage(Heap *heap);
+unsigned int Heap_GetObjectCount(Heap *heap);
+void        *Heap_GetPointer(Heap *heap);
+unsigned int Heap_GetSize(Heap *heap);
 
 const TypeObject* Object_GetType(const Object *obj);
 const char*	 Object_GetName(const Object *obj);
