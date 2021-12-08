@@ -27,6 +27,7 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 {
 	switch(kind)
 		{
+			case EXPR_NOT: return OPCODE_NOT;
 			case EXPR_POS: return OPCODE_POS;
 			case EXPR_NEG: return OPCODE_NEG;
 			case EXPR_ADD: return OPCODE_ADD;
@@ -56,6 +57,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				ExprNode *expr = (ExprNode*) node;
 				switch(expr->kind)
 					{
+						case EXPR_NOT:
 						case EXPR_POS:
 						case EXPR_NEG:
 						case EXPR_ADD:

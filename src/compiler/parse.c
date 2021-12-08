@@ -58,6 +58,7 @@ typedef enum {
 
 	TKWIF,
 	TKWFUN,
+	TKWNOT,
 	TKWELSE,
 	TKWNONE,
 	TKWTRUE,
@@ -191,6 +192,10 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 					else if(matchstr(str + tok->offset, tok->length, "fun"))
 						{
 							tok->kind = TKWFUN;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "not"))
+						{
+							tok->kind = TKWNOT;
 						}
 					else if(matchstr(str + tok->offset, tok->length, "else"))
 						{
@@ -541,6 +546,7 @@ static Node *parse_statement(Context *ctx)
 			case TFLOAT:
 			case TSTRING:
 			case TIDENT:
+			case TKWNOT:
 			case TKWNONE:
 			case TKWTRUE:
 			case TKWFALSE:
@@ -1064,6 +1070,7 @@ static Node *parse_primary_expresion(Context *ctx)
 		{
 			case '+':
 			case '-':
+			case TKWNOT:
 			{
 				Token *unary_operator = current_token(ctx);
 
@@ -1083,9 +1090,15 @@ static Node *parse_primary_expresion(Context *ctx)
 					temp->base.base.next = NULL;
 					temp->base.base.offset = unary_operator->offset;
 					temp->base.base.length = operand->offset + operand->length - unary_operator->offset;
-					temp->base.kind = unary_operator->kind == '+' ? EXPR_POS : EXPR_NEG;
 					temp->head = operand;
 					temp->count = 1;
+
+					switch(unary_operator->kind)
+						{
+							case '+': temp->base.kind = EXPR_POS; break;
+							case '-': temp->base.kind = EXPR_NEG; break;
+							case TKWNOT: temp->base.kind = EXPR_NOT; break;
+						}
 				}
 				return (Node*) temp;
 			}

@@ -2,11 +2,19 @@
 #include "../utils/defs.h"
 #include "objects.h"
 
+static _Bool op_eql(Object *self, Object *other);
+
 TypeObject t_type = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "type",
 	.size = sizeof (TypeObject),
+	.op_eql = op_eql,
 };
+
+static _Bool op_eql(Object *self, Object *other)
+{
+	return self == other;
+}
 
 const char *Object_GetName(const Object *obj)
 {

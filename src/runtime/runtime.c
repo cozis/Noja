@@ -557,6 +557,38 @@ static _Bool step(Runtime *runtime, Error *error)
 			Error_Report(error, 1, "NEG not implemented");
 			return 0;
 
+			case OPCODE_NOT:
+			{
+				assert(opc == 0);
+
+				if(runtime->frame->used == 0)
+					{
+						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NOT");
+						return 0;
+					}
+
+				Object *top = Stack_Top(runtime->stack, 0);
+
+				if(!Runtime_Pop(runtime, error, 1))
+					return 0;
+
+				assert(top != NULL);
+
+				_Bool v = Object_ToBool(top, error);
+
+				if(error->occurred)
+					return 0;
+
+				Object *negated = Object_FromBool(!v, runtime->heap, error);
+
+				if(negated == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, negated))
+					return 0;
+				return 1;
+			}
+
 			case OPCODE_ADD:
 			case OPCODE_SUB:
 			case OPCODE_MUL:

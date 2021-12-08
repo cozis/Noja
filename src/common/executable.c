@@ -42,6 +42,7 @@ static const InstrInfo instr_table[] = {
 
 	[OPCODE_POS]  = {"POS", 0, NULL},
 	[OPCODE_NEG]  = {"NEG", 0, NULL},
+	[OPCODE_NOT]  = {"NOT", 0, NULL},
 
 	[OPCODE_ADD]  = {"ADD", 0, NULL},
 	[OPCODE_SUB]  = {"SUB", 0, NULL},

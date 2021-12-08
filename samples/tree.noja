@@ -1,0 +1,131 @@
+
+fun _count(elm)
+{
+	if type(elm) == type({}):
+
+		if type(elm._count) == type(_count):
+
+			return elm._count(elm);
+
+		else if type(elm._count) == type(1):
+
+			return elm._count;
+
+	return count(elm);
+}
+
+fun newTree()
+{
+	return {root: none, _count: 0};
+}
+
+fun locate(tree, index, path)
+{
+	# This function walks the tree to find the
+	# leaf that is referred to by the specified
+	# index.
+	# The traversed nodes are stored in the path
+	# argument. The last one is the leaf.
+	# The return value is the index relative to
+	# the start of the leaf. 
+	assert(type(index) == type(1));
+
+	path   = [];    # List of traversed nodes (without the leaf).
+	rindex = index; # index relative to the found leaf.
+	cursor = tree;  # Tree cursor. At the end it will refer to the leaf.
+	
+	path[count(path)] = cursor;
+
+	while cursor.is_leaf == false:
+		{
+			if rindex < _count(cursor.left):
+				cursor = cursor.left;
+			else
+				{
+					rindex = rindex - _count(cursor.left);
+					cursor = cursor.right;
+				}
+
+			path[count(path)] = cursor;
+		}
+	return rindex;
+}
+
+fun insert(tree, data, index)
+{
+	if index == none:
+		# Insert at the end.
+		index = _count(tree);
+
+	path = [];
+	rindex = locate(tree, index, path);
+	assert(count(path) > 1);
+
+	leaf = path[count(path)-1];
+	assert(type(leaf) == type(newBuffer(0)));
+
+	if rindex == 0:
+		# Want to store the data before
+		# the leaf buffer.
+		{}
+	else if rindex < leaf.used:
+		# Want to store the data in the
+		# middle of the leaf.
+		{
+			fun min(a, b)
+			{
+				if a < b:
+					return a;
+				return b;
+			}
+
+			fun copy(dst, src, num)
+			{
+				i = 0;
+				while i < num:
+					{
+						dst[i] = src[i];
+						i = i + 1;
+					}
+			}
+
+			# Insert in the current leaf what's
+			# possible.
+
+			unused = count(leaf.buffer) - leaf.used;
+			copied = min(unused, count(data));
+			copy(leaf.buffer, data, copied);
+			leaf.used = leaf.used + copied;
+
+			if copied == count(data):
+				{
+					# We're done. The unused portion of
+					# the leaf was enough to store the
+					# data.
+
+					# Update the path.
+					i = count(path)-2;
+					while i > 0:
+						{
+							if path[i] == path[i-1].left:
+								path[i-1]._count = path[i-1]._count + copied;
+							i = i - 1;
+						}
+					return none;
+				}
+
+			# There's more data that needs to be
+			# stored, but now we don't need to
+			# insert in the middle of the leaf.
+
+			data = sliceBuffer(data, copying, count(data));
+		}
+
+	if rindex == leaf.used:
+		# Want to append data to the
+		# end of the contents.
+		{}
+}
+
+print( count(newTree()), '\n');
+print(_count(newTree()), '\n');

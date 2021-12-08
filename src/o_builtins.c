@@ -9,6 +9,7 @@ Object *Object_NewNetworkBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
 
 static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 
+static Object *bin_type  (Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_print (Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_count (Runtime *runtime, Object **argv, unsigned int argc, Error *error);
 static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
@@ -51,6 +52,13 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 
 	switch(PAIR(n, s[0]))
 		{
+			case PAIR(4, 't'):
+			{
+				if(!strcmp(s, "type"))
+					return Object_FromNativeFunction(bm->runtime, bin_type, 1, heap, err);
+				return NULL;
+			}
+
 			case PAIR(sizeof("count")-1, 'c'):
 			{
 				if(!strcmp(s, "count"))
@@ -127,6 +135,14 @@ static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Err
 		Object_Print(argv[i], stdout);
 
 	return Object_NewNone(Runtime_GetHeap(runtime), error);
+}
+
+static Object *bin_type(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+	(void) runtime;
+	(void) error;
+	return (Object*) argv[0]->type;
 }
 
 static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
