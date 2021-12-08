@@ -36,7 +36,7 @@ fun locate(tree, index, path)
 	
 	path[count(path)] = cursor;
 
-	while cursor.is_leaf == false:
+	while not cursor.is_leaf:
 		{
 			if rindex < _count(cursor.left):
 				cursor = cursor.left;
