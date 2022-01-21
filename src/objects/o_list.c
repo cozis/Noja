@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include "../utils/defs.h"
 #include "objects.h"
 
@@ -55,6 +56,21 @@ Object *Object_NewList(int capacity, Heap *heap, Error *error)
 	}
 
 	return (Object*) obj;
+}
+
+Object *Object_NewList2(int num, Object **items, Heap *heap, Error *error)
+{
+	assert(num > -1);
+
+	ListObject *list = (ListObject*) Object_NewList(num, heap, error);
+
+	if(list == NULL)
+		return NULL;
+
+	memcpy(list->vals, items, num * sizeof(Object*));
+	list->count = num;
+
+	return (Object*) list;
 }
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp)

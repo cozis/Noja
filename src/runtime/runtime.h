@@ -9,6 +9,7 @@
 typedef struct xRuntime Runtime;
 typedef void CallStackScanner;
 Runtime*	Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*));
+Runtime*	Runtime_New2(int stack_size, Heap *heap, _Bool free_heap, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*));
 void 		Runtime_Free(Runtime *runtime);
 _Bool 		Runtime_Pop(Runtime *runtime, Error *error, unsigned int n);
 _Bool 		Runtime_Push(Runtime *runtime, Error *error, Object *obj);

@@ -4,8 +4,7 @@
 #include <stdlib.h>
 #include "runtime/runtime.h"
 #include "utils/defs.h"
-
-Object *Object_NewNetworkBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
+#include "o_builtins.h"
 
 static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 

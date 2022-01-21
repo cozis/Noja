@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "debug.h"
+#include "o_builtins.h"
 #include "compiler/parse.h"
 #include "compiler/serialize.h"
 #include "compiler/compile.h"
@@ -13,8 +14,6 @@
  * $ noja -c <text>
  * $ noja -f <file> -o <file>
  */
-
-Object *Object_NewBuiltinsMap(Runtime *runtime, Heap *heap, Error *err);
 
 typedef enum { RUN, HELP, PARSE, VERSION, DISASSEMBLY } Action;
 

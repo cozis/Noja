@@ -105,6 +105,7 @@ void 		 Object_WalkExtensions(Object *parent, void (*callback)(void   **referer,
 
 Object*		 Object_NewMap(int num, Heap *heap, Error *error);
 Object*		 Object_NewList(int capacity, Heap *heap, Error *error);
+Object*		 Object_NewList2(int num, Object **items, Heap *heap, Error *error);
 Object*		 Object_NewNone(Heap *heap, Error *error);
 Object*		 Object_NewBuffer(int size, Heap *heap, Error *error);
 Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);
