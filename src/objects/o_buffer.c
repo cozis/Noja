@@ -111,6 +111,8 @@ Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, E
 			return NULL;
 		}
 
+	BufferSliceObject *slice;
+
 	if(buffer->type == &t_buffer)
 		{
 			BufferObject *original = (BufferObject*) buffer;
@@ -118,7 +120,7 @@ Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, E
 			if(offset == 0 && length == original->size)
 				return buffer;
 
-			BufferSliceObject *slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
+			slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
 
 			if(slice == NULL)
 				return NULL;
@@ -149,7 +151,7 @@ Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, E
 		{
 			assert(buffer->type == &t_buffer_slice);
 
-			BufferSliceObject *slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
+			slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
 
 			if(slice == NULL)
 				return NULL;

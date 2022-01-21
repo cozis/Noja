@@ -18,6 +18,7 @@ struct xFrame {
 struct xRuntime {
 	void *callback_userp;
 	_Bool (*callback_addr)(Runtime*, void*);
+	_Bool free_heap;
 	Object *builtins;
 	int    depth;
 	Frame *frame;
@@ -84,52 +85,51 @@ Executable *Runtime_GetCurrentExecutable(Runtime *runtime)
 		return runtime->frame->exe;
 }
 
-Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
+Runtime *Runtime_New2(int stack_size, Heap *heap, _Bool free_heap, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
 {
 	if(stack_size < 0)
 		stack_size = 1024;
 
-	if(heap_size < 0)
-		heap_size = 65536;
+	Runtime *runtime = malloc(sizeof(Runtime));
 
-	Runtime *runtime;
+	if(runtime != NULL)
+		{
+			runtime->heap = heap;
+			runtime->stack = Stack_New(stack_size);
 
-	{
-		runtime = malloc(sizeof(Runtime));
+			if(runtime->stack == NULL)
+				{
+					Heap_Free(runtime->heap);
+					free(runtime);
+				}
 
-		if(runtime == NULL)
-			return NULL;
-
-		runtime->heap = Heap_New(heap_size);
-
-		if(runtime->heap == NULL)
-			{
-				free(runtime);
-				return NULL;
-			}
-
-		runtime->stack = Stack_New(stack_size);
-
-		if(runtime->stack == NULL)
-			{
-				Heap_Free(runtime->heap);
-				free(runtime);
-			}
-
-		runtime->callback_userp = callback_userp;
-		runtime->callback_addr = callback_addr;
-		runtime->builtins = NULL;
-		runtime->frame = NULL;
-		runtime->depth = 0;
-		
-	}
+			runtime->free_heap = free_heap;
+			runtime->callback_userp = callback_userp;
+			runtime->callback_addr = callback_addr;
+			runtime->builtins = NULL;
+			runtime->frame = NULL;
+			runtime->depth = 0;
+		}
 
 	return runtime;
 }
 
+Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
+{
+	if(heap_size < 0)
+		heap_size = 65536;
+
+	Heap *heap = Heap_New(heap_size);
+
+	if(heap == NULL)
+		return NULL;
+
+	return Runtime_New2(stack_size, heap, 1, callback_userp, callback_addr);
+}
 void Runtime_Free(Runtime *runtime)
 {
-	Heap_Free(runtime->heap);
+	if(runtime->free_heap)
+		Heap_Free(runtime->heap);
 	Stack_Free(runtime->stack);
 	free(runtime);
 }
