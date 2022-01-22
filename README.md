@@ -1,15 +1,13 @@
 # The Noja language
 
 ## Introduction
+This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
 
-This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython's source code.
+## Supported platforms
+I wrote it on a linux machine, but there should be very few places where a linux host is assumed, so it should be very easy to port.
+
+## Development state
+The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like this requires much more work than what it's worth at the moment.
 
 ## Implementation overview
-
-The architecture is pretty much the same as CPython. 
-The source code is compiled to a bytecode format and executed. The bytecode is very high level since it does things like explicitly referring to variables by name, which means the compiler does very little static analisys and errors are moved from the compile to run time.
-Memory is managed by a garbage collector that moves and compacts allocations.
-
-
-All values (objects) are allocated on a garbage-collected heap. All variables are simply references to these objects. The garbage collection algorithm is a copy-and-compact. It behaves as a bump-pointer allocator until there is space left, and when space runs out, it creates a new heap, copies all of the alive object into it, calls the destructors of the dead objects and frees the old one.
-
+The architecture is pretty much the same as CPython. The source code is executed by compilig it to bytecode. The bytecode is much more high level than what the CPU understands, it's more like a serialized version of the AST. For example, some bytecode instructions refer to variables by names, which means the compiler does very little static analisys. Memory is managed by a garbage collector that moves and compacts allocations.
