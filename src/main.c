@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 				return -1;
 			}
 
-		Object *o = buildValue(heap, &error, "${ return 3+1; }");
+		Object *o = buildValue(heap, &error, "[${ return 3*1; }, $i, {}, {${return 'name';}: $s, ${return 'name';}: [$s]}]", 4, "Francesco", "Giovanni");
 	
 		if(o == NULL)
 			{

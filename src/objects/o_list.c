@@ -194,6 +194,7 @@ static void print(Object *self, FILE *fp)
 {
 	ListObject *list = (ListObject*) self;
 
+	fprintf(fp, "[");
 	for(int i = 0; i < list->count; i += 1)
 		{
 			Object_Print(list->vals[i], fp);
@@ -201,4 +202,5 @@ static void print(Object *self, FILE *fp)
 			if(i+1 < list->count)
 				fprintf(fp, ", ");
 		}
+	fprintf(fp, "]");
 }

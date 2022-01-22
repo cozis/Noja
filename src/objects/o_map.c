@@ -294,6 +294,7 @@ static void print(Object *self, FILE *fp)
 {
 	MapObject *map = (MapObject*) self;
 
+	fprintf(fp, "{");
 	for(int i = 0; i < map->count; i += 1)
 		{
 			Object_Print(map->keys[i], fp);
@@ -303,4 +304,5 @@ static void print(Object *self, FILE *fp)
 			if(i+1 < map->count)
 				fprintf(fp, ", ");
 		}
+	fprintf(fp, "}");
 }
