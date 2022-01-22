@@ -103,35 +103,10 @@ static int parse_args(Options *opts, int argc, char **argv, Error *error)
 	return i;
 }
 
-#include "buildvalue.h"
-
 int main(int argc, char **argv)
 {
 	Error error;
 	Error_Init(&error);
-
-	{
-		Heap *heap = Heap_New(-1);
-
-		if(heap == NULL)
-			{
-				fprintf(stderr, "ERROR: Failed to create heap.\n");
-				return -1;
-			}
-
-		Object *o = buildValue(heap, &error, "[${ return 3*1; }, $i, {}, {${return 'name';}: $s, ${return 'name';}: [$s]}]", 4, "Francesco", "Giovanni");
-	
-		if(o == NULL)
-			{
-				fprintf(stderr, "ERROR: %s.\n", error.message);
-				return -1;
-			}
-
-		Object_Print(o, stdout);
-
-		Heap_Free(heap);
-	}
-
 
 	// Parse command line options.
 
