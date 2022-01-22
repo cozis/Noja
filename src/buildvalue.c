@@ -230,8 +230,6 @@ static Object *walkValue(const char *fmt, int *i, va_list va, Heap *heap, Error 
 				
 				const char *src = fmt + start;
 				int         len = end - start;
-
-				printf("src: [%.*s]\n", len, src);
 				
 				o = eval(src, len, NULL, heap, error);
 

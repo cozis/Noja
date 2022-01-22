@@ -151,7 +151,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 					while(i < len && isspace(str[i]))
 						i += 1;
 
-					if(str[i] == '#')
+					if(i < len && str[i] == '#')
 						{
 							i += 1;
 
