@@ -14,7 +14,7 @@ fun startServer(callbacks, port, backlog)
 	}
 
 	fd = net.socket(net.AF_INET, net.SOCK_STREAM, 0);
-
+	
 	if fd < 0:
 		{
 			print('Failed to create socket.\n');
