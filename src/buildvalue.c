@@ -171,10 +171,6 @@ static Object *walkListValue(const char *fmt, int *i, va_list va, Heap *heap, Er
 
 static Object *walkValue(const char *fmt, int *i, va_list va, Heap *heap, Error *error)
 {
-	int i_;
-	if(i == NULL)
-		i = &i_;
-
 	while(isspace(fmt[*i]))
 		*i += 1;
 
@@ -222,16 +218,21 @@ static Object *walkValue(const char *fmt, int *i, va_list va, Heap *heap, Error 
 				if(fmt[*i] == '\0')
 					{
 						// ERROR: Format ended inside of ${..}.
+						Error_Report(error, 0, "Format ended inside ${..}");
 						return NULL;
 					}
 
-				int end = fmt[*i];
+				assert(fmt[*i] == '}');
+
+				int end = *i;
 
 				// NOTE: The last '}' is skipped after the switch.
 				
 				const char *src = fmt + start;
 				int         len = end - start;
-					
+
+				printf("src: [%.*s]\n", len, src);
+				
 				o = eval(src, len, NULL, heap, error);
 
 				if(o == NULL)
@@ -281,7 +282,8 @@ static Object *walkValue(const char *fmt, int *i, va_list va, Heap *heap, Error 
 
 Object *buildValue2(Heap *heap, Error *error, const char *fmt, va_list va)
 {
-	return walkValue(fmt, NULL, va, heap, error);
+	int i = 0;
+	return walkValue(fmt, &i, va, heap, error);
 }
 
 Object *buildValue(Heap *heap, Error *error, const char *fmt, ...)

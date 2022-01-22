@@ -1,3 +1,4 @@
+#include <string.h>
 #include "compiler/parse.h"
 #include "compiler/compile.h"
 #include "runtime/runtime.h"
@@ -6,6 +7,9 @@
 
 Object *eval(const char *str, int len, Object *closure, Heap *heap, Error *error)
 {
+	if(len < 0)
+		len = strlen(str);
+
 	Source *s = Source_FromString(NULL, str, len, error);
 
 	if(s == NULL)
