@@ -540,6 +540,7 @@ static Node *parse_statement(Context *ctx)
 	switch(current(ctx))
 		{
 			case '(':
+			case '[':
 			case '+':
 			case '-':
 			case TINT:

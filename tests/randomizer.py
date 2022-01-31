@@ -184,7 +184,7 @@ def serialize(node):
 
 	elif node['kind'] == 'do-while':
 
-		return 'do ' + serialize(node['body']) + ' while: ' + serialize_expr(node['cond']) + ';'
+		return 'do ' + serialize(node['body']) + ' while ' + serialize_expr(node['cond']) + ';'
 
 	elif node['kind'] == 'return':
 
