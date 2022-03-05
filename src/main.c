@@ -1,20 +1,5 @@
-#include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "debug.h"
-#include "o_builtins.h"
-#include "compiler/parse.h"
-#include "compiler/serialize.h"
-#include "compiler/compile.h"
-#include "runtime/runtime.h"
-#include "runtime/runtime_error.h"
-
-/* $ noja -f <file>
- * $ noja -c <text>
- * $ noja -f <file> -o <file>
- */
-
+#include "noja.h"
+/*
 typedef enum { RUN, HELP, PARSE, VERSION, DISASSEMBLY } Action;
 
 typedef struct {
@@ -102,9 +87,12 @@ static int parse_args(Options *opts, int argc, char **argv, Error *error)
 
 	return i;
 }
+*/
 
 int main(int argc, char **argv)
 {
+	return noja(argc, argv) ? 0 : -1;
+	/*
 	Error error;
 	Error_Init(&error);
 
@@ -217,7 +205,7 @@ int main(int argc, char **argv)
 
 					RuntimeError error;
 					RuntimeError_Init(&error, runtime);
-						
+					
 					Object *builtins = Object_NewBuiltinsMap(runtime, Runtime_GetHeap(runtime), (Error*) &error);
 
 					if(builtins == NULL)
@@ -407,5 +395,6 @@ int main(int argc, char **argv)
 
 		}
 	return 0;
+	*/
 }
 

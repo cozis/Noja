@@ -5,6 +5,24 @@
 #include "o_builtins.h"
 #include "eval.h"
 
+Object *evalf(Object *closure, Heap *heap, Error *error, const char *fmt, ...)
+{
+	char buffer[1024];
+	
+	va_list va;
+	va_start(va, fmt);
+	int n = vsnprintf(buffer, sizeof(buffer), fmt, va);
+	va_end(va);
+
+	if(n >= (int) sizeof(buffer))
+		{
+			Error_Report(error, 1, "Static buffer is too small");
+			return NULL;
+		}
+
+	return eval(buffer, n, closure, heap, error);
+}
+
 Object *eval(const char *str, int len, Object *closure, Heap *heap, Error *error)
 {
 	if(len < 0)

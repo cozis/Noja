@@ -72,6 +72,7 @@ gcc tests/src/test-parse.c   -o build/test-parse   $FLAGS -Lbuild/ -lnoja-compil
 gcc tests/src/test-objects.c -o build/test-objects $FLAGS -Lbuild/ -lnoja-objects
 
 gcc src/main.c \
+    src/noja.c \
 	src/debug.c \
 	src/eval.c \
 	src/buildvalue.c \
