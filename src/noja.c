@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "debug.h"
 #include "o_builtins.h"
 #include "compiler/parse.h"
 #include "compiler/serialize.h"

@@ -73,10 +73,6 @@ gcc tests/src/test-objects.c -o build/test-objects $FLAGS -Lbuild/ -lnoja-object
 
 gcc src/main.c \
     src/noja.c \
-	src/debug.c \
-	src/eval.c \
-	src/buildvalue.c \
-	src/heap_reconst.c \
 	temp/o_builtins.o \
 	temp/o_net_builtins.o \
 	temp/utils/hash.o \
