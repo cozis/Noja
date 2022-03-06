@@ -3,6 +3,7 @@
 
 static double to_float(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
+static _Bool op_eql(Object *self, Object *other);
 
 typedef struct {
 	Object base;
@@ -16,7 +17,23 @@ static TypeObject t_float = {
 	.atomic = ATMTP_FLOAT,
 	.to_float = to_float,
 	.print = print,
+	.op_eql = op_eql
 };
+
+static _Bool op_eql(Object *self, Object *other)
+{
+	assert(self != NULL);
+	assert(self->type == &t_float);
+	assert(other != NULL);
+	assert(other->type == &t_float);
+
+	FloatObject *i1, *i2;
+
+	i1 = (FloatObject*) self;
+	i2 = (FloatObject*) other;
+
+	return i1->val == i2->val;
+}
 
 static double to_float(Object *obj, Error *err)
 {
