@@ -4,6 +4,7 @@
 
 static _Bool to_bool(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
+static _Bool op_eql(Object *self, Object *other);
 
 static TypeObject t_bool = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -12,6 +13,7 @@ static TypeObject t_bool = {
 	.atomic = ATMTP_BOOL,
 	.to_bool = to_bool,
 	.print = print,
+	.op_eql = op_eql,
 };
 
 static Object the_true_object = {
@@ -23,6 +25,16 @@ static Object the_false_object = {
 	.type = &t_bool,
 	.flags = Object_STATIC,
 };
+
+static _Bool op_eql(Object *self, Object *other)
+{
+	assert(self != NULL);
+	assert(self->type == &t_bool);
+	assert(other != NULL);
+	assert(other->type == &t_bool);
+
+	return self == other;
+}
 
 static _Bool to_bool(Object *obj, Error *err)
 {

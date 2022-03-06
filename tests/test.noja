@@ -44,4 +44,36 @@
 	assert(4.0 != 3.0);
 }
 
+# Test operations on strings.
+{
+	assert('hey' == 'hey');
+	assert('hey' != 'hey2');
+}
+
+# Test operations on bools.
+{
+	assert(true);
+	assert(true == true);
+	assert(true != false);
+	assert(false == false);
+	assert(false != true);
+	assert(true == not false);
+	assert(false == not true);
+}
+
+# Test if-else statements.
+{
+	if true: r = true; else r = false;
+	assert(r);
+
+	if true: { r = true; } else { r = false; }
+	assert(r);
+
+	if false: r = false; else r = true;
+	assert(r);
+
+	if false: { r = false; } else { r = true; }
+	assert(r);
+}
+
 print('No assertion failed.\n');
