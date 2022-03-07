@@ -679,6 +679,44 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 1;
 			}
 
+			case OPCODE_AND:
+			case OPCODE_OR:
+			{
+				assert(opc == 0);
+
+				Object *rop = Stack_Top(runtime->stack,  0);
+				Object *lop = Stack_Top(runtime->stack, -1);
+
+				if(!Runtime_Pop(runtime, error, 2))
+					return 0;
+
+				// We managed to pop rop and lop,
+				// so we know they're not NULL.
+				assert(rop != NULL);
+				assert(lop != NULL);
+
+				_Bool raw_rop, raw_lop, raw_res;
+				raw_lop = Object_ToBool(lop, error);
+				raw_rop = Object_ToBool(rop, error);
+				if(error->occurred) return 0;
+
+				switch(opcode)
+					{
+						case OPCODE_AND: raw_res = raw_lop && raw_rop; break;
+						case OPCODE_OR:  raw_res = raw_lop || raw_rop; break;
+						default: assert(0); break;
+					}
+
+				Object *res = Object_FromBool(raw_res, runtime->heap, error);
+
+				if(res == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, res))
+					return 0;
+				return 1;
+			}
+
 			case OPCODE_ASS:
 			{
 				assert(opc == 1);

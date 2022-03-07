@@ -30,6 +30,8 @@ typedef enum {
 	EXPR_GRT,
 	EXPR_GEQ,
 
+	EXPR_AND,
+	EXPR_OR,
 	EXPR_NOT,
 
 	EXPR_ASS,

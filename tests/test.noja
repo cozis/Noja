@@ -59,6 +59,14 @@
 	assert(false != true);
 	assert(true == not false);
 	assert(false == not true);
+	assert((true  and true ) == true);
+	assert((true  and false) == false);
+	assert((false and true ) == false);
+	assert((false and false) == false);
+	assert((true  or true ) == true);
+	assert((true  or false) == true);
+	assert((false or true ) == true);
+	assert((false or false) == false);
 }
 
 # Test if-else statements.

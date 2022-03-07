@@ -59,6 +59,8 @@ typedef enum {
 	TKWIF,
 	TKWFUN,
 	TKWNOT,
+	TKWAND,
+	TKWOR,
 	TKWELSE,
 	TKWNONE,
 	TKWTRUE,
@@ -196,6 +198,14 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 					else if(matchstr(str + tok->offset, tok->length, "not"))
 						{
 							tok->kind = TKWNOT;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "and"))
+						{
+							tok->kind = TKWAND;
+						}
+					else if(matchstr(str + tok->offset, tok->length, "or"))
+						{
+							tok->kind = TKWOR;
 						}
 					else if(matchstr(str + tok->offset, tok->length, "else"))
 						{
@@ -1519,6 +1529,8 @@ static inline _Bool isbinop(Token *tok)
 			tok->kind == TGEQ ||
 			tok->kind == TEQL ||
 			tok->kind == TNQL ||
+			tok->kind == TKWAND ||
+			tok->kind == TKWOR ||
 			tok->kind == '=';
 }
 
@@ -1538,21 +1550,27 @@ static inline int precedenceof(Token *tok)
 			case '=':
 			return 0;
 
+			case TKWOR:
+			return 1;
+
+			case TKWAND:
+			return 2;
+
 			case '<':
 			case '>':
 			case TLEQ:
 			case TGEQ:
 			case TEQL:
 			case TNQL:
-			return 1;
+			return 3;
 
 			case '+':
 			case '-':
-			return 2;
+			return 4;
 
 			case '*':
 			case '/':
-			return 3;
+			return 5;
 			
 			default:
 			return -100000000;
@@ -1610,8 +1628,10 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 						case TGEQ: temp->base.kind = EXPR_GEQ; break;
 						case TEQL: temp->base.kind = EXPR_EQL; break;
 						case TNQL: temp->base.kind = EXPR_NQL; break;
+						case TKWAND: temp->base.kind = EXPR_AND; break;
+						case TKWOR: temp->base.kind = EXPR_OR; break;
 						case '=': temp->base.kind = EXPR_ASS; break;
-
+						
 						default:
 						UNREACHABLE;
 						break;

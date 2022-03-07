@@ -40,6 +40,8 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 			case EXPR_LEQ: return OPCODE_LEQ;
 			case EXPR_GRT: return OPCODE_GRT;
 			case EXPR_GEQ: return OPCODE_GEQ;
+			case EXPR_AND: return OPCODE_AND;
+			case EXPR_OR:  return OPCODE_OR;
 			default:
 			UNREACHABLE;
 			break;
@@ -70,6 +72,8 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						case EXPR_LEQ:
 						case EXPR_GRT:
 						case EXPR_GEQ:
+						case EXPR_AND:
+						case EXPR_OR:
 						{
 							OperExprNode *oper = (OperExprNode*) expr;
 
