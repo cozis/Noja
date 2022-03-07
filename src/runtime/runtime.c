@@ -914,7 +914,7 @@ static _Bool step(Runtime *runtime, Error *error)
 					{
 						if(error->occurred == 0)
 							// There's no such variable.
-							Error_Report(error, 1, "Reference to undefined variable \"%s\"", ops[0].as_string);
+							Error_Report(error, 0, "Reference to undefined variable \"%s\"", ops[0].as_string);
 						return 0;
 					}
 
