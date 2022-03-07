@@ -1,0 +1,46 @@
+
+fun copy(L)
+{
+	L2 = [];
+
+	i = 0;
+	while i < count(L):
+		{
+			L2[i] = L[i];
+			i = i + 1;
+		}
+
+	return L2;
+}
+
+fun bubble_sort(L, less)
+{
+	if less == none:
+		fun less(a, b) return a < b;
+
+	L = copy(L);
+
+	do 
+		{
+			swapped = false;
+
+			i = 0;
+			while i < count(L)-1 and not swapped:
+				{
+					if less(L[i+1], L[i]):
+						{
+							swapped = true;
+							tmp = L[i+1];
+							L[i+1] = L[i];
+							L[i] = tmp;
+						}
+					i = i + 1;
+				}
+		} 
+	while swapped;
+
+	return L;
+}
+
+
+print(bubble_sort([3, 2, 1, 6, 0-2]));
