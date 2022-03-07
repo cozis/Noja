@@ -177,7 +177,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 					tok->kind = TIDENT;
 					tok->offset = i;
 					
-					while(i < len && (isalpha(str[i]) || str[i] == '_'))
+					while(i < len && (isalpha(str[i]) || isdigit(str[i]) || str[i] == '_'))
 						i += 1;
 
 					tok->length = i - tok->offset;
