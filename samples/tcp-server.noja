@@ -1,3 +1,4 @@
+# Implementation of a basic TCP server that listen for connections and prints received bytes.
 
 fun startServer(callbacks, port, backlog)
 {
@@ -96,7 +97,7 @@ fun on_connect(addr)
 
 fun on_datain(addr, data)
 {
-	print('Received ', count(data), ' bytes from ', addr, '\n');
+	print('Received ', count(data), ' bytes from ', addr, ': ', data, '\n');
 }
 
 fun on_disconnect(addr)

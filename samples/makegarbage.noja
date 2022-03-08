@@ -1,3 +1,4 @@
+# This script creates a lot of objects, so it can be used to stress the garbage collector.
 
 print('Start\n');
 
