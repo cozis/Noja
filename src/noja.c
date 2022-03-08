@@ -14,75 +14,17 @@ static const char usage[] =
 	"    $ noja [ <file> | -f <file> | -c <code> | -h ]\n"
 	"\n"
 	"For example:\n"
-	"    $ noja file.noja\n"
-	"    $ noja -f file.noja\n"
-	"    $ noja -c \"print('some noja code')\"\n"
+	"    $ noja run file.noja\n"
+	"    $ noja run inline \"print('some noja code');\"\n"
+	"    $ noja dis file.noja\n"
+	"    $ noja dis inline \"print('some noja code');\""
 	"\n"
 	"NOTE: When a line starts with $ it means that it's a terminal command.\n";
 
 static _Bool interpret_file(const char *file);
 static _Bool interpret_code(const char *code);
-
-_Bool noja(int argc, char **argv)
-{
-	assert(argc > 0);
-
-	if(argc == 1)
-		{
-			// $ noja
-			fprintf(stderr, "Error: Incorrect usage.\n\n");
-			fprintf(stderr, usage);
-			return 0;
-		}
-
-	assert(argc > 1);
-
-	if(!strcmp(argv[1], "-f"))
-		{
-			if(argc < 3)
-				{
-					fprintf(stderr, "Error: Missing file after -f option.\n");
-					return 0;
-				}
-
-
-			if(argc > 3)
-				fprintf(stderr, "Warning: Ignoring %d options\n", argc - 3);
-
-			const char *file = argv[2];
-			return interpret_file(file);
-		}
-
-	if(!strcmp(argv[1], "-c"))
-		{
-			if(argc < 3)
-				{
-					fprintf(stderr, "Error: Missing code after -c option.\n");
-					return 0;
-				}
-
-			if(argc > 3)
-				fprintf(stderr, "Warning: Ignoring %d options\n", argc - 3);
-
-			const char *code = argv[2];
-			return interpret_code(code);
-		}
-
-	if(!strcmp(argv[1], "-h"))
-		{
-			if(argc > 2)
-				fprintf(stderr, "Warning: Ignoring %d options\n", argc - 2);
-
-			fprintf(stdout, usage);
-			return 1;
-		}
-
-	if(argc > 2)
-		fprintf(stderr, "Warning: Ignoring %d options\n", argc - 2);
-
-	const char *file = argv[1];
-	return interpret_file(file);
-}
+static _Bool disassemble_file(const char *file);
+static _Bool disassemble_code(const char *code);
 
 static void print_error(const char *type, Error *error)
 {
@@ -106,6 +48,93 @@ static void print_error(const char *type, Error *error)
 		}
 
 	fprintf(stderr, "\n");
+}
+
+_Bool noja(int argc, char **argv)
+{
+	assert(argc > 0);
+
+	if(argc == 1)
+		{
+			// $ noja
+			fprintf(stderr, "Error: Incorrect usage.\n\n");
+			fprintf(stderr, usage);
+			return 0;
+		}
+
+	if(!strcmp(argv[1], "run"))
+		{
+			Error error;
+			Error_Init(&error);
+			
+			if(argc == 2)
+				{
+					Error_Report(&error, 0, "Missing source file");
+					print_error(NULL, &error);
+					Error_Free(&error);
+					return 0;
+				}
+
+			_Bool r;
+
+			if(!strcmp(argv[2], "inline"))
+				{
+					if(argc == 3)
+						{
+							Error_Report(&error, 0, "Missing source string");
+							print_error(NULL, &error);
+							Error_Free(&error);
+							return 0;
+						}
+
+					r = interpret_code(argv[3]);
+				}
+			else
+				r = interpret_file(argv[2]);
+			return r;
+		}
+	
+	if(!strcmp(argv[1], "dis"))
+		{
+			Error error;
+			Error_Init(&error);
+			
+			if(argc == 2)
+				{
+					Error_Report(&error, 0, "Missing source file");
+					print_error(NULL, &error);
+					Error_Free(&error);
+					return 0;
+				}
+
+			_Bool r;
+
+			if(!strcmp(argv[2], "inline"))
+				{
+					if(argc == 3)
+						{
+							Error_Report(&error, 0, "Missing source string");
+							print_error(NULL, &error);
+							Error_Free(&error);
+							return 0;
+						}
+
+					r = disassemble_code(argv[3]);
+				}
+			else
+				r = disassemble_file(argv[2]);
+			return r;
+		}
+
+	if(!strcmp(argv[1], "help"))
+		{
+			fprintf(stdout, usage);
+			return 1;
+		}
+
+	fprintf(stderr, "Error: Incorrect usage.\n\n");
+	fprintf(stderr, usage);
+	return 0;
 }
 
 static _Bool interpret(Source *src)
@@ -216,6 +245,56 @@ static _Bool interpret(Source *src)
 	}
 }
 
+static _Bool disassemble(Source *src)
+{
+	// Compile the code. This section transforms
+	// a [Source] into an [Executable].
+	Executable *exe;
+	{
+		// Create a bump-pointer allocator to hold the AST.
+		BPAlloc *alloc = BPAlloc_Init(-1);
+
+		if(alloc == NULL)
+			{
+				fprintf(stderr, "Internal Error: Couldn't allocate bump-pointer allocator to hold the AST.\n");
+				return 0;
+			}
+
+		Error error;
+		Error_Init(&error);
+
+		// NOTE: The AST is stored in the BPAlloc. It's
+		//       lifetime is the same as the pool.
+		AST *ast = parse(src, alloc, &error);
+	
+		if(ast == NULL)
+			{
+				assert(error.occurred);
+				print_error("Parsing", &error);
+				Error_Free(&error);
+				BPAlloc_Free(alloc);
+				return 0;
+			}
+
+		exe = compile(ast, alloc, &error);
+
+		// We're done with the AST, independently from
+		// the compilation result.
+		BPAlloc_Free(alloc);
+
+		if(exe == NULL)
+			{
+				assert(error.occurred);
+				print_error("Compilation", &error);
+				Error_Free(&error);
+				return 0;
+			}
+	}
+
+	Executable_Dump(exe);
+	return 1;
+}
+
 static _Bool interpret_file(const char *file)
 {
 	Error error;
@@ -253,6 +332,48 @@ static _Bool interpret_code(const char *code)
 		}
 
 	_Bool r = interpret(src);
+
+	Source_Free(src);
+	return r;
+}
+
+static _Bool disassemble_file(const char *file)
+{
+	Error error;
+	Error_Init(&error);
+	
+	Source *src = Source_FromFile(file, &error);
+
+	if(src == NULL)
+		{
+			assert(error.occurred == 1);
+			print_error(NULL, &error);
+			Error_Free(&error);
+			return 0;
+		}
+
+	_Bool r = disassemble(src);
+
+	Source_Free(src);
+	return r;
+}
+
+static _Bool disassemble_code(const char *code)
+{
+	Error error;
+	Error_Init(&error);
+	
+	Source *src = Source_FromString(NULL, code, -1, &error);
+
+	if(src == NULL)
+		{
+			assert(error.occurred);
+			print_error(NULL, &error);
+			Error_Free(&error);
+			return 0;
+		}
+
+	_Bool r = disassemble(src);
 
 	Source_Free(src);
 	return r;
