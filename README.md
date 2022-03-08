@@ -32,10 +32,10 @@ $ chmod +x build.sh
 
 You can run files by doing:
 ```sh
-location/of/noja <filename>
+location/of/noja run <filename>
 ```
 
 or you can run strings by doing:
 ```sh
-location/of/noja -c <string>
+location/of/noja run inline <string>
 ```
