@@ -394,7 +394,7 @@ static void print_bytes(FILE *fp, unsigned char *addr, int size)
 			c1 = low  < 10 ? low  + '0' : low  - 10 + 'A';
 			c2 = high < 10 ? high + '0' : high - 10 + 'A';
 
-			fprintf(fp, "%c%c", c1, c2);
+			fprintf(fp, "%c%c", c2, c1);
 
 			if(i+1 < size)
 				fprintf(fp, ", ");
