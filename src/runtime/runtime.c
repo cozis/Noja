@@ -530,7 +530,7 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 static _Bool step(Runtime *runtime, Error *error)
 {
 	assert(runtime != NULL);
-
+	assert(error->occurred != 0);
 	Opcode opcode;	
 	Operand ops[3];
 	int     opc = sizeof(ops) / sizeof(ops[0]);
@@ -782,6 +782,7 @@ static _Bool step(Runtime *runtime, Error *error)
 						assert(argv[i] != NULL);
 					}
 
+				assert(error->occurred == 0);
 				(void) Runtime_Pop(runtime, error, argc+1);
 				assert(error->occurred == 0);
 
@@ -803,7 +804,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(runtime->frame->used < 2)
 					{
 						Error_Report(error, 1, "Frame has not enough values on the stack to run SELECT instruction");
-						return NULL;
+						return 0;
 					}
 
 				Object *col = Stack_Top(runtime->stack, -1);
@@ -836,7 +837,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(runtime->frame->used < 3)
 					{
 						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT instruction");
-						return NULL;
+						return 0;
 					}
 
 				Object *col = Stack_Top(runtime->stack, -2);
@@ -860,7 +861,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(runtime->frame->used < 3)
 					{
 						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT2 instruction");
-						return NULL;
+						return 0;
 					}
 
 				Object *val = Stack_Top(runtime->stack, -2);
