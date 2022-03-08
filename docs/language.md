@@ -18,7 +18,7 @@ A Noja program is a list of statements that can be of multiple kinds (function d
 
 The most basic type of statement of a noja program is an expression. They work similarly to other languages. You can evaluate mathematical, relational, logical operartions, call functions and lots of other good stuff. Then, you can store the result of expressions inside variables and use them later.
 
-The basic type of values are
+The basic types of values are
 ```py
 3; # Integers:
    #   They are represented internally by 64 bits and are always signed, therefore
@@ -27,27 +27,26 @@ The basic type of values are
 3.4; # Floats
      #   Like integers, they are represented using 64 bits.
 
-"hello!"; # Strings (which can be enclosed by double or single quotes)
-'hello!'; #   They represent text. They are encoding-agnostic, which means that the
-          #   language doesn't assume their encoding because it treats them as
-          #   sequence of bytes. This may not be the most ergonomic choice, but it
-          #   was the simplest one. 
+"hello!"; # Strings:
+'hello!'; #   They represent text. They are encoding-agnostic, because it treats 
+          #   them as sequences of bytes. This may not be the most ergonomic choice, 
+          #   but it was the simplest one. 
 
-true;  # Booleans
+true;  # Booleans:
 false; #   Nothing new here. They represent two values that have the property of being
        #   each other's logical negation. 
 
-none; # The none value
+none; # The none value:
       #   This is specific to the language. It can be used to represent the absence of
       #   a value when one was expected. It's only propery is to be identical to and
       #   only to itself.
 
-[1, 2, none, false]; # Lists
-                     #   They are ordered and etherogenic collections of other values.
+[1, 2, none, false]; # Lists:
+                     #   They are ordered and etherogenic collections of values.
                      #   Nested values can be accessed by their index relative to the
                      #   start.
 
-{ 1: 'hello', true: [1, 2]} # Maps
+{ 1: 'hello', true: [1, 2]} # Maps:
                             #   Maps are a list of associations between values. You can
                             #   see them as a list of key and value pairs. The values
                             #   are the content of the map and the keys are what you
@@ -55,7 +54,28 @@ none; # The none value
                             #   of value.
 ```
 
+there are also other types of values (like functions and buffers) but they'll be covered later.  
 
+These type of values, in conjuctions with the operators that are made available by the language, can be used to build arbitrarily complex expressions. The basic arithmetic operators are available:
+
+```py
+1 + 1; #  2
+1 - 2; # -1
+3 * 2; #  6
+10 / 3; # 3
+10 / 3.0; # 3.33..
+10.0 / 3; # 3.33..
+```
+
+They can only be performed on numeric values. Math operations between integers always result in integers. If one or more floats are involved, then the result is still a float. Notice how the division causes the rounding of the result if none of the operands is a float.
+
+Other operators available for numeric types are relational operators
+```py
+1 < 2;  # true
+1 > 2;  # false
+1 >= 0; # true
+1 <= 0; # false
+```
 
 You can set variables without declaring them first by using the assignment operator:
 ```py
@@ -71,47 +91,6 @@ a = (b = 1) + 1;
 print('b = ', b, '\n'); # b = 1
 print('a = ', a, '\n'); # a = 2
 ```
-all of the basic arithmetic operators are available:
-```py
-x = 1 + 1;
-y = 1 - 2;
-z = 3 * 2;
-w = 10 / 3;
-
-print('x = ', x, '\n'); # x = 2
-print('y = ', y, '\n'); # y = -1
-print('z = ', z, '\n'); # z = 6
-print('w = ', w, '\n'); # w = 3
-```
-Note how the division returns the rounded down version of the result.
-This is because the division was performed on integers. By making one
-of the operands a floating point value, also a floating point result
-is returned:
-```py
-w = 10 / 3.0;
-
-print('w = ', w, '\n'); 
-```
-Arithmetic operators are only available for numeric types of objects.
-If you try to apply them on other kinds of types, you get a runtime
-error.
-
-Relational operators are also available:
-```py
-print(1 < 2, '\n');  # true
-print(1 > 2, '\n');  # false
-
-print(1 >= 0, '\n'); # true
-print(1 <= 0, '\n'); # false
-
-print(1 == 5, '\n'); # false
-print(6 == 6, '\n'); # true
-
-print(1 != 5, '\n'); # true
-print(6 != 6, '\n'); # false
-```
-The equal and not equal operators are available on every type of object,
-while the others are only available for numeric types.
 
 ## Branches
 
