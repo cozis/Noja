@@ -70,6 +70,7 @@ _Bool 		Executable_SetSource(Executable *exe, Source *src);
 Source 	   *Executable_GetSource(Executable *exe);
 int 		Executable_GetInstrOffset(Executable *exe, int index);
 int 		Executable_GetInstrLength(Executable *exe, int index);
+const char *Executable_GetOpcodeName(Opcode opcode);
 
 ExeBuilder *ExeBuilder_New(BPAlloc *alloc);
 _Bool 		ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *opv, int opc, int off, int len);

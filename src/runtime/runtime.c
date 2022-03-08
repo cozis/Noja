@@ -530,7 +530,7 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 static _Bool step(Runtime *runtime, Error *error)
 {
 	assert(runtime != NULL);
-	assert(error->occurred != 0);
+	assert(error->occurred == 0);
 	Opcode opcode;	
 	Operand ops[3];
 	int     opc = sizeof(ops) / sizeof(ops[0]);
@@ -815,18 +815,29 @@ static _Bool step(Runtime *runtime, Error *error)
 				if(!Runtime_Pop(runtime, error, 2))
 					return 0;
 
-				Object *val = Object_Select(col, key, runtime->heap, error);
+				assert(error->occurred == 0);
+
+				Error dummy;
+				Error_Init(&dummy); // We want to catch the error reported by this Object_Select.
+
+				Object *val = Object_Select(col, key, runtime->heap, &dummy);
 
 				if(val == NULL)
 					{
+						Error_Free(&dummy);
+
 						val = Object_NewNone(runtime->heap, error);
 
 						if(val == NULL)
 							return 0;
 					}
 
+				assert(error->occurred == 0);
+
 				if(!Runtime_Push(runtime, error, val))
 					return 0;
+
+				assert(error->occurred == 0);
 				return 1;
 			}
 

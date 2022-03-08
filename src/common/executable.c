@@ -82,6 +82,11 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_JUMP] = {"JUMP", 1, (OperandType[]) {OPTP_INT}},
 };
 
+const char *Executable_GetOpcodeName(Opcode opcode)
+{
+	return instr_table[opcode].name;
+}
+
 Executable *Executable_Copy(Executable *exe)
 {
 	assert(exe != NULL);
