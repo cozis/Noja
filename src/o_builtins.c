@@ -106,7 +106,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 			case PAIR(sizeof("newBuffer")-1, 'n'):
 			{
 				if(!strcmp(s, "newBuffer"))
-					return Object_FromNativeFunction(bm->runtime, bin_newBuffer, -1, heap, err);
+					return Object_FromNativeFunction(bm->runtime, bin_newBuffer, 1, heap, err);
 
 				return NULL;
 			}
