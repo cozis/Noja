@@ -1,7 +1,7 @@
 
 # The Noja language
 
-This file was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts (variables, expressions and branches). This way, there is more space for the comparison of the language's features with the mainstream languages.
+This file was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts (variables, expressions and branches). This way, there is more space for the comparison of the language's features with the mainstream ones. 
 
 ## Table of contents
 3. [The first program](#the-first-program)
@@ -10,48 +10,58 @@ This file was intended for people who already program in other high level langua
 6. [Loops](#loops)
 7. [Functions](#functions)
 
-## The first program
+## A Noja program
 
-The sintax is similar to Python's but is more C-like. A Noja script 
-is a list of statements that can be of multiple kinds:
-
-  - function declaractions
-  - expressions
-  - if-else branches
-  - while loops
-  - do-while loops
-  - return statements
-  - composit statements
-
-In general, unless it's inside strings, whitespace is ignored and 
-comments start with the `#` character. 
-
-The most basic yet interesting program is:
-
-```py
-print('Hello, world!\n'); 
-```
-
-as in other languages, this kind of statement is an expression.
-Expression statements require a ';' to determine their end.
-
-The print function can take any number of arguments of any type
-and doesn't add any spaces or newlines to the output. 
-
-```py
-print(1, 2, 3, true, '\n');
-```
+A Noja program is a list of statements that can be of multiple kinds (function delcarations, expressions, if-else branches, etc). Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line.
 
 ## Expressions
 
-You can set variables without declaring them first by using the
-assignment operator:
+The most basic type of statement of a noja program is an expression. They work similarly to other languages. You can evaluate mathematical, relational, logical operartions, call functions and lots of other good stuff. Then, you can store the result of expressions inside variables and use them later.
+
+The basic type of values are
+```py
+3; # Integers:
+   #   They are represented internally by 64 bits and are always signed, therefore
+   #   the minimum value representable is -2^63 and the maximum is 2^63-1.
+
+3.4; # Floats
+     #   Like integers, they are represented using 64 bits.
+
+"hello!"; # Strings (which can be enclosed by double or single quotes)
+'hello!'; #   They represent text. They are encoding-agnostic, which means that the
+          #   language doesn't assume their encoding because it treats them as
+          #   sequence of bytes. This may not be the most ergonomic choice, but it
+          #   was the simplest one. 
+
+true;  # Booleans
+false; #   Nothing new here. They represent two values that have the property of being
+       #   each other's logical negation. 
+
+none; # The none value
+      #   This is specific to the language. It can be used to represent the absence of
+      #   a value when one was expected. It's only propery is to be identical to and
+      #   only to itself.
+
+[1, 2, none, false]; # Lists
+                     #   They are ordered and etherogenic collections of other values.
+                     #   Nested values can be accessed by their index relative to the
+                     #   start.
+
+{ 1: 'hello', true: [1, 2]} # Maps
+                            #   Maps are a list of associations between values. You can
+                            #   see them as a list of key and value pairs. The values
+                            #   are the content of the map and the keys are what you
+                            #   use to access them. Both keys and values can be any type
+                            #   of value.
+```
+
+
+
+You can set variables without declaring them first by using the assignment operator:
 ```py
 a = 5;
 ```
-which is similar to Python's assignment, but is a little different.
-In this language, assignments are considered as expressions, in fact 
-you can do things like
+which is similar to Python's assignment, but is a little different. In this language, assignments are considered as expressions, in fact you can do things like
 ```py
 a = (b = 1) + 1;
 
