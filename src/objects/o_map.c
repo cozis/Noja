@@ -16,11 +16,15 @@ static int     count(Object *self);
 static void	print(Object *self, FILE *fp);
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
+static Object *copy(Object *self, Heap *heap, Error *err);
+static int hash(Object *self);
 
 static TypeObject t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "map",
 	.size = sizeof (MapObject),
+	.copy = copy,
+	.hash = hash,
 	.select = select,
 	.insert = insert,
 	.count = count,
@@ -32,6 +36,46 @@ static TypeObject t_map = {
 static inline int calc_capacity(int mapper_size)
 {
 	return mapper_size * 2.0 / 3.0;
+}
+
+static Object *copy(Object *self, Heap *heap, Error *err)
+{
+	MapObject *m1 = (MapObject*) self;
+	Object *m2 = Object_NewMap(m1->count, heap, err);
+	if(m2 == NULL) return NULL;
+
+	for(int i = 0; i < m1->count; i += 1)
+		{
+			Object *key, *key_cpy;
+			Object *val, *val_cpy;
+
+			key = m1->keys[i];
+			val = m1->vals[i];
+
+			key_cpy = Object_Copy(key, heap, err);
+			if(key_cpy == NULL) return NULL;
+
+			val_cpy = Object_Copy(val, heap, err);
+			if(val_cpy == NULL) return NULL;
+
+			if(!Object_Insert(m2, key_cpy, val_cpy, heap, err))
+				return NULL;
+		}
+
+	return (Object*) m2;
+}
+
+static int hash(Object *self)
+{
+	MapObject *m = (MapObject*) self;
+
+	int h = 0;
+	// The hash of the map is the sum of the
+	// hashes of each key and each item.
+	for(int i = 0; i < m->count; i += 1)
+			h += Object_Hash(m->keys[i])
+			   + Object_Hash(m->vals[i]);
+	return h;
 }
 
 Object *Object_NewMap(int num, Heap *heap, Error *error)
@@ -107,12 +151,8 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	MapObject *map = (MapObject*) self;
 
 	unsigned int mask = map->mapper_size - 1;
-	unsigned int hash = Object_Hash(key, error);
+	unsigned int hash = Object_Hash(key);
 	unsigned int pert = hash;
-
-	if(error->occurred)
-		// No hash function.
-		return 0;
 
 	int i = hash & mask;
 
@@ -181,8 +221,7 @@ static _Bool grow(MapObject *map, Heap *heap, Error *error)
 			// This won't trigger an error because the key
 			// surely has a hash method since we already
 			// hashed it once.
-			int hash = Object_Hash(keys[i], error);
-			assert(error->occurred == 0);
+			int hash = Object_Hash(keys[i]);
 
 			int mask = new_mapper_size - 1;
 			int pert = hash;
@@ -229,12 +268,8 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 			return 0;
 
 	unsigned int mask = map->mapper_size - 1;
-	unsigned int hash = Object_Hash(key, error);
+	unsigned int hash = Object_Hash(key);
 	unsigned int pert = hash;
-
-	if(error->occurred)
-		// No hash function.
-		return 0;
 
 	int i = hash & mask;
 

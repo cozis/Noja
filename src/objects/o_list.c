@@ -15,11 +15,15 @@ static int     count(Object *self);
 static void	   print(Object *obj, FILE *fp);
 static void    walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
 static void    walkexts(Object *self, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
+static Object *copy(Object *self, Heap *heap, Error *err);
+static int hash(Object *self);
 
 static TypeObject t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "list",
 	.size = sizeof (ListObject),
+	.copy = copy,
+	.hash = hash,
 	.select = select,
 	.insert = insert,
 	.count = count,
@@ -27,6 +31,43 @@ static TypeObject t_list = {
 	.walk = walk,
 	.walkexts = walkexts,
 };
+
+static int hash(Object *self)
+{
+	assert(self != NULL);
+	assert(self->type == &t_list);
+
+	ListObject *ls = (ListObject*) self;
+
+	int h = 0;
+	// The hash is the sum of the nested
+	// hashes. It's not a smart solution
+	// but it works for now.
+	for(int i = 0; i < ls->count; i += 1)
+		h += Object_Hash(ls->vals[i]);
+
+	return h;
+}
+
+static Object *copy(Object *self, Heap *heap, Error *err)
+{
+	(void) heap;
+	(void) err;
+
+	ListObject *ls  = (ListObject*) self;
+	ListObject *ls2 = (ListObject*) Object_NewList(ls->count, heap, err);
+	if(ls2 == NULL) return NULL;
+
+	for(int i = 0; i < ls->count; i += 1)
+		{
+			ls2->vals[i] = Object_Copy(ls->vals[i], heap, err);
+			if(err->occurred) return NULL;
+		}
+
+	ls2->count = ls->count;
+
+	return (Object*) ls2;
+}
 
 static inline int calc_capacity(int mapper_size)
 {

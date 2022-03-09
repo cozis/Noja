@@ -80,6 +80,7 @@
 	({'': none});
 	({1: none});
 	({1.0: none});
+	({none: none});
 	({true: none});
 	({false: none});
 	({[]: none});

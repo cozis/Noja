@@ -64,19 +64,12 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 	return type->deepsize(obj);
 }
 
-int Object_Hash(Object *obj, Error *err)
+int Object_Hash(Object *obj)
 {
 	assert(obj != NULL);
-
 	const TypeObject *type = Object_GetType(obj);
 	assert(type != NULL);
-
-	if(type->hash == NULL)
-		{
-			Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
-			return -1;
-		}
-
+	assert(type->hash != NULL);
 	return type->hash(obj);
 }
 
