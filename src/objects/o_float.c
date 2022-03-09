@@ -1,9 +1,12 @@
 #include <assert.h>
 #include "objects.h"
+#include "../utils/hash.h"
 
 static double to_float(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
+static int     hash(Object *self);
+static Object *copy(Object *self, Heap *heap, Error *err);
 
 typedef struct {
 	Object base;
@@ -15,10 +18,29 @@ static TypeObject t_float = {
 	.name = "float",
 	.size = sizeof (FloatObject),
 	.atomic = ATMTP_FLOAT,
+	.hash = hash,
+	.copy = copy,
 	.to_float = to_float,
 	.print = print,
 	.op_eql = op_eql
 };
+
+static int hash(Object *self)
+{
+	assert(self != NULL);
+	assert(self->type == &t_float);
+
+	FloatObject *iobj = (FloatObject*) self;
+
+	return hashbytes((unsigned char*) &iobj->val, sizeof(iobj->val));
+}
+
+static Object *copy(Object *self, Heap *heap, Error *err)
+{
+	(void) heap;
+	(void) err;
+	return self;
+}
 
 static _Bool op_eql(Object *self, Object *other)
 {
