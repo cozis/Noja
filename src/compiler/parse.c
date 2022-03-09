@@ -49,7 +49,7 @@ typedef enum {
 	TGRT = '>',
 
 	TASS = '=',
-	
+
 	TLBRK = '(',
 	TRBRK = ')',
 	TLSBRK = '[',
@@ -558,7 +558,6 @@ static Node *parse_statement(Context *ctx)
 	switch(current(ctx))
 		{
 			default:
-			assert(0);
 			break;
 
 			case '(':
