@@ -549,6 +549,10 @@ static Node *parse_statement(Context *ctx)
 
 	switch(current(ctx))
 		{
+			default:
+			assert(0);
+			break;
+
 			case '(':
 			case '[':
 			case '+':
@@ -1109,6 +1113,7 @@ static Node *parse_primary_expresion(Context *ctx)
 							case '+': temp->base.kind = EXPR_POS; break;
 							case '-': temp->base.kind = EXPR_NEG; break;
 							case TKWNOT: temp->base.kind = EXPR_NOT; break;
+							default: assert(0); break;
 						}
 				}
 				return (Node*) temp;
