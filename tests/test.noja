@@ -69,6 +69,23 @@
 	assert((false or false) == false);
 }
 
+# Test lists.
+{
+	[1]; [1.0]; ['x']; [1, 1]; [1.0, 1.0]; ['x', 'x'];
+}
+
+# Test maps.
+{
+	({}); 
+	({'': none});
+	({1: none});
+	({1.0: none});
+	({true: none});
+	({false: none});
+	({[]: none});
+	({{}: none});
+}
+
 # Test if-else statements.
 {
 	if true: r = true; else r = false;

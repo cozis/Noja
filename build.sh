@@ -68,9 +68,6 @@ ar rcs build/libnoja-runtime.a \
 	build/libnoja-compile.a \
 	build/libnoja-objects.a
 
-gcc tests/src/test-parse.c   -o build/test-parse   $FLAGS -Lbuild/ -lnoja-compile -lxjson
-gcc tests/src/test-objects.c -o build/test-objects $FLAGS -Lbuild/ -lnoja-objects
-
 gcc src/main.c \
     src/noja.c \
 	temp/o_builtins.o \

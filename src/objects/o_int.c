@@ -1,10 +1,12 @@
 #include <assert.h>
 #include <string.h>
 #include "objects.h"
+#include "../utils/hash.h"
 
 static long long int to_int(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
+static int hash(Object *self);
 
 typedef struct {
 	Object base;
@@ -16,10 +18,21 @@ static TypeObject t_int = {
 	.name = "int",
 	.size = sizeof (IntObject),
 	.atomic = ATMTP_INT,
+	.hash = hash,
 	.to_int = to_int,
 	.print = print,
 	.op_eql = op_eql,
 };
+
+static int hash(Object *self)
+{
+	assert(self != NULL);
+	assert(self->type == &t_int);
+
+	IntObject *iobj = (IntObject*) self;
+
+	return hashbytes((unsigned char*) &iobj->val, sizeof(iobj->val));
+}
 
 static long long int to_int(Object *obj, Error *err)
 {
