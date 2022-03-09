@@ -7,6 +7,7 @@ static long long int to_int(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
 static int hash(Object *self);
+static Object *copy(Object *self, Heap *heap, Error *err);
 
 typedef struct {
 	Object base;
@@ -19,6 +20,7 @@ static TypeObject t_int = {
 	.size = sizeof (IntObject),
 	.atomic = ATMTP_INT,
 	.hash = hash,
+	.copy = copy,
 	.to_int = to_int,
 	.print = print,
 	.op_eql = op_eql,
@@ -32,6 +34,13 @@ static int hash(Object *self)
 	IntObject *iobj = (IntObject*) self;
 
 	return hashbytes((unsigned char*) &iobj->val, sizeof(iobj->val));
+}
+
+static Object *copy(Object *self, Heap *heap, Error *err)
+{
+	(void) heap;
+	(void) err;
+	return self;
 }
 
 static long long int to_int(Object *obj, Error *err)
