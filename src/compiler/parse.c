@@ -49,6 +49,14 @@ typedef enum {
 	TGRT = '>',
 
 	TASS = '=',
+	
+	TLBRK = '(',
+	TRBRK = ')',
+	TLSBRK = '[',
+	TRSBRK = ']',
+	TLCBRK = '{',
+	TRCBRK = '}',
+	TDOT = '.',
 
 	TDONE = 256,
 	TINT,

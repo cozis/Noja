@@ -386,7 +386,7 @@ static _Bool get_in_addr_from_map(Object *map, struct in_addr *addr, Heap *heap,
 	long long int s_addr = Object_ToInt(o_s_addr, error);
 	if(error->occurred) return 0;
 
-	if(s_addr < 0 || s_addr >= ULONG_MAX)
+	if(s_addr < 0 || s_addr >= (long long int) ULONG_MAX)
 		{
 			Error_Report(error, 0, "s_addr must be in range [0, %lu]", ULONG_MAX);
 			return 0;
