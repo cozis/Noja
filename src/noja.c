@@ -11,17 +11,11 @@
 #include "builtins/basic.h"
 
 static const char usage[] = 
-	"Usage:\n"
-	"    $ noja [ <file> | -f <file> | -c <code> | -h ]\n"
-	"\n"
-	"For example:\n"
+	"Usage patterns:\n"
 	"    $ noja run file.noja\n"
 	"    $ noja run inline \"print('some noja code');\"\n"
 	"    $ noja dis file.noja\n"
-	"    $ noja dis inline \"print('some noja code');\""
-	"\n"
-	"NOTE: When a line starts with $ it means that it's a terminal command.\n";
-
+	"    $ noja dis inline \"print('some noja code');\"\n";
 static _Bool interpret_file(const char *file);
 static _Bool interpret_code(const char *code);
 static _Bool disassemble_file(const char *file);
