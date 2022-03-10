@@ -52,6 +52,11 @@ static TypeObject t_buffer_slice = {
 
 #define THRESHOLD 128
 
+_Bool Object_IsBuffer(Object *obj)
+{
+	return obj->type == &t_buffer_slice || obj->type == &t_buffer;
+}
+
 Object *Object_NewBuffer(int size, Heap *heap, Error *error)
 {
 	assert(size >= 0);

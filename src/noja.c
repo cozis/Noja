@@ -2,12 +2,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "o_builtins.h"
+#include "o_staticmap.h"
 #include "compiler/parse.h"
 #include "compiler/serialize.h"
 #include "compiler/compile.h"
 #include "runtime/runtime.h"
 #include "runtime/runtime_error.h"
+#include "builtins/basic.h"
 
 static const char usage[] = 
 	"Usage:\n"
@@ -207,7 +208,7 @@ static _Bool interpret(Source *src)
 		RuntimeError error;
 		RuntimeError_Init(&error, runt); // Here we specify the runtime to snapshot in case of failure.
 		
-		Object *bins = Object_NewBuiltinsMap(runt, Runtime_GetHeap(runt), (Error*) &error);
+		Object *bins = Object_NewStaticMap(bins_basic, runt, (Error*) &error);
 
 		if(bins == NULL)
 			{

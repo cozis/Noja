@@ -20,6 +20,8 @@ gcc -c src/objects/o_map.c     -o temp/objects/o_map.o     $FLAGS
 gcc -c src/objects/o_list.c    -o temp/objects/o_list.o    $FLAGS
 gcc -c src/objects/o_none.c    -o temp/objects/o_none.o    $FLAGS
 gcc -c src/objects/o_bool.c    -o temp/objects/o_bool.o    $FLAGS
+gcc -c src/objects/o_file.c    -o temp/objects/o_file.o    $FLAGS
+gcc -c src/objects/o_dir.c     -o temp/objects/o_dir.o     $FLAGS
 gcc -c src/objects/o_float.c   -o temp/objects/o_float.o   $FLAGS
 gcc -c src/objects/o_string.c  -o temp/objects/o_string.o  $FLAGS
 gcc -c src/objects/o_buffer.c  -o temp/objects/o_buffer.o  $FLAGS
@@ -40,8 +42,12 @@ gcc -c src/runtime/runtime.c 	   -o temp/runtime/runtime.o       $FLAGS
 gcc -c src/runtime/o_nfunc.c       -o temp/runtime/o_nfunc.o       $FLAGS
 gcc -c src/runtime/o_func.c        -o temp/runtime/o_func.o        $FLAGS
 
-gcc -c src/o_builtins.c     -o temp/o_builtins.o     $FLAGS
-gcc -c src/o_net_builtins.c -o temp/o_net_builtins.o $FLAGS
+mkdir temp/builtins
+gcc -c src/builtins/basic.c -o temp/builtins/basic.o $FLAGS
+gcc -c src/builtins/file.c  -o temp/builtins/file.o  $FLAGS
+gcc -c src/builtins/math.c  -o temp/builtins/math.o  $FLAGS
+
+gcc -c src/o_staticmap.c -o temp/o_staticmap.o $FLAGS
 
 rm -rf build
 mkdir build
@@ -68,27 +74,31 @@ ar rcs build/libnoja-runtime.a \
 	build/libnoja-compile.a \
 	build/libnoja-objects.a
 
-gcc src/main.c \
-    src/noja.c \
-	temp/o_builtins.o \
-	temp/o_net_builtins.o \
-	temp/utils/hash.o \
-	temp/utils/stack.o \
-	temp/utils/source.o \
-	temp/utils/promise.o \
-	temp/utils/bucketlist.o \
-	temp/objects/o_map.o \
-	temp/objects/o_none.o \
-	temp/objects/o_list.o \
-	temp/objects/o_bool.o \
-	temp/objects/o_buffer.o \
-	temp/objects/o_string.o \
-	temp/objects/o_closure.o \
-	temp/runtime/runtime.o \
-	temp/runtime/runtime_error.o \
-	temp/runtime/o_nfunc.o \
-	temp/runtime/o_func.o \
-	temp/common/executable.o \
-	-o build/noja $FLAGS -Lbuild/ -lnoja-compile -lnoja-objects -lxjson
+gcc src/main.c 						\
+    src/noja.c 						\
+    temp/o_staticmap.o 				\
+	temp/utils/hash.o 				\
+	temp/utils/stack.o 				\
+	temp/utils/source.o 			\
+	temp/utils/promise.o 			\
+	temp/utils/bucketlist.o 		\
+	temp/objects/o_map.o 			\
+	temp/objects/o_none.o 			\
+	temp/objects/o_list.o 			\
+	temp/objects/o_file.o 			\
+	temp/objects/o_dir.o 			\
+	temp/objects/o_bool.o 			\
+	temp/objects/o_buffer.o 		\
+	temp/objects/o_string.o 		\
+	temp/objects/o_closure.o 		\
+	temp/runtime/runtime.o 			\
+	temp/runtime/runtime_error.o 	\
+	temp/runtime/o_nfunc.o 			\
+	temp/runtime/o_func.o 			\
+	temp/builtins/basic.o 			\
+	temp/builtins/file.o 			\
+	temp/builtins/math.o 			\
+	temp/common/executable.o 		\
+	-o build/noja $FLAGS -Lbuild/ -lnoja-compile -lnoja-objects -lxjson -lm
 
 rm -rf temp

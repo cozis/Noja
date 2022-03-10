@@ -56,8 +56,9 @@ none; # The none value:
 
 there are also other types of values (like functions and buffers) but they'll be covered later.  
 
-These type of values, in conjuctions with the operators that are made available by the language, can be used to build arbitrarily complex expressions. The basic arithmetic operators are available:
+These type of values, in conjuction with the operators that are made available by the language, can be used to build arbitrarily complex expressions. 
 
+The basic arithmetic operators are available:
 ```py
 1 + 1; #  2
 1 - 2; # -1

@@ -22,6 +22,11 @@ static Object the_none_object = {
 	.flags = Object_STATIC,
 };
 
+_Bool Object_IsNone(Object *obj)
+{
+	return obj == &the_none_object;
+}
+
 static int hash(Object *self)
 {
 	assert(self == &the_none_object);

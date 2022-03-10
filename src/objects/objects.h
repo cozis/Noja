@@ -1,6 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include <dirent.h>
 #include <stdio.h>
 #include "../utils/error.h"
 
@@ -115,18 +116,27 @@ Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);
 Object*		 Object_FromBool  (_Bool		 val, Heap *heap, Error *error);
 Object*		 Object_FromFloat (double 		 val, Heap *heap, Error *error);
 Object*		 Object_FromString(const char *str, int len, Heap *heap, Error *error);
+Object*		 Object_FromStream(FILE *fp, Heap *heap, Error *error);
+Object* 	 Object_FromDIR(DIR *handle, Heap *heap, Error *error);
 
-_Bool		 Object_IsInt  (Object *obj);
-_Bool		 Object_IsBool (Object *obj);
-_Bool		 Object_IsFloat(Object *obj);
-_Bool		 Object_IsString(Object *obj);
+_Bool Object_IsNone(Object *obj);
+_Bool Object_IsInt(Object *obj);
+_Bool Object_IsBool(Object *obj);
+_Bool Object_IsFloat(Object *obj);
+_Bool Object_IsString(Object *obj);
+_Bool Object_IsBuffer(Object *obj);
+_Bool Object_IsFile(Object *obj);
+_Bool Object_IsDir(Object *obj);
 
 long long int Object_ToInt  (Object *obj, Error *err);
 _Bool 		  Object_ToBool (Object *obj, Error *err);
 double		  Object_ToFloat(Object *obj, Error *err);
 const char	 *Object_ToString(Object *obj, int *size, Heap *heap, Error *err);
+DIR    		 *Object_ToDIR(Object *obj, Error *error);
+FILE   		 *Object_ToStream(Object *obj, Error *error);
 
 _Bool 		  Object_Compare(Object *obj1, Object *obj2, Error *error);
+
 
 extern TypeObject t_type;
 #endif
