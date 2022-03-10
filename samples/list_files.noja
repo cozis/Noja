@@ -1,0 +1,6 @@
+
+dirname = '.';
+dir = file.openDir(dirname);
+
+while (filename = file.nextDirItem(dir)) != none:
+	print(filename, '\n');
