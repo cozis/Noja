@@ -3,6 +3,9 @@
 ## Introduction
 This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
 
+### Objectives
+This project aims to be an interpreter design reference, therefore it optimizes for code quality and readability over execution speed and expressive power.
+
 ## Supported platforms
 I wrote it on a linux machine, but there should be very few places where a linux host is assumed, so it should be very easy to port.
 
