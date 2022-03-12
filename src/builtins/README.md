@@ -1,0 +1,1 @@
+Here are implemented the language's builtin variables. Each file define it's values and exposes them through a `StaticMapSlot` array. These values can then be accessed from within the language by wrapping these arrays in static map objects (check src/o_staticmap.c to know more).

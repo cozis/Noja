@@ -7,3 +7,5 @@
   the second sub-expr. "A.name != none" raises an error if the first one
   "type(A) == type({})" isn't true, but doesn't need to be evaluated in
   that case.
+
+- Implement the `count` method for static maps.

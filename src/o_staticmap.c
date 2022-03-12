@@ -1,3 +1,30 @@
+/*
+ * 
+ * -- WHAT IS THIS FILE? --------------------------------------------
+ * This file implements the "static map" object. The static map 
+ * object behaves like a read-only "map". (Note that "implementing 
+ * an object" means a very specific thing in this interpreter. If 
+ * you didn't know, check the src/objects folder.)
+ * ------------------------------------------------------------------
+ *
+ * -- THE STATIC MAP OBJECT -----------------------------------------
+ * The statis map is a read-only collection of objects. You can see 
+ * it as an interface for static arrays. You can define an array of 
+ * `StaticMapSlot`s and then wrap it in this object. When the map is
+ * accessed, a lookup is performed into the array. Something to note
+ * is that the array is converted to noja objects lazily when they 
+ * are accessed, which makes the start-up times lower than a general
+ * purpose map.
+ * ------------------------------------------------------------------
+ *
+ * NOTES: 
+ *   - This object, unlike the others implemented in src/objects,
+ *     depends on the Runtime objects. This is because it needs
+ *     to be able to create `NativeFuncObject`s. 
+ *
+ *   - Only strings can be keys. There is no intrinsic reason why
+ *     it should be like that, it's just simpler.
+ */
 #include <string.h>
 #include <assert.h>
 #include "o_staticmap.h"

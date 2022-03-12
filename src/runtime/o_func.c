@@ -12,19 +12,6 @@ typedef struct {
 	Object *closure;
 } FunctionObject;
 
-static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error);
-static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
-static _Bool free_(Object *self, Error *error);
-
-static TypeObject t_func = {
-	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "function",
-	.size = sizeof (FunctionObject),
-	.call = call,
-	.walk = walk,
-	.free = free_,
-};
-
 static _Bool free_(Object *self, Error *error)
 {
 	(void) error;
@@ -103,6 +90,45 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	return result;
 }
 
+static TypeObject t_func = {
+	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
+	.name = "function",
+	.size = sizeof (FunctionObject),
+	.call = call,
+	.walk = walk,
+	.free = free_,
+};
+
+/* Symbol: Object_FromNojaFunction
+ *
+ *   Creates an object from a noja executable structure.
+ *
+ * Args:
+ *   - runtime: The reference to an instanciated Runtime.
+ *
+ *   - exe: A noja executable.
+ *
+ *   - index: The index of the first bytecode instruction
+ *            of the noja function within the executable.
+ *
+ *   - argc: The number of arguments the function expects. 
+ *           It must be positive (unlike [Object_FromNativeFunction],
+ *           where -1 means variadic).
+ *
+ *   - closure: An object containing variables that will be
+ *              accessible from the noja function other than
+ *              the ones that will be defined inside it.
+ *
+ *   - heap: The heap that will be used to allocate the object.
+ *           It can't be NULL.
+ *
+ *   - error: Output parameter where error information is stored.
+ *            It can't be NULL.
+ *
+ * Returns:
+ *   The newly created object. If an error occurred, NULL is returned
+ *   and information about the error is stored in the [error] argument.
+ */
 Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error)
 {
 	assert(runtime != NULL);

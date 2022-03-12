@@ -8,7 +8,7 @@ Here's an overview:
 `string`. `list` (array), `map` (associative array), `none` (null)
 3. No implicit casts.
 2. Arithmetic operations only allowed on numbers.
-3. Division between `ints` rounds down.
+3. Division between `int`s rounds down.
 4. Logical operators expect boolean operands.
 5. Assignments are expressions that return the newly assigned value.
 6. No for loop (yet)
