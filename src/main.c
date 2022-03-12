@@ -42,159 +42,126 @@ static void print_error(const char *type, Error *error)
 	fprintf(stderr, "\n");
 }
 
-static _Bool interpret(Source *src)
+static Executable *build(Source *src)
 {
 	// Compile the code. This section transforms
 	// a [Source] into an [Executable].
 	Executable *exe;
-	{
-		// Create a bump-pointer allocator to hold the AST.
-		BPAlloc *alloc = BPAlloc_Init(-1);
-
-		if(alloc == NULL)
-			{
-				fprintf(stderr, "Internal Error: Couldn't allocate bump-pointer allocator to hold the AST.\n");
-				return 0;
-			}
-
-		Error error;
-		Error_Init(&error);
-
-		// NOTE: The AST is stored in the BPAlloc. It's
-		//       lifetime is the same as the pool.
-		AST *ast = parse(src, alloc, &error);
 	
-		if(ast == NULL)
-			{
-				assert(error.occurred);
-				print_error("Parsing", &error);
-				Error_Free(&error);
-				BPAlloc_Free(alloc);
-				return 0;
-			}
-		
-		exe = compile(ast, alloc, &error);
+	// Create a bump-pointer allocator to hold the AST.
+	BPAlloc *alloc = BPAlloc_Init(-1);
 
-		// We're done with the AST, independently from
-		// the compilation result.
-		BPAlloc_Free(alloc);
+	if(alloc == NULL)
+		{
+			fprintf(stderr, "Internal Error: Couldn't allocate bump-pointer allocator to hold the AST.\n");
+			return 0;
+		}
 
-		if(exe == NULL)
-			{
-				assert(error.occurred);
-				print_error("Compilation", &error);
-				Error_Free(&error);
-				return 0;
-			}
-	}			
+	Error error;
+	Error_Init(&error);
 
-	// Now execute it.
-	{
-		Runtime *runt = Runtime_New(-1, -1, NULL, NULL);
+	// NOTE: The AST is stored in the BPAlloc. It's
+	//       lifetime is the same as the pool.
+	AST *ast = parse(src, alloc, &error);
 
-		if(runt == NULL)
-			{
-				Error error;
-				Error_Init(&error);
-				Error_Report(&error, 1, "Couldn't initialize runtime");
-				print_error(NULL, &error);
-				Error_Free(&error);
-				Executable_Free(exe);
-				return 0;
-			}
+	if(ast == NULL)
+		{
+			assert(error.occurred);
+			print_error("Parsing", &error);
+			Error_Free(&error);
+			BPAlloc_Free(alloc);
+			return 0;
+		}
+	
+	exe = compile(ast, alloc, &error);
 
-		// We use a [RuntimeError] instead of a simple [Error]
-		// because the [RuntimeError] makes a snapshot of the
-		// runtime state when an error is reported. Other than
-		// this fact they are interchangable. Any function that
-		// expects a pointer to [Error] can receive a [RuntimeError]
-		// upcasted to [Error].
-		RuntimeError error;
-		RuntimeError_Init(&error, runt); // Here we specify the runtime to snapshot in case of failure.
-		
-		Object *bins = Object_NewStaticMap(bins_basic, runt, (Error*) &error);
+	// We're done with the AST, independently from
+	// the compilation result.
+	BPAlloc_Free(alloc);
 
-		if(bins == NULL)
-			{
-				assert(error.base.occurred == 1);
-				print_error(NULL, (Error*) &error);
-				RuntimeError_Free(&error);
-				Executable_Free(exe);
-				Runtime_Free(runt);
-				return 0;
-			}
+	if(exe == NULL)
+		{
+			assert(error.occurred);
+			print_error("Compilation", &error);
+			Error_Free(&error);
+			return 0;
+		}
 
-		Runtime_SetBuiltins(runt, bins);
+	return exe;
+}
 
-		Object *o = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0);
+static _Bool interpret(Source *src)
+{
+	Executable *exe = build(src);
 
-		// NOTE: The pointer to the builtins object is invalidated
-		//       now because it may be moved by the garbage collector.
+	if(exe == NULL)
+		return 0;
 
-		if(o == NULL)
-			{
-				print_error("Runtime", (Error*) &error);
+	Runtime *runt = Runtime_New(-1, -1, NULL, NULL);
 
-				if(error.snapshot == NULL)
-					fprintf(stderr, "No snapshot available.\n");
-				else
-					Snapshot_Print(error.snapshot, stderr);
+	if(runt == NULL)
+		{
+			Error error;
+			Error_Init(&error);
+			Error_Report(&error, 1, "Couldn't initialize runtime");
+			print_error(NULL, &error);
+			Error_Free(&error);
+			Executable_Free(exe);
+			return 0;
+		}
 
-				RuntimeError_Free(&error);
-			}
+	// We use a [RuntimeError] instead of a simple [Error]
+	// because the [RuntimeError] makes a snapshot of the
+	// runtime state when an error is reported. Other than
+	// this fact they are interchangable. Any function that
+	// expects a pointer to [Error] can receive a [RuntimeError]
+	// upcasted to [Error].
+	RuntimeError error;
+	RuntimeError_Init(&error, runt); // Here we specify the runtime to snapshot in case of failure.
+	
+	Object *bins = Object_NewStaticMap(bins_basic, runt, (Error*) &error);
 
-		Runtime_Free(runt);
-		Executable_Free(exe);
+	if(bins == NULL)
+		{
+			assert(error.base.occurred == 1);
+			print_error(NULL, (Error*) &error);
+			RuntimeError_Free(&error);
+			Executable_Free(exe);
+			Runtime_Free(runt);
+			return 0;
+		}
 
-		return o != NULL;
-	}
+	Runtime_SetBuiltins(runt, bins);
+
+	Object *o = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0);
+
+	// NOTE: The pointer to the builtins object is invalidated
+	//       now because it may be moved by the garbage collector.
+
+	if(o == NULL)
+		{
+			print_error("Runtime", (Error*) &error);
+
+			if(error.snapshot == NULL)
+				fprintf(stderr, "No snapshot available.\n");
+			else
+				Snapshot_Print(error.snapshot, stderr);
+
+			RuntimeError_Free(&error);
+		}
+
+	Runtime_Free(runt);
+	Executable_Free(exe);
+
+	return o != NULL;
 }
 
 static _Bool disassemble(Source *src)
 {
-	// Compile the code. This section transforms
-	// a [Source] into an [Executable].
-	Executable *exe;
-	{
-		// Create a bump-pointer allocator to hold the AST.
-		BPAlloc *alloc = BPAlloc_Init(-1);
+	Executable *exe = build(src);
 
-		if(alloc == NULL)
-			{
-				fprintf(stderr, "Internal Error: Couldn't allocate bump-pointer allocator to hold the AST.\n");
-				return 0;
-			}
-
-		Error error;
-		Error_Init(&error);
-
-		// NOTE: The AST is stored in the BPAlloc. It's
-		//       lifetime is the same as the pool.
-		AST *ast = parse(src, alloc, &error);
-	
-		if(ast == NULL)
-			{
-				assert(error.occurred);
-				print_error("Parsing", &error);
-				Error_Free(&error);
-				BPAlloc_Free(alloc);
-				return 0;
-			}
-
-		exe = compile(ast, alloc, &error);
-
-		// We're done with the AST, independently from
-		// the compilation result.
-		BPAlloc_Free(alloc);
-
-		if(exe == NULL)
-			{
-				assert(error.occurred);
-				print_error("Compilation", &error);
-				Error_Free(&error);
-				return 0;
-			}
-	}
+	if(exe == NULL)
+		return 0;
 
 	Executable_Dump(exe);
 	return 1;
