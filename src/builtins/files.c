@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <errno.h>
-#include "file.h"
+#include "files.h"
 
 enum {
 	MD_READ = 0,
@@ -20,7 +20,7 @@ static Object *bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, 
 
 	if(!Object_IsInt(argv[1]))
 		{
-			Error_Report(error, 0, "Expected second argument to be an int, but it's a %s", Object_GetName(argv[0]));
+			Error_Report(error, 0, "Expected second argument to be an int, but it's a %s", Object_GetName(argv[1]));
 			return NULL;
 		}
 
@@ -85,7 +85,7 @@ static Object *bin_read(Runtime *runtime, Object **argv, unsigned int argc, Erro
 
 	if(!Object_IsBuffer(argv[1]))
 		{
-			Error_Report(error, 0, "Expected first argument to be a buffer, but it's a %s", Object_GetName(argv[0]));
+			Error_Report(error, 0, "Expected second argument to be a buffer, but it's a %s", Object_GetName(argv[1]));
 			return NULL;
 		}
 
@@ -146,7 +146,7 @@ static Object *bin_write(Runtime *runtime, Object **argv, unsigned int argc, Err
 
 	if(!Object_IsBuffer(argv[1]))
 		{
-			Error_Report(error, 0, "Expected first argument to be a buffer, but it's a %s", Object_GetName(argv[0]));
+			Error_Report(error, 0, "Expected second argument to be a buffer, but it's a %s", Object_GetName(argv[1]));
 			return NULL;
 		}
 
@@ -265,14 +265,14 @@ static Object *bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int arg
 	return Object_FromString(ent->d_name, -1, heap, error);
 }
 
-const StaticMapSlot bins_file[] = {
+const StaticMapSlot bins_files[] = {
 	{ "READ",        SM_INT, .as_int = MD_READ, },
 	{ "WRITE",       SM_INT, .as_int = MD_WRITE, },
 	{ "APPEND",      SM_INT, .as_int = MD_APPEND, },
 	{ "openFile",    SM_FUNCT, .as_funct = bin_openFile, .argc = 2, },
 	{ "openDir",     SM_FUNCT, .as_funct = bin_openDir,  .argc = 1, },
 	{ "nextDirItem", SM_FUNCT, .as_funct = bin_nextDirItem, .argc = 1, },
-	{ "read",        SM_FUNCT, .as_funct = bin_read,     .argc = 2, },
+	{ "read",        SM_FUNCT, .as_funct = bin_read,     .argc = 3, },
 	{ "write",       SM_FUNCT, .as_funct = bin_write,    .argc = 3, },
 	{ NULL, SM_END, {}, {} },
 };

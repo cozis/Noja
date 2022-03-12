@@ -44,8 +44,6 @@ static void print_error(const char *type, Error *error)
 
 static Executable *build(Source *src)
 {
-	// Compile the code. This section transforms
-	// a [Source] into an [Executable].
 	Executable *exe;
 	
 	// Create a bump-pointer allocator to hold the AST.

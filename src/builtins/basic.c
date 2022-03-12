@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "basic.h"
-#include "file.h"
+#include "files.h"
 #include "math.h"
 
 static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
@@ -129,8 +129,8 @@ static Object *bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int arg
 }
 
 const StaticMapSlot bins_basic[] = {
-	{ "math", SM_SMAP, .as_smap = bins_math, },
-	{ "file", SM_SMAP, .as_smap = bins_file, },
+	{ "math",  SM_SMAP, .as_smap = bins_math, },
+	{ "files", SM_SMAP, .as_smap = bins_files, },
 //	{ "net",  SM_SMAP, .as_smap = bins_net, },
 
 	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },

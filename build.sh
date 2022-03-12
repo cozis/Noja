@@ -53,7 +53,7 @@ gcc -c src/runtime/o_staticmap.c   -o temp/runtime/o_staticmap.o   $FLAGS
 
 mkdir temp/builtins
 gcc -c src/builtins/basic.c -o temp/builtins/basic.o $FLAGS
-gcc -c src/builtins/file.c  -o temp/builtins/file.o  $FLAGS
+gcc -c src/builtins/files.c -o temp/builtins/files.o $FLAGS
 gcc -c src/builtins/math.c  -o temp/builtins/math.o  $FLAGS
 
 rm -rf build
@@ -101,7 +101,7 @@ gcc src/main.c \
 	temp/runtime/o_func.o    \
 	temp/runtime/o_staticmap.o \
 	temp/builtins/basic.o    \
-	temp/builtins/file.o     \
+	temp/builtins/files.o    \
 	temp/builtins/math.o     \
 	temp/common/executable.o \
 	-o build/noja $FLAGS -Lbuild/ -lnoja-compile -lnoja-objects -lm
