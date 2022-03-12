@@ -1,6 +1,21 @@
 
 # The Noja language
-This documentation was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts like variables, expressions and branches). Not having to introduce common programming concepts leaves more space to the characteristics specific to this language.
+This documentation was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts like variables, expressions and branches. Not having to introduce common programming concepts leaves more space to the characteristics specific to this language.
+
+## TL;DR
+Here's an overview:
+1. The available types are:
+  1. ints
+  2. floats
+  3. strings
+  4. lists (arrays)
+  5. maps (associative arrays)
+2. Arithmetic operators can only be performed on numeric values. If both operands are ints, the result is an int. If one of them is a float, the result is also a float.
+3. Division between integers rounds down the result.
+4. Relational operands `<`, `>`, `<=`, `>=` only work on integers. Operands `==` and `!=` work on every type of value.
+5. Logical operators expect boolean operands
+6. Assignments are expressions that modify the variable and return the newly assigned value.
+7. There are if-else, while and do-while statements.
 
 ## Table of contents
 3. [The first program](#the-first-program)
@@ -10,7 +25,7 @@ This documentation was intended for people who already program in other high lev
 7. [Functions](#functions)
 
 ## A Noja program
-A Noja program is a list of statements that can be of multiple kinds (function delcarations, expressions, if-else branches, etc). Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line. There are no multi-line comments.
+A Noja program is a list of statements that can be of multiple kinds. Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line. There are no multi-line comments.
 
 ## Expressions
 The most basic type of statement is an expression. They work similarly to other languages. The basic types of values are
@@ -148,9 +163,7 @@ if 1 == 1: {
 }
 ```
 
-Variables defined inside an if-else statement's branch are defined
-in the parent's context. This implies that variables may or may not
-be defined when you access them, based on which branch is taken.
+Variables defined inside an if-else statement's branch are defined in the parent's context. This implies that variables may or may not be defined when you access them, based on which branch is taken.
 
 ```py
 a = 1;
@@ -163,10 +176,7 @@ if a < 2:
 ```
 
 ## Loops
-
-Looping constructs are available in the form of while and do-while 
-statements. The while statement checks the condition before each
-iteration:
+Looping constructs are available in the form of while and do-while statements. The while statement checks the condition before each iteration:
 
 ```py
 i = 0;
