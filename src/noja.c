@@ -162,7 +162,7 @@ static _Bool interpret(Source *src)
 				BPAlloc_Free(alloc);
 				return 0;
 			}
-
+		
 		exe = compile(ast, alloc, &error);
 
 		// We're done with the AST, independently from
@@ -176,7 +176,7 @@ static _Bool interpret(Source *src)
 				Error_Free(&error);
 				return 0;
 			}
-	}
+	}			
 
 	// Now execute it.
 	{

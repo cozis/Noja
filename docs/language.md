@@ -1,7 +1,6 @@
 
 # The Noja language
-
-This file was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts (variables, expressions and branches). This way, there is more space for the comparison of the language's features with the mainstream ones. 
+This documentation was intended for people who already program in other high level languages (such as Python, Javascript, Ruby) and don't need to be introduced to basic programming concepts like variables, expressions and branches). Not having to introduce common programming concepts leaves more space to the characteristics specific to this language.
 
 ## Table of contents
 3. [The first program](#the-first-program)
@@ -11,14 +10,11 @@ This file was intended for people who already program in other high level langua
 7. [Functions](#functions)
 
 ## A Noja program
-
-A Noja program is a list of statements that can be of multiple kinds (function delcarations, expressions, if-else branches, etc). Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line.
+A Noja program is a list of statements that can be of multiple kinds (function delcarations, expressions, if-else branches, etc). Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line. There are no multi-line comments.
 
 ## Expressions
+The most basic type of statement is an expression. They work similarly to other languages. The basic types of values are
 
-The most basic type of statement of a noja program is an expression. They work similarly to other languages. You can evaluate mathematical, relational, logical operartions, call functions and lots of other good stuff. Then, you can store the result of expressions inside variables and use them later.
-
-The basic types of values are
 ```py
 3; # Integers:
    #   They are represented internally by 64 bits and are always signed, therefore
@@ -54,12 +50,17 @@ none; # The none value:
                             #   of value.
 ```
 
-there are also other types of values (like functions and buffers) but they'll be covered later.  
+there are also other types of values (like functions and buffers) but they'll be covered further on.
 
-These type of values, in conjuction with the operators that are made available by the language, can be used to build arbitrarily complex expressions. 
+This language is stricter than others in regards to type conversions and on what types you can apply operators.
 
-The basic arithmetic operators are available:
+### Operators
+Operators in noja genererally behave like you would expect.
+
+Arithmetic operators can only be used on numeric values
 ```py
++1; # 1
+-1; # -1
 1 + 1; #  2
 1 - 2; # -1
 3 * 2; #  6
@@ -67,18 +68,38 @@ The basic arithmetic operators are available:
 10 / 3.0; # 3.33..
 10.0 / 3; # 3.33..
 ```
+If the operands are integers, the result also will. If a float is involved, then the result is also a float. The only relevant thing to note here is that the division between integers results in a rounding down of the float version.
 
-They can only be performed on numeric values. Math operations between integers always result in integers. If one or more floats are involved, then the result is still a float. Notice how the division causes the rounding of the result if none of the operands is a float.
-
-Other operators available for numeric types are relational operators
+Relational operators also can only be applied on numeric types, exception made only for `==` and `!=`, which can be used to compare any type of value. These operations always result in a boolean value.
 ```py
 1 < 2;  # true
 1 > 2;  # false
 1 >= 0; # true
 1 <= 0; # false
+1 == 1; # true
+1 != 1; # false
 ```
 
-You can set variables without declaring them first by using the assignment operator:
+Logical operators can only be applied on booleans and also always return booleans:
+```py
+not true;  # false
+not false; # true
+
+true  and true;  # true
+true  and false; # false
+false and true;  # false
+false and false; # false
+
+true  or true;  # true
+true  or false; # true
+false or true;  # true
+false or false; # false
+
+not 1; # ERROR!
+```
+
+### Variables
+Variable names can contain letters, digits and underscores (the first character can't be a digit though). You can set variables without declaring them first:
 ```py
 a = 5;
 ```
@@ -94,11 +115,7 @@ print('a = ', a, '\n'); # a = 2
 ```
 
 ## Branches
-
-It's possible to make the execution of a statement optional, based on the
-result of an expression. Like in other languages, you do this using if-else
-statements:
-
+Like in every other language, it's possible to make the execution of one or more statements optional. 
 ```py
 if 1 < 2:
 	print('Took the branch!\n'); # This is executed!
@@ -125,11 +142,10 @@ curly brackets, like this:
 This way they count as one statement.
 
 ```py
-if 1 == 1:
-	{
-		print('Executed\n');
-		print('Also executed\n');
-	}
+if 1 == 1: {
+	print('Executed\n');
+	print('Also executed\n');
+}
 ```
 
 Variables defined inside an if-else statement's branch are defined
