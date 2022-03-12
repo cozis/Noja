@@ -136,7 +136,7 @@ const StaticMapSlot bins_basic[] = {
 	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },
 	{ "sliceBuffer", SM_FUNCT, .as_funct = bin_sliceBuffer, .argc = 3 },
 
-	{ "strcat", SM_FUNCT, .as_funct = bin_strcat },
+	{ "strcat", SM_FUNCT, .as_funct = bin_strcat, .argc = -1 },
 
 	{ "type", SM_FUNCT, .as_funct = bin_type, .argc = 1 },
 	{ "print", SM_FUNCT, .as_funct = bin_print, .argc = -1 },

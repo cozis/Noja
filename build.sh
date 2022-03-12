@@ -82,7 +82,6 @@ ar rcs build/libnoja-runtime.a \
 	build/libnoja-objects.a
 
 gcc src/main.c \
-    src/noja.c \
     temp/o_staticmap.o       \
 	temp/utils/hash.o        \
 	temp/utils/stack.o       \
