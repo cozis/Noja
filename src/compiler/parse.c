@@ -491,7 +491,8 @@ static inline TokenKind current(Context *ctx)
 	return current_token(ctx)->kind;
 }
 
-#if 0
+// Compile with -DDEBUG to get debugging messages printed to stderr.
+#ifdef DEBUG
 
 #include <stdio.h>
 
