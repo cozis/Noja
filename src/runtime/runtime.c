@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "../utils/defs.h"
 #include "../utils/stack.h"
+#include "o_func.h"
 #include "runtime.h"
 
 #define MAX_FRAME_STACK 16
@@ -25,39 +26,6 @@ struct xRuntime {
 	Stack *stack;
 	Heap  *heap;
 };
-
-CallStackScanner *CallStackScanner_New(Runtime *runtime)
-{
-	return runtime->frame;
-}
-
-_Bool CallStackScanner_Next(CallStackScanner **scanner, Object **locals, Object **closure, Executable **exe, int *index)
-{
-	assert(scanner != NULL);
-
-	if(*scanner == NULL)
-		return 0;
-		
-	{
-		Frame *frame = *scanner;
-
-		if(exe) 
-			*exe = frame->exe;
-		
-		if(index) 
-			*index = frame->index;
-
-		if(locals) 
-			*locals = frame->locals;
-		
-		if(closure) 
-			*closure = frame->closure;
-	}
-
-	(*scanner) = ((Frame*) (*scanner))->prev;
-	return 1;
-}
-
 
 Stack *Runtime_GetStack(Runtime *runtime)
 {

@@ -2,8 +2,8 @@
 
 stack = {count: 0, head: none};
 
-fun push(stack, value) 
-{
+fun push(stack, value) {
+
 	node = {prev: none, item: value};
 
 	node.prev = stack.head;
@@ -11,10 +11,10 @@ fun push(stack, value)
 	stack.count = stack.count + 1;
 }
 
-fun pop(stack)
-{
+fun pop(stack) {
+
 	if stack.head == none:
-		return none; # return it; ?
+		return none;
 
 	value = stack.head.item;
 	stack.head = stack.head.prev;

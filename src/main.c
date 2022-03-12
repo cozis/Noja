@@ -2,11 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "o_staticmap.h"
 #include "compiler/parse.h"
 #include "compiler/compile.h"
 #include "runtime/runtime.h"
 #include "runtime/runtime_error.h"
+#include "runtime/o_staticmap.h"
 #include "builtins/basic.h"
 
 static const char usage[] = 
@@ -15,11 +15,6 @@ static const char usage[] =
 	"    $ noja run inline \"print('some noja code');\"\n"
 	"    $ noja dis file.noja\n"
 	"    $ noja dis inline \"print('some noja code');\"\n";
-
-static _Bool interpret_file(const char *file);
-static _Bool interpret_code(const char *code);
-static _Bool disassemble_file(const char *file);
-static _Bool disassemble_code(const char *code);
 
 static void print_error(const char *type, Error *error)
 {
@@ -45,93 +40,6 @@ static void print_error(const char *type, Error *error)
 #endif
 	
 	fprintf(stderr, "\n");
-}
-
-int main(int argc, char **argv)
-{
-	assert(argc > 0);
-
-	if(argc == 1)
-		{
-			// $ noja
-			fprintf(stderr, "Error: Incorrect usage.\n\n");
-			fprintf(stderr, usage);
-			return -1;
-		}
-
-	if(!strcmp(argv[1], "run"))
-		{
-			Error error;
-			Error_Init(&error);
-			
-			if(argc == 2)
-				{
-					Error_Report(&error, 0, "Missing source file");
-					print_error(NULL, &error);
-					Error_Free(&error);
-					return -1;
-				}
-
-			_Bool r;
-
-			if(!strcmp(argv[2], "inline"))
-				{
-					if(argc == 3)
-						{
-							Error_Report(&error, 0, "Missing source string");
-							print_error(NULL, &error);
-							Error_Free(&error);
-							return -1;
-						}
-
-					r = interpret_code(argv[3]);
-				}
-			else
-				r = interpret_file(argv[2]);
-			return r ? 0 : -1;
-		}
-	
-	if(!strcmp(argv[1], "dis"))
-		{
-			Error error;
-			Error_Init(&error);
-			
-			if(argc == 2)
-				{
-					Error_Report(&error, 0, "Missing source file");
-					print_error(NULL, &error);
-					Error_Free(&error);
-					return -1;
-				}
-
-			_Bool r;
-
-			if(!strcmp(argv[2], "inline"))
-				{
-					if(argc == 3)
-						{
-							Error_Report(&error, 0, "Missing source string");
-							print_error(NULL, &error);
-							Error_Free(&error);
-							return -1;
-						}
-
-					r = disassemble_code(argv[3]);
-				}
-			else
-				r = disassemble_file(argv[2]);
-			return r ? 0 : -1;
-		}
-
-	if(!strcmp(argv[1], "help"))
-		{
-			fprintf(stdout, usage);
-			return 0;
-		}
-
-	fprintf(stderr, "Error: Incorrect usage.\n\n");
-	fprintf(stderr, usage);
-	return -1;
 }
 
 static _Bool interpret(Source *src)
@@ -374,4 +282,91 @@ static _Bool disassemble_code(const char *code)
 
 	Source_Free(src);
 	return r;
+}
+
+int main(int argc, char **argv)
+{
+	assert(argc > 0);
+
+	if(argc == 1)
+		{
+			// $ noja
+			fprintf(stderr, "Error: Incorrect usage.\n\n");
+			fprintf(stderr, usage);
+			return -1;
+		}
+
+	if(!strcmp(argv[1], "run"))
+		{
+			Error error;
+			Error_Init(&error);
+			
+			if(argc == 2)
+				{
+					Error_Report(&error, 0, "Missing source file");
+					print_error(NULL, &error);
+					Error_Free(&error);
+					return -1;
+				}
+
+			_Bool r;
+
+			if(!strcmp(argv[2], "inline"))
+				{
+					if(argc == 3)
+						{
+							Error_Report(&error, 0, "Missing source string");
+							print_error(NULL, &error);
+							Error_Free(&error);
+							return -1;
+						}
+
+					r = interpret_code(argv[3]);
+				}
+			else
+				r = interpret_file(argv[2]);
+			return r ? 0 : -1;
+		}
+	
+	if(!strcmp(argv[1], "dis"))
+		{
+			Error error;
+			Error_Init(&error);
+			
+			if(argc == 2)
+				{
+					Error_Report(&error, 0, "Missing source file");
+					print_error(NULL, &error);
+					Error_Free(&error);
+					return -1;
+				}
+
+			_Bool r;
+
+			if(!strcmp(argv[2], "inline"))
+				{
+					if(argc == 3)
+						{
+							Error_Report(&error, 0, "Missing source string");
+							print_error(NULL, &error);
+							Error_Free(&error);
+							return -1;
+						}
+
+					r = disassemble_code(argv[3]);
+				}
+			else
+				r = disassemble_file(argv[2]);
+			return r ? 0 : -1;
+		}
+
+	if(!strcmp(argv[1], "help"))
+		{
+			fprintf(stdout, usage);
+			return 0;
+		}
+
+	fprintf(stderr, "Error: Incorrect usage.\n\n");
+	fprintf(stderr, usage);
+	return -1;
 }

@@ -1,8 +1,8 @@
 #ifndef STATICMAP_H
 #define STATICMAP_H
 
-#include "objects/objects.h"
-#include "runtime/runtime.h"
+#include "../objects/objects.h"
+#include "runtime.h"
 
 typedef enum {
 	SM_END,

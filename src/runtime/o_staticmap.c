@@ -27,9 +27,10 @@
  */
 #include <string.h>
 #include <assert.h>
+#include "o_nfunc.h"
 #include "o_staticmap.h"
-#include "utils/defs.h"
-#include "objects/objects.h"
+#include "../utils/defs.h"
+#include "../objects/objects.h"
 
 typedef struct {
 	Object   base;

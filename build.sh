@@ -49,13 +49,12 @@ gcc -c src/runtime/runtime_error.c -o temp/runtime/runtime_error.o $FLAGS
 gcc -c src/runtime/runtime.c 	   -o temp/runtime/runtime.o       $FLAGS
 gcc -c src/runtime/o_nfunc.c       -o temp/runtime/o_nfunc.o       $FLAGS
 gcc -c src/runtime/o_func.c        -o temp/runtime/o_func.o        $FLAGS
+gcc -c src/runtime/o_staticmap.c   -o temp/runtime/o_staticmap.o   $FLAGS
 
 mkdir temp/builtins
 gcc -c src/builtins/basic.c -o temp/builtins/basic.o $FLAGS
 gcc -c src/builtins/file.c  -o temp/builtins/file.o  $FLAGS
 gcc -c src/builtins/math.c  -o temp/builtins/math.o  $FLAGS
-
-gcc -c src/o_staticmap.c -o temp/o_staticmap.o $FLAGS
 
 rm -rf build
 mkdir build
@@ -82,7 +81,6 @@ ar rcs build/libnoja-runtime.a \
 	build/libnoja-objects.a
 
 gcc src/main.c \
-    temp/o_staticmap.o       \
 	temp/utils/hash.o        \
 	temp/utils/stack.o       \
 	temp/utils/source.o      \
@@ -101,6 +99,7 @@ gcc src/main.c \
 	temp/runtime/runtime_error.o \
 	temp/runtime/o_nfunc.o   \
 	temp/runtime/o_func.o    \
+	temp/runtime/o_staticmap.o \
 	temp/builtins/basic.o    \
 	temp/builtins/file.o     \
 	temp/builtins/math.o     \
