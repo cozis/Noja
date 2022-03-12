@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "o_staticmap.h"
 #include "compiler/parse.h"
-#include "compiler/serialize.h"
 #include "compiler/compile.h"
 #include "runtime/runtime.h"
 #include "runtime/runtime_error.h"
