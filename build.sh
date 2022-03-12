@@ -2,6 +2,15 @@ USING_VALGRIND=0
 
 FLAGS="-L3p/libs/ -I3p/include/ -Wall -Wextra -g -DUSING_VALGRIND=$USING_VALGRIND"
 
+# pass `--debug` to this script to enable debugging messages
+while test $# != 0
+do
+    case "$1" in
+    --debug) FLAGS="$FLAGS -DDEBUG" ;;
+    esac
+    shift
+done
+
 mkdir temp
 
 mkdir temp/utils
