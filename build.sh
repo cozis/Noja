@@ -14,6 +14,7 @@ done
 mkdir temp
 
 mkdir temp/utils
+gcc -c src/utils/utf8.c       -o temp/utils/utf8.o       $FLAGS
 gcc -c src/utils/hash.c       -o temp/utils/hash.o       $FLAGS
 gcc -c src/utils/stack.c      -o temp/utils/stack.o      $FLAGS
 gcc -c src/utils/error.c      -o temp/utils/error.o      $FLAGS
@@ -81,6 +82,7 @@ ar rcs build/libnoja-runtime.a \
 	build/libnoja-objects.a
 
 gcc src/main.c \
+	temp/utils/utf8.o        \
 	temp/utils/hash.o        \
 	temp/utils/stack.o       \
 	temp/utils/source.o      \

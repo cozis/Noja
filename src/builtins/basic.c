@@ -128,6 +128,21 @@ static Object *bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int arg
 	return Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
 }
 
+static Object *bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+
+	void *buffaddr;
+	int   buffsize;
+
+	buffaddr = Object_GetBufferAddrAndSize(argv[0], &buffsize, error);
+
+	if(error->occurred)
+		return NULL;
+
+	return Object_FromString(buffaddr, buffsize, Runtime_GetHeap(runtime), error);
+}
+
 const StaticMapSlot bins_basic[] = {
 	{ "math",  SM_SMAP, .as_smap = bins_math, },
 	{ "files", SM_SMAP, .as_smap = bins_files, },
@@ -135,6 +150,7 @@ const StaticMapSlot bins_basic[] = {
 
 	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },
 	{ "sliceBuffer", SM_FUNCT, .as_funct = bin_sliceBuffer, .argc = 3 },
+	{ "bufferToString", SM_FUNCT, .as_funct = bin_bufferToString, .argc = 1 },
 
 	{ "strcat", SM_FUNCT, .as_funct = bin_strcat, .argc = -1 },
 

@@ -35,9 +35,7 @@ The most basic type of statement is an expression. They work similarly to other 
      #   Like integers, they are represented using 64 bits.
 
 "hello!"; # Strings:
-'hello!'; #   They represent text. They are encoding-agnostic, because it treats 
-          #   them as sequences of bytes. This may not be the most ergonomic choice, 
-          #   but it was the simplest one. 
+'hello!'; #   They represent UTF-8 encoded text.
 
 true;  # Booleans:
 false; #   Nothing new here. They represent two values that have the property of being

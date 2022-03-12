@@ -2,11 +2,13 @@
 #include <assert.h>
 #include "../utils/defs.h"
 #include "../utils/hash.h"
+#include "../utils/utf8.h"
 #include "objects.h"
 
 typedef struct {
 	Object  base;
-	int     size;
+	int     count;
+	int     bytes;
 	char   *body;
 } StringObject;
 
@@ -43,7 +45,7 @@ static char *to_string(Object *self, int *size, Heap *heap, Error *err)
 	StringObject *s = (StringObject*) self;
 
 	if(size)
-		*size = s->size;
+		*size = s->bytes;
 
 	return s->body;
 }
@@ -57,13 +59,22 @@ Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 	if(len < 0)
 		len = strlen(str);
 
+	int count = utf8_strlen(str, len);
+
+	if(count < 0)
+		{
+			Error_Report(error, 0, "Invalid UTF-8 sequence");
+			return NULL;
+		}
+
 	StringObject *strobj = Heap_Malloc(heap, &t_string, error);
 
 	if(strobj == NULL)
 		return NULL;
 
 	strobj->body = Heap_RawMalloc(heap, len+1, error);
-	strobj->size = len;
+	strobj->bytes = len;
+	strobj->count = count;
 
 	if(strobj->body == NULL)
 		return NULL;
@@ -82,7 +93,7 @@ static int count(Object *self)
 
 	StringObject *strobj = (StringObject*) self;
 
-	return strobj->size;
+	return strobj->count;
 }
 
 static int hash(Object *self)
@@ -92,7 +103,7 @@ static int hash(Object *self)
 
 	StringObject *strobj = (StringObject*) self;
 
-	return hashbytes((unsigned char*) strobj->body, strobj->size);
+	return hashbytes((unsigned char*) strobj->body, strobj->count);
 }
 
 static Object *copy(Object *self, Heap *heap, Error *err)
@@ -115,7 +126,7 @@ static _Bool op_eql(Object *self, Object *other)
 	StringObject *s1 = (StringObject*) self;
 	StringObject *s2 = (StringObject*) other;
 
-	_Bool match = s1->size == s2->size && !strncmp(s1->body, s2->body, s1->size);
+	_Bool match = s1->bytes == s2->bytes && !strncmp(s1->body, s2->body, s1->bytes);
 
 	return match;
 }
@@ -128,12 +139,12 @@ static void print(Object *obj, FILE *fp)
 
 	StringObject *str = (StringObject*) obj;
 
-	fprintf(fp, "%.*s", str->size, str->body);
+	fprintf(fp, "%.*s", str->bytes, str->body);
 }
 
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
 {
 	StringObject *str = (StringObject*) self;
 	
-	callback((void**) &str->body, str->size+1, userp);
+	callback((void**) &str->body, str->bytes+1, userp);
 }
