@@ -1,1 +1,3 @@
-Here are implemented the language's builtin variables. Each file define it's values and exposes them through a `StaticMapSlot` array. These values can then be accessed from within the language by wrapping these arrays in static map objects (check src/o_staticmap.c to know more).
+Here are implemented the language's builtin variables. Each file defines it's values and exposes them through an array of `StaticMapSlot`s. These values can then be accessed from within the language by wrapping these arrays in static map objects (check src/o_staticmap.c to know more).
+
+The array of `StaticMapSlot`s defined by `basic.c` is the root of the builtin object tree. All other arrays are referred by it.
