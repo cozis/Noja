@@ -4,18 +4,14 @@ This documentation was intended for people who already program in other high lev
 
 ## TL;DR
 Here's an overview:
-1. The available types are:
-  1. ints
-  2. floats
-  3. strings
-  4. lists (arrays)
-  5. maps (associative arrays)
-2. Arithmetic operators can only be performed on numeric values. If both operands are ints, the result is an int. If one of them is a float, the result is also a float.
-3. Division between integers rounds down the result.
-4. Relational operands `<`, `>`, `<=`, `>=` only work on integers. Operands `==` and `!=` work on every type of value.
-5. Logical operators expect boolean operands
-6. Assignments are expressions that modify the variable and return the newly assigned value.
-7. There are if-else, while and do-while statements.
+1. The available types are `int`, `float`, `bool`
+`string`. `list` (array), `map` (associative array), `none` (null)
+3. No implicit casts.
+2. Arithmetic operations only allowed on numbers.
+3. Division between `ints` rounds down.
+4. Logical operators expect boolean operands.
+5. Assignments are expressions that return the newly assigned value.
+6. No for loop (yet)
 
 ## Table of contents
 3. [The first program](#the-first-program)
