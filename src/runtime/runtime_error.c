@@ -18,7 +18,7 @@
 */
 
 #include <assert.h>
-#include "runtime_error.h"
+#include "runtime.h"
 
 static void on_report(Error *error)
 {

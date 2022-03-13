@@ -24,8 +24,6 @@
 #include "compiler/parse.h"
 #include "compiler/compile.h"
 #include "runtime/runtime.h"
-#include "runtime/runtime_error.h"
-#include "runtime/o_staticmap.h"
 #include "builtins/basic.h"
 
 static const char usage[] = 

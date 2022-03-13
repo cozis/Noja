@@ -17,5 +17,5 @@
 ** with The Noja Interpreter. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../runtime/o_staticmap.h"
+#include "../runtime/runtime.h"
 extern const StaticMapSlot bins_files[];

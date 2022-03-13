@@ -46,8 +46,7 @@
  */
 #include <string.h>
 #include <assert.h>
-#include "o_nfunc.h"
-#include "o_staticmap.h"
+#include "../runtime/runtime.h"
 #include "../utils/defs.h"
 #include "../objects/objects.h"
 

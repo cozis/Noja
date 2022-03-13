@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include "../utils/defs.h"
 #include "../utils/stack.h"
-#include "o_func.h"
 #include "runtime.h"
 
 #define MAX_FRAME_STACK 16
