@@ -2,8 +2,8 @@
 #include <stddef.h> // NULL
 #include "utf8.h"
 
-// If this is turned on, this library will assume that the 
-// UTF-8 strings will mainly contain ASCII characters.
+// If this is turned on, these functions will assume
+// the UTF-8 strings will mainly contain ASCII characters.
 #define ASSUME_ASCII 1
 
 /* SYMBOL

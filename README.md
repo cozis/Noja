@@ -6,6 +6,32 @@ This language was written as a personal study of how interpreters and compilers 
 ### Objectives
 This project aims to be an interpreter design reference, therefore it optimizes for code quality and readability over execution speed and expressive power.
 
+### Show me the code!
+Here's a basic example of a noja program that implements a bubble sort and uses it to sort a list
+```
+L = [3, 2, 1];
+
+do {
+    swapped = false;
+
+    i = 0;
+    while i < count(L)-1 and not swapped: {
+
+        if L[i+1] < L[i]: {
+        
+            swapped = true;
+            tmp = L[i+1];
+            L[i+1] = L[i];
+            L[i] = tmp;
+        }
+        
+        i = i + 1;
+    }
+} while swapped;
+
+print(L, '\n'); # Outputs [1, 2, 3]
+```
+
 ## Supported platforms
 I wrote it on a linux machine, but there should be very few places where a linux host is assumed, so it should be very easy to port.
 
