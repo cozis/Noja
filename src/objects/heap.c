@@ -25,75 +25,54 @@
 ** |                                                                          |
 ** | You should have received a copy of the GNU General Public License along  |
 ** | with The Noja Interpreter. If not, see <http://www.gnu.org/licenses/>.   |
-** +--------------------------------------------------------------------------+ 
-*/
-
-/* WHAT IS THIS FILE?
-** This is the implementation of the "Heap", an
-** object that provides the rest of the program
-** with memory and manages it by claiming it back 
-** implicitly when it's not in use anymore. To 
-** determine which memory is used or not, the 
-** heap system must be aware of the object graph.
-** This is the reason why the Heap is tightly
-** coupled to the object model.
-**
-** HOW DOES IT WORK?
-** The collection algorithm is move-and-compact.
-** The allocator is a bump-pointer allocator.
-** When the base pool of memory is filled up, 
-** further allocations are forwarded to the
-** stdlib's malloc, but are kept track of by 
-** putting them in a linked list. When the parent
-** system decides to free up some memory, a new
-** heap is allocated and the live objects are
-** moved to it, then the old heap is freed. The 
-** references between live objects are updated 
-** when moving them.
-** Some objects implement destructors that must
-** be called when a new heap is allocated and
-** they're not moved to it. An auxiliary list
-** of allocated objects with destructors is stored
-** alongside the heap. When the live objects
-** are moved and the ones to be destroyed are
-** left in the old one, the list of objects with
-** destructors is iterated over and the objects
-** in it that weren't moved are destroied and
-** removed from the list. This approach becomes
-** linearly slower with the number of allocated
-** objects with destructors, but it's assumed
-** that not many of them implement them.
-**
-** HOW ARE POINTERS UPDATED?
-** Basically, when an object is moved from the 
-** old to the new heap, the location of the object
-** in the old heap is overwritten with a placeholder
-** object that holds the new location. Then all 
-** of it's references are iterated over and if
-** they refer to placeholders they're updated
-** with the new location of the object. If the
-** references don't refer to placeholder objects,
-** then the referred objects are moved too. This
-** is a recursive process that, when applied to 
-** the root object of the program, moves all reachable 
-** objects to the new heap and updates the pointers.
-** The complexity of this algorithm is proportional
-** to the number of live objects.
-** 
-** WHAT IS A BUMP-POINTER ALLOCATOR?
-** A bump-pointer allocator is a minimal memory
-** management system. A contiguous pool of memory
-** is allocated. On a higher level, allocations
-** are stacked one after another until the pool is
-** all used up. This is done by having a pointer
-** that points to the first free buffer of the pool.
-** Initially, it points to the first byte of the pool.
-** When N bytes are requested, the value of the
-** pointer is given to the caller and then it's
-** incremented by the allocated amount. When the
-** pool has less free memory than what is requested,
-** the allocation fails.
-**
+** +--------------------------------------------------------------------------+
+** |                                                                          | 
+** |                          WHAT IS THIS FILE?                              |
+** | This is the implementation of the "Heap", an object that provides the    |
+** | rest of the program with memory and manages it by claiming it back       |
+** | implicitly when it's not in use anymore. To determine which memory is    |
+** | used or not, the heap system must be aware of the object graph. This is  |
+** | the reason why the Heap is tightly coupled to the object model.          |
+** |                                                                          |
+** |                          HOW DOES IT WORK?                               |
+** | The collection algorithm is move-and-compact. The allocator is a         |
+** | bump-pointer allocator. When the base pool of memory is filled up,       |
+** | further allocations are forwarded to the stdlib's malloc, but are kept   |
+** | track of by putting them in a linked list. When the parent system decides|
+** | to free up some memory, a new heap is allocated and the live objects are |
+** | moved to it, then the old heap is freed. The references between live     |
+** | objects are updated when moving them.Some objects implement destructors  |
+** | that must be called when a new heap is allocated and they're not moved   |
+** | to it. An auxiliary list of allocated objects with destructors is stored |
+** | alongside the heap. When the live objects are moved and the ones to be   |
+** | destroyed are left in the old one, the list of objects with destructors  |
+** | is iterated over and the objects in it that weren't moved are destroied  |
+** | and removed from the list. This approach becomes linearly slower with    |
+** | the number of allocated objects with destructors, but it's assumed that  |
+** | not many of them implement them.                                         |
+** |                                                                          |
+** |                       HOW ARE POINTERS UPDATED?                          |
+** | Basically, when an object is moved from the old to the new heap, the     |
+** | location of the object in the old heap is overwritten with a placeholder |
+** | object that holds the new location. Then all of it's references are      |
+** | iterated over and if they refer to placeholders they're updated with the |
+** | new location of the object. If the references don't refer to placeholder |
+** | objects, then the referred objects are moved too. This is a recursive    |
+** | process that, when applied to the root object of the program, moves all  |
+** | reachable objects to the new heap and updates the pointers. The          |
+** | complexity of this algorithm is proportional to the number of live       |
+** | objects.                                                                 | 
+** |                                                                          |
+** |                  WHAT IS A BUMP-POINTER ALLOCATOR?                       |
+** | A bump-pointer allocator is a minimal memory management system. A        |
+** | contiguous pool of memory is allocated. On a higher level, allocations   |
+** | are stacked one after another until the pool is all used up. This is done|
+** | by having a pointer that points to the first free buffer of the pool.    |
+** | Initially, it points to the first byte of the pool. When N bytes are     |
+** | requested, the value of the pointer is given to the caller and then it's |
+** | incremented by the allocated amount. When the pool has less free memory  |
+** | than what is requested, the allocation fails.                            |
+** +--------------------------------------------------------------------------+
 */
 #include <stdint.h>
 #include <assert.h>
