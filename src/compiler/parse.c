@@ -1938,7 +1938,7 @@ static Node *parse_function_definition(Context *ctx)
 
 					if(current(ctx) != ',')
 						{
-							Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+							Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
 							return NULL;
 						}
 
