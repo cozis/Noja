@@ -243,15 +243,16 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 					switch(type) {
 
 						case OPTP_STRING:
+						{
+							int data_offset = instr->operands[i].as_int;
 
-						int data_offset = instr->operands[i].as_int;
+							assert(data_offset < exe->headl);
 
-						assert(data_offset < exe->headl);
-
-						ops[i].type = OPTP_STRING;
-						ops[i].as_string = exe->head + data_offset;
-						break;
-
+							ops[i].type = OPTP_STRING;
+							ops[i].as_string = exe->head + data_offset;
+							break;
+						}
+						
 						case OPTP_INT:
 						ops[i].type = OPTP_INT;
 						ops[i].as_int = instr->operands[i].as_int;
