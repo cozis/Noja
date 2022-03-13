@@ -3,8 +3,8 @@
 ## Introduction
 This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
 
-### Objectives
-This project aims to be an interpreter design reference, therefore it optimizes for code quality and readability over execution speed and expressive power.
+### Objective
+This project aims at being an interpreter design reference, therefore it optimizes for code quality and readability. That's not to mean that it won't be feature-complete. The end goal is to have a language you can do arbitrarily complex things in.
 
 ### Show me the code!
 Here's a basic example of a noja program that implements a bubble sort and uses it to sort a list
