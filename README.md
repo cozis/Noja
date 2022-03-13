@@ -33,7 +33,7 @@ print(L, '\n'); # Outputs [1, 2, 3]
 ```
 
 ## Supported platforms
-I wrote it on a linux machine, but there should be very few places where a linux host is assumed, so it should be very easy to port.
+I wrote it on a linux machine, but there should be very few places where a linux host is assumed. It should be very easy to port.
 
 ## Development state
 The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like this requires much more work than what it's worth at the moment.
