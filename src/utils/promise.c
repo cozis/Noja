@@ -1,5 +1,5 @@
 
-/* Copyright (c) Francesco Cozzuto <francesco.cozzuto@gmail.com>
+/* Copyright (c) 2022 Francesco Cozzuto <francesco.cozzuto@gmail.com>
 **
 ** This file is part of The Noja Interpreter.
 **
