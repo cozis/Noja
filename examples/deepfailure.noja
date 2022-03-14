@@ -1,9 +1,10 @@
 
-fun fail_at_depth(depth)
-{
-	fun fail(current_depth)
-	{
+fun fail_at_depth(depth) {
+
+	fun fail(current_depth) {
+
 		assert(current_depth < depth);
+
 		fail(current_depth + 1);
 	}
 

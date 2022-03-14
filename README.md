@@ -36,7 +36,7 @@ print(L, '\n'); # Outputs [1, 2, 3]
 I wrote it on a linux machine, but there should be very few places where a linux host is assumed. It should be very easy to port.
 
 ## Development state
-The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like this requires much more work than what it's worth at the moment.
+The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like this requires much more work than what it's worth at the moment. 
 
 ## Implementation overview
 The architecture is pretty much the same as CPython. The source code is executed by compilig it to bytecode. The bytecode is much more high level than what the CPU understands, it's more like a serialized version of the AST. For example, some bytecode instructions refer to variables by names, which means the compiler does very little static analisys. Memory is managed by a garbage collector that moves and compacts allocations.

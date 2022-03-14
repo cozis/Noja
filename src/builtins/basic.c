@@ -63,6 +63,52 @@ static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Err
 	return Object_FromInt(n, Runtime_GetHeap(runtime), error);
 }
 
+static Object *bin_input(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	(void) argv;
+	
+	assert(argc == 0);
+
+	char maybe[256];
+	char *str = maybe;
+	int size = 0, cap = sizeof(maybe)-1;
+
+	while(1)
+		{
+			char c = getc(stdin);
+
+			if(c == '\n')
+				break;
+
+			if(size == cap)
+				{
+					int newcap = cap*2;
+					char *tmp = realloc(str, newcap + 1);
+
+					if(tmp == NULL)
+						{
+							if(str != maybe) free(str);
+							Error_Report(error, 1, "No memory");
+							return NULL;
+						}
+
+					str = tmp;
+					cap = newcap;
+				}
+
+			str[size++] = c;
+		}
+
+	str[size] = '\0';
+
+	Object *res = Object_FromString(str, size, Runtime_GetHeap(runtime), error);
+
+	if(str != maybe) 
+		free(str);
+
+	return res;
+}
+
 static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
 	for(unsigned int i = 0; i < argc; i += 1)
@@ -186,6 +232,7 @@ const StaticMapSlot bins_basic[] = {
 
 	{ "type", SM_FUNCT, .as_funct = bin_type, .argc = 1 },
 	{ "print", SM_FUNCT, .as_funct = bin_print, .argc = -1 },
+	{ "input", SM_FUNCT, .as_funct = bin_input, .argc = 0 },
 	{ "count", SM_FUNCT, .as_funct = bin_count, .argc = 1 },
 	{ "assert", SM_FUNCT, .as_funct = bin_assert, .argc = -1 },
 	{ NULL, SM_END, {}, {} },
