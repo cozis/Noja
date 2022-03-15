@@ -1,5 +1,6 @@
+
 buff = newBuffer(1024);
-name = 'samples/bubble_sort.noja';
+name = 'examples/bubble_sort.noja';
 hdle = files.openFile(name, files.READ);
 n = files.read(hdle, buff);
 resl = bufferToString(sliceBuffer(buff, 0, n));
