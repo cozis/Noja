@@ -1,13 +1,12 @@
 # The Noja language
 1. [Introduction](#introduction)
 2. [Objective](#objective)
-3. [Overview](#overview)
-4. [Show me the code!](#show-me-the-code)
-5. [Implementation overview](#implementation-overview)
-6. [Supported platforms](#supported-platforms)
-7. [Development state](#development-state)
-8. [Build](#build)
-9. [Usage](#usage)
+3. [Show me the code!](#show-me-the-code)
+4. [Implementation overview](#implementation-overview)
+5. [Supported platforms](#supported-platforms)
+6. [Development state](#development-state)
+7. [Build](#build)
+8. [Usage](#usage)
 
 ## Introduction
 This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
