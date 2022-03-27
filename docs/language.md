@@ -108,7 +108,7 @@ not 1; # ERROR!
 ```
 
 ### Variables
-Variable names can contain letters, digits and underscores (the first character can't be a digit though). You can set variables without declaring them first:
+Variable names can contain letters, digits and underscores (the first character can't be a digit though). You can define variables by assigning a value to them directly:
 ```py
 a = 5;
 ```
@@ -123,85 +123,68 @@ print('b = ', b, '\n'); # b = 1
 print('a = ', a, '\n'); # a = 2
 ```
 
-## Branches
+## If-Else statements
 Like in every other language, it's possible to make the execution of one or more statements optional. 
 ```py
-if 1 < 2:
-	print('Took the branch!\n'); # This is executed!
+if 1 < 2: {
+	print('I\'m executed!\n');
+}
 
-if 1 > 2:
-	print('Didn\'t take the branch\n'); # This isn't!
-```
-..or you can specify an alternative branch, which is executed when the 
-condition isn't true:
+if 1 > 2: {
+	print('I\'m not..\n');
+}
 
-```py
-if 1 > 2:
-	print('Not executed..\n');
-else
-	print('Executed!\n');
-```
-You can have multiple statements inside a branch by having them inside a 
-compound statement. Compound statements are statement lists wrapped inside
-curly brackets, like this:
-
-```py
-{ print('Hello from a '); print('compound statement!\n'); }
-```
-This way they count as one statement.
-
-```py
-if 1 == 1: {
-	print('Executed\n');
-	print('Also executed\n');
+if 1 < 2: {
+	print('I\'m executed!\n');
+} else {
+	print('I\'m not..\n');
 }
 ```
-
-Variables defined inside an if-else statement's branch are defined in the parent's context. This implies that variables may or may not be defined when you access them, based on which branch is taken.
+If you only have one statement inside the if or the else branch, you can drop the curly brackets:
 
 ```py
-a = 1;
+if 1 < 2:
+	print('I\'m executed!\n');
+
+if 1 > 2:
+	print('I\'m not..\n');
+
+if 1 < 2:
+	print('I\'m executed!\n');
+else
+	print('I\'m not..\n');
+```
+
+if-else statements don't create new variable scopes, which means
+variables defined inside an if-else statement's branch are defined in the parent's context. This implies that variables may or may not be defined when you access them, based on which branch is taken.
+
+```py
+# .. do stuff where you define a variable [a]..
 
 if a < 2:
 	x = 100;
 
-# Now x is defined, but if "a" were to be higher or equal to 2, it 
-# wouldn't be defined and the runtime would return an error.
+print(x); # May abort the execution because if [a < 2] isn't true, x would be undefined.
 ```
 
 ## Loops
-Looping constructs are available in the form of while and do-while statements. The while statement checks the condition before each iteration:
+Looping constructs are available in the form of while and do-while statements:
 
 ```py
 i = 0;
-while i < 10:
+
+# Iterates 10 times.
+while i < 10: {
 	i = i + 1;
-```
+}
 
-This loop runs for 10 times. As for the if-else statement, a single
-statement is expected as the body of the while statement. You can
-provide it a compound statement tho.
-
-```py
 i = 0;
-while i < 10:
-	{
-		print('While iteration no. ', i, '\n');
-		i = i + 1;
-	}
-```
 
-The do-while statement checks the condition at the end of each
-iteration. This means that at least one iteration is performed!
+# Iterates 11 times.
+do {
+	i = i + 1;
+} while i < 10;
 
-```py
-i = 0;
-do
-	{
-		print('Do-while iteration no. ', i, '\n');
-		i = i + 1;
-	}
-while i < 10;
 ```
 
 Like for if-else statements, variables defined inside the loop
