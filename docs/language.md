@@ -155,8 +155,7 @@ else
 	print('I\'m not..\n');
 ```
 
-if-else statements don't create new variable scopes, which means
-variables defined inside an if-else statement's branch are defined in the parent's context. This implies that variables may or may not be defined when you access them, based on which branch is taken.
+if-else statements don't create new variable scopes, which means variables defined inside an if-else statement's branch are defined in the parent's context. This implies that variables may or may not be defined when you access them, based on which branch is taken.
 
 ```py
 # .. do stuff where you define a variable [a]..
@@ -167,7 +166,7 @@ if a < 2:
 print(x); # May abort the execution because if [a < 2] isn't true, x would be undefined.
 ```
 
-## Loops
+## Loop statements
 Looping constructs are available in the form of while and do-while statements:
 
 ```py
@@ -195,26 +194,23 @@ body are shared with the parent's context.
 Functions can be defined using the following syntax:
 
 ```py
-# Define it
-fun say_hello_to(name)
+# Define it..
+fun say_hello_to(name) {
 	print('Hello, ', name, '!\n\n');
+}
 
 # .. and then call it.
 say_hello_to('Francesco');
 ```
 
-Functions can have an arbitrary amount of arguments. If the function is
-called with more arguments than it expected, the extra values are thrown
-away. If the function is called with less arguments than it expected,
-the argument set if filled up with none values.
+They can have an arbitrary amount of arguments. If the function is called with more arguments than it expected, the extra values are thrown away. If the function is called with less arguments than it expected, the argument set if filled up with none values.
 
 ```py
-fun test_func(a, b, c)
-	{
-		print('a = ', a, '\n');
-		print('b = ', b, '\n');
-		print('c = ', c, '\n\n');
-	}
+fun test_func(a, b, c) {
+	print('a = ', a, '\n');
+	print('b = ', b, '\n');
+	print('c = ', c, '\n\n');
+}
 
 test_func();
 # a = none
@@ -237,11 +233,13 @@ test_func(1, 2, 3, 4);
 # c = 3
 ```
 
-Functions are actually variables like the ones that are be defined using
-the assignment operator. In fact, you can reassign them new values if you
-want.
+Functions are actually variables, like the ones that are defined using the assignment operator. In fact, you can reassign them new values if you want.
 
 ```py
+fun test_func() {
+	print('Hello!\n');
+}
+
 test_func = 5;
 
 # The following line, if executed, returns an error because the test_func
@@ -263,9 +261,32 @@ r = multiply(p, q);
 print(p, ' * ', q, ' = ', r, '\n');
 ```
 
-If the function doesn't return any values, then the `none` value is returned.
-As an example, the `print` function always returns `none`
+If the function doesn't return any values, then the `none` value is returned. For example, the `print` function always returns `none`
 
 ```py
 print(print()); # none
+```
+
+Functions can also access variables that weren't defined locally but in parent scopes, like the global one.
+```py
+a = 10;
+fun f() {
+	print(a, '\n');
+}
+
+f(); # 10
+```
+
+a common example to explain this feature is using the adder function generator
+```py
+fun makeAdder(n) {
+	fun adder(m) {
+		return m + n;
+	}
+}
+
+add10 = makeAdder(10);
+add20 = makeAdder(20);
+print(add10(1), '\n'); # 11
+print(add20(1), '\n'); # 21
 ```
