@@ -1,0 +1,11 @@
+fun makeAdder(n) {
+    fun adder(m) {
+        return m + n;
+    }
+    return adder;
+}
+
+add10 = makeAdder(10);
+add20 = makeAdder(20);
+print(add10(1), '\n'); # 11
+print(add20(1), '\n'); # 21

@@ -283,6 +283,7 @@ fun makeAdder(n) {
 	fun adder(m) {
 		return m + n;
 	}
+	return adder;
 }
 
 add10 = makeAdder(10);
