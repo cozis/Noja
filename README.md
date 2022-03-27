@@ -52,7 +52,7 @@ The architecture is pretty much the same as CPython. The source code is executed
 I wrote it on a linux machine, but there should be very few places where a linux host is assumed. It should be very easy to port.
 
 ## Development state
-The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like this requires much more work than what it's worth at the moment. 
+The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like this requires much more work than what it's worth at the moment. At the moment the proprity is writing documentation so that more people can try it and give feedback.
 
 ## Build
 To build it, just run:
