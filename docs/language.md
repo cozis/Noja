@@ -6,28 +6,30 @@ This documentation was intended for people who already program in other high lev
 Here's an overview:
 1. The available types are `int`, `float`, `bool`
 `string`. `list` (array), `map` (associative array), `none` (null)
+2. The `map` type can use any other type as key, even immutable ones.
 3. No implicit casts.
-2. Arithmetic operations only allowed on numbers.
-3. Division between `int`s rounds down.
-4. Logical operators expect boolean operands.
-5. Assignments are expressions that return the newly assigned value.
-6. No for loop (yet)
-7. When calling a function, you can provide any amound of arguments and the runtime will throw the extra ones out or define the missing ones to `none`
-7. Functions have closures
+4. Arithmetic operations only allowed on numbers.
+5. Division between `int`s rounds down.
+6. Logical operators expect boolean operands.
+7. Assignments are expressions that return the newly assigned value.
+8. No for loop (yet)
+9. When calling a function, you can provide any amount of arguments and the runtime will throw the extra ones out or define the missing ones to `none`
+10. Functions have closures
 
 ## Table of contents
 1. [A Noja program](#a-noja-program)
 2. [Expressions](#expressions)
-  1. [Basic values](#basic-values)
-  2. [Operators](#operators)
-  3. [Variables](#variables)
+    1. [Basic values](#basic-values)
+    2. [Operators](#operators)
+    3. [Variables](#variables)
 3. [If-Else statements](#if-else-statements)
 4. [Loop statements](#loop-statements)
 5. [Functions](#functions)
-  1. [Definition](#definition)
-  2. [Arguments](#arguments)
-  3. [Return value](#return-value)
-  4. [Closures](#closures)
+    1. [Definition](#definition)
+    2. [Arguments](#arguments)
+    3. [Return value](#return-value)
+    4. [Closures](#closures)
+
 ## A Noja program
 A Noja program is a list of statements that can be of multiple kinds. Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line. There are no multi-line comments.
 
