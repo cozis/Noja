@@ -547,12 +547,68 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 
 			case OPCODE_POS:
-			Error_Report(error, 1, "POS not implemented");
-			return 0;
+			{
+				assert(opc == 0);
+
+				if(runtime->frame->used == 0)
+					{
+						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute POS");
+						return 0;
+					}
+
+				/* Do nothing */
+				return 1;
+			}
 
 			case OPCODE_NEG:
-			Error_Report(error, 1, "NEG not implemented");
-			return 0;
+			{
+				assert(opc == 0);
+
+				if(runtime->frame->used == 0)
+					{
+						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NEG");
+						return 0;
+					}
+
+				Object *top = Stack_Top(runtime->stack, 0);
+				assert(top != NULL);
+
+				if(!Runtime_Pop(runtime, error, 1))
+					return 0;
+
+				Heap *heap = Runtime_GetHeap(runtime);
+
+				if(Object_IsInt(top))
+					{
+						long long n = Object_ToInt(top, error);
+
+						if(error->occurred)
+							return 0;
+
+						top = Object_FromInt(-n, heap, error);
+					}
+				else if(Object_IsFloat(top))
+					{
+						double f = Object_ToFloat(top, error);
+
+						if(error->occurred)
+							return 0;
+
+						top = Object_FromFloat(-f, heap, error);
+					}
+				else
+					{
+						Error_Report(error, 0, "Negation operand on a non-numeric object");
+						return 0;
+					}
+
+				if(top == NULL)
+					return 0;
+
+				if(!Runtime_Push(runtime, error, top))
+					return 0;
+				return 1;
+			}
 
 			case OPCODE_NOT:
 			{
