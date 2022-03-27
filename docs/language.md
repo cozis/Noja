@@ -12,18 +12,28 @@ Here's an overview:
 4. Logical operators expect boolean operands.
 5. Assignments are expressions that return the newly assigned value.
 6. No for loop (yet)
+7. When calling a function, you can provide any amound of arguments and the runtime will throw the extra ones out or define the missing ones to `none`
+7. Functions have closures
 
 ## Table of contents
-3. [The first program](#the-first-program)
-4. [Expressions](#expressions)
-5. [Branches](#branches)
-6. [Loops](#loops)
-7. [Functions](#functions)
-
+1. [A Noja program](#a-noja-program)
+2. [Expressions](#expressions)
+  1. [Basic values](#basic-values)
+  2. [Operators](#operators)
+  3. [Variables](#variables)
+3. [If-Else statements](#if-else-statements)
+4. [Loop statements](#loop-statements)
+5. [Functions](#functions)
+  1. [Definition](#definition)
+  2. [Arguments](#arguments)
+  3. [Return value](#return-value)
+  4. [Closures](#closures)
 ## A Noja program
 A Noja program is a list of statements that can be of multiple kinds. Any whitespace, if not inside strings, is ignored. Comments start with the `#` character and end with the line. There are no multi-line comments.
 
 ## Expressions
+
+### Basic values
 The most basic type of statement is an expression. They work similarly to other languages. The basic types of values are
 
 ```py
@@ -174,6 +184,7 @@ i = 0;
 
 # Iterates 10 times.
 while i < 10: {
+	# .. do stuff ..
 	i = i + 1;
 }
 
@@ -181,16 +192,17 @@ i = 0;
 
 # Iterates 11 times.
 do {
+	# .. do stuff ...
 	i = i + 1;
 } while i < 10;
 
 ```
 
-Like for if-else statements, variables defined inside the loop
-body are shared with the parent's context.
+Like for if-else statements, variables defined inside the loop body are shared with the parent's context.
 
 ## Functions
 
+### Definition
 Functions can be defined using the following syntax:
 
 ```py
@@ -203,6 +215,22 @@ fun say_hello_to(name) {
 say_hello_to('Francesco');
 ```
 
+They are actually variables, like the ones that are defined using the assignment operator. In fact, you can reassign them new values if you want.
+
+```py
+fun test_func() {
+	print('Hello!\n');
+}
+
+test_func = 5;
+
+# The following line, if executed, returns an error because the test_func
+# identifier is now associated to 5, which is not a function. 
+
+test_func(); # Error!!
+```
+
+### Arguments
 They can have an arbitrary amount of arguments. If the function is called with more arguments than it expected, the extra values are thrown away. If the function is called with less arguments than it expected, the argument set if filled up with none values.
 
 ```py
@@ -233,21 +261,7 @@ test_func(1, 2, 3, 4);
 # c = 3
 ```
 
-Functions are actually variables, like the ones that are defined using the assignment operator. In fact, you can reassign them new values if you want.
-
-```py
-fun test_func() {
-	print('Hello!\n');
-}
-
-test_func = 5;
-
-# The following line, if executed, returns an error because the test_func
-# identifier is now associated to 5, which is not a function. 
-
-test_func(); # Error!!
-```
-
+### Return value
 Functions can return values exactly like in other languages:
 
 ```py
@@ -267,7 +281,8 @@ If the function doesn't return any values, then the `none` value is returned. Fo
 print(print()); # none
 ```
 
-Functions can also access variables that weren't defined locally but in parent scopes, like the global one.
+### Closures
+Functions can also access variables that weren't defined locally but in parent scopes, but can't modify them.
 ```py
 a = 10;
 fun f() {
