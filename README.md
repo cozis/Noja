@@ -1,25 +1,24 @@
 # The Noja language
 1. [Introduction](#introduction)
-    1. [Objective](#objective)
-2. [Overview](#overview)
-    1. [Show me the code!](#show-me-the-code)
-    2. [Implementation overview](#implementation-overview)
-3. [Supported platforms](#supported-platforms)
-4. [Development state](#development-state)
-5. [Build](#build)
-6. [Usage](#usage)
+2. [Objective](#objective)
+3. [Overview](#overview)
+4. [Show me the code!](#show-me-the-code)
+5. Implementation overview](#implementation-overview)
+6. [Supported platforms](#supported-platforms)
+7. [Development state](#development-state)
+8. [Build](#build)
+9. [Usage](#usage)
 
 ## Introduction
 This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
 
-### Objective
-This project aims at being an interpreter design reference, therefore it optimizes for code quality and readability. That's not to mean that it won't be feature-complete. The end goal is to have a language you can do arbitrarily complex things in.
-
-## Overview
 Noja is a very high level and dynamic language. It operates in the same range of abstraction as languages like Ruby, Python and Javascript. 
 
-### Show me the code!
-Here's a basic example of a noja program that implements a bubble sort and uses it to sort a list
+## Objective
+This project aims at being an interpreter design reference, therefore it optimizes for code quality and readability. That's not to mean that it won't be feature-complete. The end goal is to have a language you can do arbitrarily complex things in.
+
+## Show me the code!
+Here's an example of a noja program that orders the items in list using a bubble sort
 ```
 L = [3, 2, 1];
 
@@ -44,7 +43,7 @@ do {
 print(L, '\n'); # Outputs [1, 2, 3]
 ```
 
-### Implementation Overview
+## Implementation Overview
 The architecture is pretty much the same as CPython. The source code is executed by compilig it to bytecode. The bytecode is much more high level than what the CPU understands, it's more like a serialized version of the AST. For example, some bytecode instructions refer to variables by names, which means the compiler does very little static analisys. Memory is managed by a garbage collector that moves and compacts allocations.
 
 (More detailed explanations are provided alongside the code.)
