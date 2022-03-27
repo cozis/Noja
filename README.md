@@ -3,7 +3,7 @@
 2. [Objective](#objective)
 3. [Overview](#overview)
 4. [Show me the code!](#show-me-the-code)
-5. Implementation overview](#implementation-overview)
+5. [Implementation overview](#implementation-overview)
 6. [Supported platforms](#supported-platforms)
 7. [Development state](#development-state)
 8. [Build](#build)
