@@ -60,17 +60,30 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 	(void) runtime;
 	(void) error;
 	uint32_t ret = 0;
-	if(!Object_IsString(argv[0])){
 
-		Error_Report(error, 0, "Argument #%d is not a string", 1);
-		return NULL;
-	}
+	if(!Object_IsString(argv[0]))
+		{
+
+			Error_Report(error, 0, "Argument #%d is not a string", 1);
+			return NULL;
+		}
+	
+
 
 	const char  *string;
 	int n;
 	string = Object_ToString(argv[0],&n,Runtime_GetHeap(runtime),error);
 	if (string == NULL)
 		return NULL;
+		
+	if (n == 0)
+		{
+
+			Error_Report(error, 0, "Argument #%d is empty string", 1);
+			return NULL;
+		
+		}
+
 
 	int k = utf8_sequence_to_utf32_codepoint(string,n,&ret);
 	
