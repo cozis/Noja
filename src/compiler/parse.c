@@ -309,62 +309,40 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 				
 					// Determine the token
 
-					#define matchop(str, len, const_str) \
-						(len == sizeof(const_str)-1 && !strncmp(str, const_str, sizeof(const_str)-1))
+					static const struct {
+						TokenKind    kind;
+						int          size;
+						const char  *text;
+					} optable[] = {
+						{ TADD, 1, "+"  },
+						{ TSUB, 1, "-"  },
+						{ TMUL, 1, "*"  },
+						{ TDIV, 1, "/"  },
+						{ TEQL, 2, "==" },
+						{ TNQL, 2, "!=" },
+						{ TLSS, 1, "<"  },
+						{ TLEQ, 2, "<=" },
+						{ TGRT, 1, ">"  },
+						{ TGEQ, 2, ">=" },
+						{ TASS, 1, "="  },
+					};
 
-					if(matchop(str + tok->offset, tok->length, "+"))
-						{
-							tok->kind = TADD;
-						}
-					else if(matchop(str + tok->offset, tok->length, "-"))
-						{
-							tok->kind = TSUB;
-						}
-					else if(matchop(str + tok->offset, tok->length, "*"))
-						{
-							tok->kind = TMUL;
-						}
-					else if(matchop(str + tok->offset, tok->length, "/"))
-						{
-							tok->kind = TDIV;
-						}
-					else if(matchop(str + tok->offset, tok->length, "=="))
-						{
-							tok->kind = TEQL;
-						}
-					else if(matchop(str + tok->offset, tok->length, "!="))
-						{
-							tok->kind = TNQL;
-						}
-					else if(matchop(str + tok->offset, tok->length, "<"))
-						{
-							tok->kind = TLSS;
-						}
-					else if(matchop(str + tok->offset, tok->length, "<="))
-						{
-							tok->kind = TLEQ;
-						}
-					else if(matchop(str + tok->offset, tok->length, ">"))
-						{
-							tok->kind = TGRT;
-						}
-					else if(matchop(str + tok->offset, tok->length, ">="))
-						{
-							tok->kind = TGEQ;
-						}
-					else if(matchop(str + tok->offset, tok->length, "="))
-						{
-							tok->kind = TASS;
-						}
-					else 
+					_Bool found = 0;
+					for(unsigned int i = 0; i < sizeof(optable)/sizeof(*optable); i += 1)
+						if(optable[i].size == tok->length && !strncmp(optable[i].text, str + tok->offset, tok->length))
+							{
+								found = 1;
+								tok->kind = optable[i].kind;
+								break;
+							}
+
+					if(found == 0)
 						{
 							// Not a known operator.
 							tok->kind = str[tok->offset];
 							tok->length = 1;
 							i = tok->offset + 1;
 						}
-
-					#undef matchop
 				}
 			else	
 				{
