@@ -218,59 +218,31 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 
 					tok->length = i - tok->offset;
 
-					#define matchstr(str, len, const_str) \
-						(len == sizeof(const_str)-1 && !strncmp(str, const_str, sizeof(const_str)-1))
-					
-					if(matchstr(str + tok->offset, tok->length, "if"))
-						{
-							tok->kind = TKWIF;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "fun"))
-						{
-							tok->kind = TKWFUN;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "not"))
-						{
-							tok->kind = TKWNOT;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "and"))
-						{
-							tok->kind = TKWAND;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "or"))
-						{
-							tok->kind = TKWOR;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "else"))
-						{
-							tok->kind = TKWELSE;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "none"))
-						{
-							tok->kind = TKWNONE;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "true"))
-						{
-							tok->kind = TKWTRUE;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "false"))
-						{
-							tok->kind = TKWFALSE;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "return"))
-						{
-							tok->kind = TKWRETURN;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "while"))
-						{
-							tok->kind = TKWWHILE;
-						}
-					else if(matchstr(str + tok->offset, tok->length, "do"))
-						{
-							tok->kind = TKWDO;
-						}
+					static const struct {
+						TokenKind    kind;
+						int          size;
+						const char  *text;
+					} kwords[] = {
+						{     TKWIF, 2, "if"     },
+						{    TKWFUN, 3, "fun"    },
+						{    TKWNOT, 3, "not"    },
+						{    TKWAND, 3, "and"    },
+						{     TKWOR, 2, "or"     },
+						{   TKWELSE, 4, "else"   },
+						{   TKWNONE, 4, "none"   },
+						{   TKWTRUE, 4, "true"   },
+						{  TKWFALSE, 5, "false"  },
+						{ TKWRETURN, 6, "return" },
+						{  TKWWHILE, 5, "while"  },
+						{     TKWDO, 2, "do"     },
+					};
 
-					#undef matchstr
+					for(unsigned int i = 0; i < sizeof(kwords)/sizeof(*kwords); i += 1)
+						if(kwords[i].size == tok->length && !strncmp(kwords[i].text, str + tok->offset, tok->length))
+							{
+								tok->kind = kwords[i].kind;
+								break;
+							}
 				}
 			else if(isdigit(str[i]))
 				{
