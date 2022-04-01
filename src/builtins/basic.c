@@ -74,7 +74,7 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 	if (string == NULL)
 		return NULL;
 		
-	if (strcmp("\0",string)== 0)
+	if (n == 0)
 		{
 
 			Error_Report(error, 0, "Argument #%d is empty string", 1);
