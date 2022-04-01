@@ -577,6 +577,7 @@ static _Bool step(Runtime *runtime, Error *error)
 					return 0;
 
 				Heap *heap = Runtime_GetHeap(runtime);
+				assert(heap != NULL);
 
 				if(Object_IsInt(top))
 					{
@@ -667,7 +668,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 				if(!Runtime_Push(runtime, error, res))
 					return 0;
-				break;
+				return 1;
 			}
 
 			case OPCODE_EQL:
@@ -785,10 +786,10 @@ static _Bool step(Runtime *runtime, Error *error)
 				assert(val != NULL);
 
 				Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
-								
+
 				if(key == NULL)
 					return 0;
-				
+
 				if(!Object_Insert(runtime->frame->locals, key, val, runtime->heap, error))
 					return 0;
 				return 1;
@@ -843,7 +844,12 @@ static _Bool step(Runtime *runtime, Error *error)
 				// NOTE: Every local object reference is invalidated from here.
 				
 				if(obj == NULL)
-					return 0;
+					{
+						assert(error->occurred != 0);
+						return 0;
+					}
+
+				assert(error->occurred == 0);
 
 				if(!Runtime_Push(runtime, error, obj))
 					return 0;
@@ -1269,6 +1275,9 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 		runtime->depth += 1;
 	}
 
+	// This is what the function will return.
+	Object *result = NULL;
+
 	// Push the initial values of the frame.
 	for(int i = 0; i < argc; i += 1)
 		if(!Runtime_Push(runtime, error, argv[i]))
@@ -1305,9 +1314,6 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 
 				//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
 			}
-
-	// This is what the function will return.
-	Object *result = NULL;
 
 	// If an error occurred, we want to return NULL.
 	if(error->occurred == 0)
