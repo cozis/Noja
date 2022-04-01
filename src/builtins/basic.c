@@ -31,9 +31,11 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "basic.h"
 #include "files.h"
 #include "math.h"
+#include "../utils/utf8.h"
 
 static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
