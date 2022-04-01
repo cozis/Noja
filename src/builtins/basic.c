@@ -56,19 +56,18 @@ static Object *bin_type(Runtime *runtime, Object **argv, unsigned int argc, Erro
 
 static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
-	assert(argc == 1);
 	(void) runtime;
 	(void) error;
+
+	assert(argc == 1);
+
 	uint32_t ret = 0;
 
 	if(!Object_IsString(argv[0]))
 		{
-
 			Error_Report(error, 0, "Argument #%d is not a string", 1);
 			return NULL;
 		}
-	
-
 
 	const char  *string;
 	int n;
@@ -76,18 +75,15 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 	if (string == NULL)
 		return NULL;
 		
-	if (n == 0)
+	if(n == 0)
 		{
-
-			Error_Report(error, 0, "Argument #%d is empty string", 1);
+			Error_Report(error, 0, "Argument #%d is an empty string", 1);
 			return NULL;
-		
 		}
 
 
 	int k = utf8_sequence_to_utf32_codepoint(string,n,&ret);
-	
-	assert(k>=0);
+	assert(k >= 0);
 	
 	return Object_FromInt(ret,Runtime_GetHeap(runtime),error);
 }
