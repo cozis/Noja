@@ -27,13 +27,14 @@
 ** | with The Noja Interpreter. If not, see <http://www.gnu.org/licenses/>.   |
 ** +--------------------------------------------------------------------------+ 
 */
-
+#include<ctype.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "basic.h"
 #include "files.h"
 #include "math.h"
+#include "../utils/utf8.h"
 
 static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
@@ -51,6 +52,34 @@ static Object *bin_type(Runtime *runtime, Object **argv, unsigned int argc, Erro
 	return (Object*) argv[0]->type;
 }
 
+static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+	(void) runtime;
+	(void) error;
+	uint32_t ret = 0;
+	if(!Object_IsString(argv[0]))
+		{
+			Error_Report(error, 0, "Argument #%d is not a string", 1);
+			return NULL;
+		}
+
+	const char  *string;
+	int n;
+	string = Object_ToString(argv[0],&n,Runtime_GetHeap(runtime),error);
+	if (string == NULL)
+	{
+		return NULL;
+	}
+	{
+		int k = utf8_sequence_to_utf32_codepoint(string,n,&ret);
+		
+		assert(k>=0);
+	}
+	
+	return Object_FromInt(ret,Runtime_GetHeap(runtime),error);
+}
+
 static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
 	assert(argc == 1);
@@ -61,52 +90,6 @@ static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Err
 		return NULL;
 
 	return Object_FromInt(n, Runtime_GetHeap(runtime), error);
-}
-
-static Object *bin_input(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
-{
-	(void) argv;
-	
-	assert(argc == 0);
-
-	char maybe[256];
-	char *str = maybe;
-	int size = 0, cap = sizeof(maybe)-1;
-
-	while(1)
-		{
-			char c = getc(stdin);
-
-			if(c == '\n')
-				break;
-
-			if(size == cap)
-				{
-					int newcap = cap*2;
-					char *tmp = realloc(str, newcap + 1);
-
-					if(tmp == NULL)
-						{
-							if(str != maybe) free(str);
-							Error_Report(error, 1, "No memory");
-							return NULL;
-						}
-
-					str = tmp;
-					cap = newcap;
-				}
-
-			str[size++] = c;
-		}
-
-	str[size] = '\0';
-
-	Object *res = Object_FromString(str, size, Runtime_GetHeap(runtime), error);
-
-	if(str != maybe) 
-		free(str);
-
-	return res;
 }
 
 static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
@@ -231,9 +214,10 @@ const StaticMapSlot bins_basic[] = {
 	{ "strcat", SM_FUNCT, .as_funct = bin_strcat, .argc = -1 },
 
 	{ "type", SM_FUNCT, .as_funct = bin_type, .argc = 1 },
+	{ "unicode", SM_FUNCT, .as_funct = bin_unicode, .argc = 1 },
 	{ "print", SM_FUNCT, .as_funct = bin_print, .argc = -1 },
-	{ "input", SM_FUNCT, .as_funct = bin_input, .argc = 0 },
 	{ "count", SM_FUNCT, .as_funct = bin_count, .argc = 1 },
 	{ "assert", SM_FUNCT, .as_funct = bin_assert, .argc = -1 },
 	{ NULL, SM_END, {}, {} },
 };
+
