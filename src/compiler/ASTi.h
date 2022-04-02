@@ -41,6 +41,7 @@ typedef enum {
 	NODE_FUNC,
 	NODE_ARG,
 	NODE_WHILE,
+	NODE_BREAK,
 	NODE_DOWHILE,
 } NodeKind;
 

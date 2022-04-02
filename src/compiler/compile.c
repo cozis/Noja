@@ -75,7 +75,7 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 		}
 }
 
-static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
+static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_dest, Error *error)
 {
 	assert(node != NULL);
 
@@ -105,7 +105,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							OperExprNode *oper = (OperExprNode*) expr;
 
 							for(Node *operand = oper->head; operand; operand = operand->next)
-								if(!emit_instr_for_node(exeb, operand, error))
+								if(!emit_instr_for_node(exeb, operand, break_dest, error))
 									return 0;
 
 							return ExeBuilder_Append(exeb, error,
@@ -121,7 +121,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							lop = oper->head;
 							rop = lop->next;
 
-							if(!emit_instr_for_node(exeb, rop, error))
+							if(!emit_instr_for_node(exeb, rop, break_dest, error))
 								return 0;
 
 							if(((ExprNode*) lop)->kind == EXPR_IDENT)
@@ -137,10 +137,10 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 									Node *idx = ((IndexSelectionExprNode*) lop)->idx;
 									Node *set = ((IndexSelectionExprNode*) lop)->set;
 
-									if(!emit_instr_for_node(exeb, set, error))
+									if(!emit_instr_for_node(exeb, set, break_dest, error))
 										return 0;
 
-									if(!emit_instr_for_node(exeb, idx, error))
+									if(!emit_instr_for_node(exeb, idx, break_dest, error))
 										return 0;
 
 									if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT2, NULL, 0, node->offset, node->length))
@@ -207,7 +207,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 									if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHINT, &op, 1, item->offset, item->length))
 										return 0;
 
-									if(!emit_instr_for_node(exeb, item, error))
+									if(!emit_instr_for_node(exeb, item, break_dest, error))
 										return 0;
 
 									if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT, NULL, 0, item->offset, item->length))
@@ -234,10 +234,10 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 								
 							while(item)
 								{
-									if(!emit_instr_for_node(exeb, key, error))
+									if(!emit_instr_for_node(exeb, key, break_dest, error))
 										return 0;
 
-									if(!emit_instr_for_node(exeb, item, error))
+									if(!emit_instr_for_node(exeb, item, break_dest, error))
 										return 0;
 
 									if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT, NULL, 0, item->offset, item->length))
@@ -258,13 +258,13 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 
 							while(arg)
 								{
-									if(!emit_instr_for_node(exeb, arg, error))
+									if(!emit_instr_for_node(exeb, arg, break_dest, error))
 										return 0;
 
 									arg = arg->next;
 								}
 
-							if(!emit_instr_for_node(exeb, p->func, error))
+							if(!emit_instr_for_node(exeb, p->func, break_dest, error))
 								return 0;
 
 							Operand op = { .type = OPTP_INT, .as_int = p->argc };
@@ -275,10 +275,10 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						{
 							IndexSelectionExprNode *sel = (IndexSelectionExprNode*) expr;
 					
-							if(!emit_instr_for_node(exeb, sel->set, error))
+							if(!emit_instr_for_node(exeb, sel->set, break_dest, error))
 								return 0;
 
-							if(!emit_instr_for_node(exeb, sel->idx, error))
+							if(!emit_instr_for_node(exeb, sel->idx, break_dest, error))
 								return 0;
 
 							return ExeBuilder_Append(exeb, error, OPCODE_SELECT, NULL, 0, node->offset, node->length);
@@ -300,11 +300,24 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				break;
 			}
 
+			case NODE_BREAK:
+			{
+				if(break_dest == NULL)
+					{
+						Error_Report(error, 0, "Break not inside a loop");
+						return 0;
+					}
+				Operand op = (Operand) { .type = OPTP_PROMISE, .as_promise = break_dest };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
+					return 0;
+				return 1;
+			}
+
 			case NODE_IFELSE:
 			{
 				IfElseNode *ifelse = (IfElseNode*) node;
 
-				if(!emit_instr_for_node(exeb, ifelse->condition, error))
+				if(!emit_instr_for_node(exeb, ifelse->condition, break_dest, error))
 					return 0;
 
 				if(ifelse->false_branch)
@@ -322,7 +335,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &op, 1, node->offset, node->length))
 							return 0;
 
-						if(!emit_instr_for_node(exeb, ifelse->true_branch, error))
+						if(!emit_instr_for_node(exeb, ifelse->true_branch, break_dest, error))
 							return 0;
 
 						if(ifelse->true_branch->kind == NODE_EXPR)
@@ -339,7 +352,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						long long int temp = ExeBuilder_InstrCount(exeb);
 						Promise_Resolve(else_offset, &temp, sizeof(temp));
 
-						if(!emit_instr_for_node(exeb, ifelse->false_branch, error))
+						if(!emit_instr_for_node(exeb, ifelse->false_branch, break_dest, error))
 							return 0;
 
 						if(ifelse->false_branch->kind == NODE_EXPR)
@@ -368,7 +381,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 						if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &(Operand) { .type = OPTP_PROMISE, .as_promise = done_offset }, 1, node->offset, node->length))
 							return 0;
 
-						if(!emit_instr_for_node(exeb, ifelse->true_branch, error))
+						if(!emit_instr_for_node(exeb, ifelse->true_branch, break_dest, error))
 							return 0;
 
 						if(ifelse->true_branch->kind == NODE_EXPR)
@@ -412,14 +425,14 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				long long int temp = ExeBuilder_InstrCount(exeb);
 				Promise_Resolve(start_offset, &temp, sizeof(temp));
 
-				if(!emit_instr_for_node(exeb, whl->condition, error))
+				if(!emit_instr_for_node(exeb, whl->condition, break_dest, error))
 					return 0;
 
 				Operand op = { .type = OPTP_PROMISE, .as_promise = end_offset };
 				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &op, 1, whl->condition->offset, whl->condition->length))
 					return 0;
 
-				if(!emit_instr_for_node(exeb, whl->body, error))
+				if(!emit_instr_for_node(exeb, whl->body, end_offset, error))
 					return 0;
 
 				if(whl->body->kind == NODE_EXPR)
@@ -452,9 +465,16 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 				 *   JUMPIFANDPOP start
 				 */
 
+				Promise *end_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+				if(end_offset == NULL)
+					{
+						Error_Report(error, 1, "No memory");
+						return 0;
+					}
+
 				long long int start = ExeBuilder_InstrCount(exeb);
 
-				if(!emit_instr_for_node(exeb, dowhl->body, error))
+				if(!emit_instr_for_node(exeb, dowhl->body, end_offset, error))
 					return 0;
 
 				if(dowhl->body->kind == NODE_EXPR)
@@ -464,12 +484,16 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 							return 0;
 					}
 
-				if(!emit_instr_for_node(exeb, dowhl->condition, error))
+				if(!emit_instr_for_node(exeb, dowhl->condition, break_dest, error))
 					return 0;
 
 				Operand op = { .type = OPTP_INT, .as_int = start };
 				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFANDPOP, &op, 1, dowhl->condition->offset, dowhl->condition->length))
 					return 0;
+
+				long long int temp = ExeBuilder_InstrCount(exeb);
+				Promise_Resolve(end_offset, &temp, sizeof(temp));
+				Promise_Free(end_offset);
 				return 1;
 			}
 
@@ -481,7 +505,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 
 				while(stmt)
 					{
-						if(!emit_instr_for_node(exeb, stmt, error))
+						if(!emit_instr_for_node(exeb, stmt, break_dest, error))
 							return 0;
 
 						if(stmt->kind == NODE_EXPR)
@@ -501,7 +525,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 			{
 				ReturnNode *ret = (ReturnNode*) node;
 
-				if(!emit_instr_for_node(exeb, ret->val, error))
+				if(!emit_instr_for_node(exeb, ret->val, break_dest, error))
 					return 0;
 
 				if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, ret->base.offset, ret->base.length))
@@ -558,7 +582,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 					// Assign the arguments.
 
 					if(func->argv)
-						assert(func->argv->kind == NODE_ARG);
+						{ assert(func->argv->kind == NODE_ARG); }
 
 					ArgumentNode *arg = (ArgumentNode*) func->argv;
 
@@ -573,12 +597,12 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Error *error)
 								return 0;
 
 							if(arg->base.next)
-								assert(arg->base.next->kind == NODE_ARG);
+								{ assert(arg->base.next->kind == NODE_ARG); }
 
 							arg = (ArgumentNode*) arg->base.next;
 						}
 
-					if(!emit_instr_for_node(exeb, func->body, error))
+					if(!emit_instr_for_node(exeb, func->body, NULL, error))
 						return 0;
 
 					// Write a return instruction, just 
@@ -644,7 +668,7 @@ Executable *compile(AST *ast, BPAlloc *alloc, Error *error)
 
 	if(exeb != NULL)
 		{
-			if(!emit_instr_for_node(exeb, ast->root, error))
+			if(!emit_instr_for_node(exeb, ast->root, NULL, error))
 				return 0;
 
 			if(ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, Source_GetSize(ast->src), 0))

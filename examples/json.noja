@@ -9,8 +9,11 @@ fun is_digit(c)
        and unicode(c) >= unicode('0');
 
 fun skip(ctx, test)
-    while not ended(ctx) and test(current(ctx)):
+    while not ended(ctx): {
+        if not test(current(ctx)):
+            break;
         next(ctx);
+    }
 
 fun ended(ctx)
     return ctx.i == count(ctx.str);
@@ -20,8 +23,10 @@ fun next(ctx) {
     ctx.i = ctx.i + 1;
 }
 
-fun current(ctx)
+fun current(ctx) {
+    assert(ctx.i < count(ctx.str));
     return ctx.str[ctx.i];
+}
 
 fun parse(str) {
 
@@ -32,9 +37,10 @@ fun parse(str) {
 
     skip(ctx, is_space);
 
-    if ended(ctx):
-        # JSON source string only contains whitespace.
+    if ended(ctx): {
+        print('Source only contains whitespace');
         return none;
+    }
 
     return parse_any_value(ctx);
 }
@@ -75,4 +81,14 @@ fun parse_any_value(ctx) {
     assert(false);
 }
 
-parse();
+
+tests = [
+    '',
+    '1'
+];
+
+i = 0;
+while i < count(tests): {
+    parse(tests[i]);
+    i = i + 1;
+}

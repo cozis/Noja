@@ -101,6 +101,7 @@ typedef enum {
 	TKWFALSE,
 	TKWRETURN,
 	TKWWHILE,
+	TKWBREAK,
 	TKWDO,
 
 	TEQL,
@@ -235,6 +236,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 						{  TKWFALSE, 5, "false"  },
 						{ TKWRETURN, 6, "return" },
 						{  TKWWHILE, 5, "while"  },
+						{  TKWBREAK, 5, "break"  },
 						{     TKWDO, 2, "do"     },
 					};
 
@@ -564,6 +566,35 @@ static Node *parse_statement(Context *ctx)
 				if(node != NULL)
 					next(ctx); // Consume the '}'.
 
+				return node;
+			}
+
+			case TKWBREAK:
+			{
+				Token *token = current_token(ctx);
+
+				next(ctx); // Consume the "break".
+
+				if(current(ctx) != ';')
+					{
+						Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
+						return NULL;
+					}
+
+				next(ctx); // Consume the ';'.
+				
+				Node *node = BPAlloc_Malloc(ctx->alloc, sizeof(Node));
+				
+				if(node == NULL)
+					{
+						Error_Report(ctx->error, 1, "No memory");
+						return NULL;
+					}
+
+				node->kind = NODE_BREAK;
+				node->next = NULL;
+				node->offset = token->offset;
+				node->length = token->length;
 				return node;
 			}
 
