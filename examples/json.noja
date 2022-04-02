@@ -1,0 +1,78 @@
+
+fun is_space(c)
+    return c == ' ' 
+        or c == '\t' 
+        or c == '\n';
+
+fun is_digit(c)
+    return unicode(c) <= unicode('9')
+       and unicode(c) >= unicode('0');
+
+fun skip(ctx, test)
+    while not ended(ctx) and test(current(ctx)):
+        next(ctx);
+
+fun ended(ctx)
+    return ctx.i == count(ctx.str);
+
+fun next(ctx) {
+    assert(ctx.i < count(ctx.str));
+    ctx.i = ctx.i + 1;
+}
+
+fun current(ctx)
+    return ctx.str[ctx.i];
+
+fun parse(str) {
+
+    if str == none: 
+        str = '';
+
+    ctx = {str: str, i: 0};
+
+    skip(ctx, is_space);
+
+    if ended(ctx):
+        # JSON source string only contains whitespace.
+        return none;
+
+    return parse_any_value(ctx);
+}
+
+fun parse_any_value(ctx) {
+
+    if is_digit(current(ctx)): {
+        # Number (int or float)
+        parsed = 0;
+        while not ended(ctx) and is_digit(current(ctx)): {
+            parsed = parsed * 10 + unicode(current(ctx)) - unicode('0');
+            next(ctx);
+        }
+
+        if current(ctx) == '.': {
+
+            next(ctx);
+
+            if ended(ctx):
+                # Source string ended unexpectedly after dot.
+                return none;
+
+            if not is_digit(current(ctx)):
+                # Got something other than a digit after dot.
+                return none;
+
+            fact = 1;
+            while not ended(ctx) and is_digit(current(ctx)): {
+                fact = fact / 10.0;
+                parsed = parsed + fact * (unicode(current(ctx)) - unicode('0'));
+                next(ctx);
+            }
+        }
+        
+        return parsed;
+    }
+
+    assert(false);
+}
+
+parse();

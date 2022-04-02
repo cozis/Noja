@@ -49,6 +49,7 @@ static void print(Object *obj, FILE *fp);
 static char *to_string(Object *self, int *size, Heap *heap, Error *err);
 static _Bool op_eql(Object *self, Object *other);
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
+static Object *select(Object *self, Object *key, Heap *heap, Error *error);
 
 static TypeObject t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -59,10 +60,60 @@ static TypeObject t_string = {
 	.count = count,
 	.copy = copy,
 	.print = print,
+	.select = select,
 	.to_string = to_string,
 	.op_eql = op_eql,
 	.walkexts = walkexts,
 };
+
+static int char_index_to_offset(StringObject *str, int idx)
+{
+	// Iterate over a string to find the first byte of
+	// the utf-8 character number [idx].
+
+	int scanned_bytes = 0, 
+	    last_code_len = 0;
+
+	while(idx > 0)
+		{
+			last_code_len = utf8_sequence_to_utf32_codepoint(str->body + scanned_bytes, str->bytes - scanned_bytes, NULL);
+			scanned_bytes += last_code_len;
+			idx -= 1;
+
+			assert(scanned_bytes <= str->bytes);
+		}
+
+	assert(idx == 0);
+	return scanned_bytes;
+}
+
+static Object *select(Object *self, Object *key, Heap *heap, Error *error)
+{
+	assert(self != NULL && self->type == &t_string);
+	assert(key != NULL && heap != NULL && error != NULL);
+
+	if(!Object_IsInt(key))
+		{
+			Error_Report(error, 0, "Non integer key");
+			return NULL;
+		}
+
+	int idx = Object_ToInt(key, error);
+	assert(error->occurred == 0);
+
+	StringObject *str = (StringObject*) self;
+
+	if(idx < 0 || idx >= str->count)
+		{
+			Error_Report(error, 0, "Out of range index");
+			return NULL;
+		}
+
+	int byteoffset = char_index_to_offset(str, idx);
+	int codelength = utf8_sequence_to_utf32_codepoint(str->body + byteoffset, str->bytes - byteoffset, NULL);
+
+	return Object_FromString(str->body + byteoffset, codelength, heap, error);
+}
 
 static char *to_string(Object *self, int *size, Heap *heap, Error *err)
 {

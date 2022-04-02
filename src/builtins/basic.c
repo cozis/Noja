@@ -187,7 +187,7 @@ static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Er
 				{
 					Error_Report(error, 1, "No memory");
 					return NULL;
-				}	
+				}
 		}
 
 	Object *result = NULL;

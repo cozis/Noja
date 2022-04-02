@@ -131,6 +131,7 @@ static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
 static Node *parse_function_definition(Context *ctx);
 static Node *parse_postfix_expression(Context *ctx);
+static Node *parse_prefix_expression(Context *ctx);
 static Node *parse_while_statement(Context *ctx);
 static Node *parse_dowhile_statement(Context *ctx);
 
@@ -865,7 +866,6 @@ static Node *parse_list_primary_expression(Context *ctx)
 						
 }
 
-
 static Node *parse_map_primary_expression(Context *ctx)
 {
 	assert(ctx != NULL);
@@ -1067,42 +1067,6 @@ static Node *parse_primary_expresion(Context *ctx)
 
 	switch(current(ctx))
 		{
-			case '+':
-			case '-':
-			case TKWNOT:
-			{
-				Token *unary_operator = current_token(ctx);
-
-				next(ctx);
-
-				Node *operand = parse_primary_expresion(ctx);
-				
-				if(operand == NULL) 
-					return NULL;
-
-				OperExprNode *temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
-				{
-					if(temp == NULL)
-						return NULL;
-
-					temp->base.base.kind = NODE_EXPR;
-					temp->base.base.next = NULL;
-					temp->base.base.offset = unary_operator->offset;
-					temp->base.base.length = operand->offset + operand->length - unary_operator->offset;
-					temp->head = operand;
-					temp->count = 1;
-
-					switch(unary_operator->kind)
-						{
-							case '+': temp->base.kind = EXPR_POS; break;
-							case '-': temp->base.kind = EXPR_NEG; break;
-							case TKWNOT: temp->base.kind = EXPR_NOT; break;
-							default: assert(0); break;
-						}
-				}
-				return (Node*) temp;
-			}
-
 			case '[':
 			return parse_list_primary_expression(ctx);
 
@@ -1504,6 +1468,64 @@ done:
 	return node;
 }
 
+static Node *parse_prefix_expression(Context *ctx)
+{
+	if(done(ctx))
+		{
+			Error_Report(ctx->error, 0, "Source ended where a prefix expression was expected");
+			return NULL;
+		}
+
+	switch(current(ctx))
+		{
+			case TDONE:
+			Error_Report(ctx->error, 1, "Unexpected end of source where a prefix expression was expected");
+			return NULL;
+
+			case '+':
+			case '-':
+			case TKWNOT:
+			{
+				Token *unary_operator = current_token(ctx);
+
+				next(ctx);
+
+				Node *operand = parse_prefix_expression(ctx);
+				
+				if(operand == NULL) 
+					return NULL;
+
+				OperExprNode *temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
+				{
+					if(temp == NULL)
+						return NULL;
+
+					temp->base.base.kind = NODE_EXPR;
+					temp->base.base.next = NULL;
+					temp->base.base.offset = unary_operator->offset;
+					temp->base.base.length = operand->offset + operand->length - unary_operator->offset;
+					temp->head = operand;
+					temp->count = 1;
+
+					switch(unary_operator->kind)
+						{
+							case '+': temp->base.kind = EXPR_POS; break;
+							case '-': temp->base.kind = EXPR_NEG; break;
+							case TKWNOT: temp->base.kind = EXPR_NOT; break;
+							default: assert(0); break;
+						}
+				}
+				return (Node*) temp;
+			}
+
+			default:
+			return parse_postfix_expression(ctx);
+		}
+
+	UNREACHABLE;
+	return NULL;
+}
+
 static inline _Bool isbinop(Token *tok)
 {
 	assert(tok != NULL);
@@ -1577,7 +1599,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 
 			next(ctx);
 
-			Node *right_expr = parse_postfix_expression(ctx);
+			Node *right_expr = parse_prefix_expression(ctx);
 
 			if(right_expr == NULL)
 				return NULL;
@@ -1640,7 +1662,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 
 static Node *parse_expression(Context *ctx)
 {
-	Node *left_expr = parse_postfix_expression(ctx);
+	Node *left_expr = parse_prefix_expression(ctx);
 
 	if(left_expr == NULL)
 		return NULL;
