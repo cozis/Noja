@@ -111,7 +111,11 @@ static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error
 	
 	int k = utf8_sequence_from_utf32_codepoint(buff,sizeof(buff),value);
 
-	assert(k >= 0);
+	if(k<0)
+	{
+		Error_Report(error, 0, "Argument #%d is not valid utf-32", 1);
+		return NULL;
+	}
 	
 	return Object_FromString(buff,k,Runtime_GetHeap(runtime),error);
 }
