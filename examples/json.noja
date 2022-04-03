@@ -1,10 +1,10 @@
 
-fun is_space(c)
+fun isSpace(c)
     return c == ' ' 
         or c == '\t' 
         or c == '\n';
 
-fun is_digit(c)
+fun isDigit(c)
     return unicode(c) <= unicode('9')
        and unicode(c) >= unicode('0');
 
@@ -35,60 +35,265 @@ fun parse(str) {
 
     ctx = {str: str, i: 0};
 
-    skip(ctx, is_space);
+    skip(ctx, isSpace);
 
     if ended(ctx): {
         print('Source only contains whitespace');
         return none;
     }
 
-    return parse_any_value(ctx);
+    return parseAnyValue(ctx);
 }
 
-fun parse_any_value(ctx) {
+fun parseArrayValue(ctx) {
+    
+    assert(current(ctx) == '[');
 
-    if is_digit(current(ctx)): {
-        # Number (int or float)
-        parsed = 0;
-        while not ended(ctx) and is_digit(current(ctx)): {
-            parsed = parsed * 10 + unicode(current(ctx)) - unicode('0');
-            next(ctx);
-        }
+    next(ctx); # Skip '['.
 
-        if current(ctx) == '.': {
+    skip(ctx, isSpace);
 
-            next(ctx);
-
-            if ended(ctx):
-                # Source string ended unexpectedly after dot.
-                return none;
-
-            if not is_digit(current(ctx)):
-                # Got something other than a digit after dot.
-                return none;
-
-            fact = 1;
-            while not ended(ctx) and is_digit(current(ctx)): {
-                fact = fact / 10.0;
-                parsed = parsed + fact * (unicode(current(ctx)) - unicode('0'));
-                next(ctx);
-            }
-        }
-        
-        return parsed;
+    if ended(ctx): {
+        error("Source ended inside an array");
+        return none;
     }
 
-    assert(false);
+    arr = [];
+
+    if current(ctx) == ']': {
+        next(ctx);
+        return arr;
+    }
+
+    while true: {
+
+        child = parseAnyValue(ctx);
+
+        if child == none:
+            return none;
+
+        arr[count(arr)] = child;
+
+        skip(ctx, isSpace);
+
+        if ended(ctx): {
+            error("Source ended inside an array");
+            return none;
+        }
+
+        if current(ctx) == ']':
+            break;
+
+        if current(ctx) != ',': {
+            error("Bad character inside array");
+            return none;
+        }
+
+        next(ctx); # Skip ','.
+
+        skip(ctx, isSpace);
+
+        if ended(ctx): {
+            error("Source ended inside an array");
+            return none;
+        }
+    }
+
+    next(ctx);
+    return arr;
+}
+
+fun parseObjectValue(ctx) {
+    
+    assert(current(ctx) == '{');
+
+    next(ctx); # Skip '{'.
+
+    skip(ctx, isSpace);
+
+    if ended(ctx): {
+        error("Source ended inside an object");
+        return none;
+    }
+
+    obj = {};
+
+    if current(ctx) == '}': {
+        next(ctx);
+        return {};
+    }
+
+    while true: {
+
+        if current(ctx) != '"': {
+            error("Bad character where a string was expected");
+            return none;
+        }
+
+        key = parseStringValue(ctx);
+
+        if key == none:
+            return none;
+
+        skip(ctx, isSpace);
+
+        if current(ctx) != ':': {
+            error("Bad character where ':' was expected");
+            return none;
+        }
+
+        next(ctx); # Skip ':'.
+
+        skip(ctx, isSpace);
+
+        child = parseAnyValue(ctx);
+
+        if child == none:
+            return none;
+
+        obj[key] = child;
+
+        skip(ctx, isSpace);
+
+        if ended(ctx): {
+            error("Source ended inside an arrays");
+            return none;
+        }
+
+        if current(ctx) == '}':
+            break;
+
+        if current(ctx) != ',': {
+            error("Bad character inside array");
+            return none;
+        }
+
+        next(ctx); # Skip ','.
+
+        skip(ctx, isSpace);
+
+        if ended(ctx): {
+            error("Source ended inside an array");
+            return none;
+        }
+    }
+
+    next(ctx);
+    return obj;
+}
+
+fun parseStringValue(ctx) {
+    
+    next(ctx); # Skip the '"'.
+        
+    buff = '';
+
+    while not ended(ctx): {
+        
+        if current(ctx) == '"':
+            break;
+        
+        buff = strcat(buff, current(ctx));
+
+        next(ctx);
+    }
+
+    if ended(ctx): {
+        error("Source ended inside a string");
+        return none;
+    }
+
+    next(ctx); # Skip the '"'.
+    return buff;
+}
+
+fun parseNumberValue(ctx) {
+
+    assert(isDigit(current(ctx)));
+
+    # Number (int or float)
+
+    parsed = 0;
+    while not ended(ctx): {
+        if not isDigit(current(ctx)):
+            break;
+        parsed = parsed * 10 + unicode(current(ctx)) - unicode('0');
+        next(ctx);
+    }
+
+    if ended(ctx):
+        return parsed;
+
+    if current(ctx) == '.': {
+
+        next(ctx);
+
+        if ended(ctx): {
+            error("Source string ended unexpectedly after dot");
+            return none;
+        }
+
+        if not isDigit(current(ctx)): {
+            error("Got something other than a digit after dot");
+            return none;
+        }
+
+        fact = 1;
+        while not ended(ctx): {
+            if not isDigit(current(ctx)):
+                break;
+            fact = fact / 10.0;
+            parsed = parsed + fact * (unicode(current(ctx)) - unicode('0'));
+            next(ctx);
+        }
+    }
+    
+    return parsed;
+}
+
+fun parseAnyValue(ctx) {
+
+    assert(not ended(ctx));
+
+    if current(ctx) == '[':
+        return parseArrayValue(ctx);
+
+    if current(ctx) == '{':
+        return parseObjectValue(ctx);
+
+    if current(ctx) == '"':
+        return parseStringValue(ctx);
+
+    if isDigit(current(ctx)):
+        return parseNumberValue(ctx);
+
+    error("Not implemented yet");
 }
 
 
 tests = [
     '',
-    '1'
+    '1',
+    '10',
+    '1.10',
+    '"jeje"',
+    '[]',
+    '[1,2,3]',
+    '  [  ]  ',
+    '  [  1  ,  2  ,  3  ]',
+    '{}',
+    '  {  }  ',
+    '{"hoy":4}',
+    '  {  "hoy"  :  4  }  ',
+    'a'
 ];
 
 i = 0;
 while i < count(tests): {
-    parse(tests[i]);
+    r = parse(tests[i]);
+    if r == none:
+        print('\nTest ', i, ' failed\n');
+    else
+        print(tests[i], ' -> ', r, '\n');
     i = i + 1;
 }

@@ -108,9 +108,11 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 								if(!emit_instr_for_node(exeb, operand, break_dest, error))
 									return 0;
 
-							return ExeBuilder_Append(exeb, error,
+							if(!ExeBuilder_Append(exeb, error,
 								exprkind_to_opcode(expr->kind), 
-								NULL, 0, node->offset, node->length);
+								NULL, 0, node->offset, node->length))
+								return 0;
+							return 1;
 						}
 
 						case EXPR_ASS:

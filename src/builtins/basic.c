@@ -158,6 +158,22 @@ static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Er
 	return Object_NewNone(Runtime_GetHeap(runtime), error);
 }
 
+static Object *bin_error(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	assert(argc == 1);
+
+	int         length;
+	const char *string;
+
+	string = Object_ToString(argv[0], &length, Runtime_GetHeap(runtime), error);
+
+	if(string == NULL)
+		return NULL;
+
+	Error_Report(error, 0, "%s", string);
+	return NULL;
+}
+
 static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
 	unsigned int total_count = 0;
@@ -272,6 +288,7 @@ const StaticMapSlot bins_basic[] = {
 	{ "print", SM_FUNCT, .as_funct = bin_print, .argc = -1 },
 	{ "input", SM_FUNCT, .as_funct = bin_input, .argc = 0 },
 	{ "count", SM_FUNCT, .as_funct = bin_count, .argc = 1 },
+	{ "error", SM_FUNCT, .as_funct = bin_error, .argc = 1 },
 	{ "assert", SM_FUNCT, .as_funct = bin_assert, .argc = -1 },
 	{ NULL, SM_END, {}, {} },
 };
