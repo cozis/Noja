@@ -58,10 +58,10 @@ Object *Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *er
 		return NULL;
 
 	if(parent != NULL && parent->type != &t_closure)
-		{
-			Error_Report(error, 0, "Object is not a closure");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Object is not a closure");
+		return NULL;
+	}
 
 	obj->prev = (ClosureObject*) parent;
 	obj->vars = new_map;
@@ -76,14 +76,14 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *err)
 	Object *selected = NULL;
 
 	while(closure != NULL && selected == NULL)
-		{
-			selected = Object_Select(closure->vars, key, heap, err);
+	{
+		selected = Object_Select(closure->vars, key, heap, err);
 
-			if(err->occurred)
-				return NULL;
+		if(err->occurred)
+			return NULL;
 
-			closure = closure->prev;
-		}
+		closure = closure->prev;
+	}
 
 	return selected;
 }

@@ -102,22 +102,22 @@ Object *Object_NewBuffer(int size, Heap *heap, Error *error)
 		unsigned char *body;
 
 		if(size > THRESHOLD)
-			{
-				body = malloc(sizeof(unsigned char) * size);
+		{
+			body = malloc(sizeof(unsigned char) * size);
 
-				if(body == NULL)
-					{
-						Error_Report(error, 1, "No memory");
-						return NULL;
-					}
-			}
-		else
+			if(body == NULL)
 			{
-				body = Heap_RawMalloc(heap, sizeof(unsigned char) * size, error);
-				
-				if(body == NULL)
-					return NULL;
+				Error_Report(error, 1, "No memory");
+				return NULL;
 			}
+		}
+		else
+		{
+			body = Heap_RawMalloc(heap, sizeof(unsigned char) * size, error);
+				
+			if(body == NULL)
+				return NULL;
+		}
 
 		obj->size = size;
 		obj->body = body;
@@ -141,80 +141,80 @@ static _Bool buffer_free(Object *self, Error *error)
 Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, Error *error)
 {
 	if(buffer->type != &t_buffer && buffer->type != &t_buffer_slice)
-		{
-			Error_Report(error, 0, "Not a buffer or a buffer slice");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Not a buffer or a buffer slice");
+		return NULL;
+	}
 
 	BufferSliceObject *slice;
 
 	if(buffer->type == &t_buffer)
+	{
+		BufferObject *original = (BufferObject*) buffer;
+
+		if(offset == 0 && length == original->size)
+			return buffer;
+
+		slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
+
+		if(slice == NULL)
+			return NULL;
+
+		if(offset < 0 || offset >= original->size)
 		{
-			BufferObject *original = (BufferObject*) buffer;
-
-			if(offset == 0 && length == original->size)
-				return buffer;
-
-			slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
-
-			if(slice == NULL)
-				return NULL;
-
-			if(offset < 0 || offset >= original->size)
-				{
-					Error_Report(error, 0, "offset out of range");
-					return NULL;
-				}
-
-			if(length < 0 || length >= original->size)
-				{
-					Error_Report(error, 0, "length out of range");
-					return NULL;
-				}
-
-			if(offset + length > original->size)
-				{
-					Error_Report(error, 0, "slice out of range");
-					return NULL;
-				}
-
-			slice->sliced = original;
-			slice->offset = offset;
-			slice->length = length;
+			Error_Report(error, 0, "offset out of range");
+			return NULL;
 		}
+
+		if(length < 0 || length >= original->size)
+		{
+			Error_Report(error, 0, "length out of range");
+			return NULL;
+		}
+
+		if(offset + length > original->size)
+		{
+			Error_Report(error, 0, "slice out of range");
+			return NULL;
+		}
+
+		slice->sliced = original;
+		slice->offset = offset;
+		slice->length = length;
+	}
 	else
+	{
+		assert(buffer->type == &t_buffer_slice);
+
+		slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
+
+		if(slice == NULL)
+			return NULL;
+
+		BufferSliceObject *original = (BufferSliceObject*) buffer;
+
+		if(offset < 0 || offset >= original->length)
 		{
-			assert(buffer->type == &t_buffer_slice);
-
-			slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
-
-			if(slice == NULL)
-				return NULL;
-
-			BufferSliceObject *original = (BufferSliceObject*) buffer;
-
-			if(offset < 0 || offset >= original->length)
-				{
-					Error_Report(error, 0, "offset out of range");
-					return NULL;
-				}
-
-			if(length < 0 || length >= original->length)
-				{
-					Error_Report(error, 0, "length out of range");
-					return NULL;
-				}
-
-			if(offset + length > original->length)
-				{
-					Error_Report(error, 0, "slice out of range");
-					return NULL;
-				}
-
-			slice->sliced = original->sliced;
-			slice->offset = original->offset + offset;
-			slice->length = length;
+			Error_Report(error, 0, "offset out of range");
+			return NULL;
 		}
+
+		if(length < 0 || length >= original->length)
+		{
+			Error_Report(error, 0, "length out of range");
+			return NULL;
+		}
+
+		if(offset + length > original->length)
+		{
+			Error_Report(error, 0, "slice out of range");
+			return NULL;
+		}
+
+		slice->sliced = original->sliced;
+		slice->offset = original->offset + offset;
+		slice->length = length;
+	}
 
 	return (Object*) slice;
 }
@@ -222,31 +222,31 @@ Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, E
 void *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error)
 {
 	if(obj->type != &t_buffer && obj->type != &t_buffer_slice)
-		{
-			Error_Report(error, 0, "Not a buffer or a buffer slice");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Not a buffer or a buffer slice");
+		return NULL;
+	}
 
 	if(obj->type == &t_buffer)
-		{
-			BufferObject *buffer = (BufferObject*) obj;
+	{
+		BufferObject *buffer = (BufferObject*) obj;
 		
-			if(size)
-				*size = buffer->size;
+		if(size)
+			*size = buffer->size;
 
-			return buffer->body;
-		}
+		return buffer->body;
+	}
 	else
-		{
-			assert(obj->type == &t_buffer_slice);
+	{
+		assert(obj->type == &t_buffer_slice);
 
-			BufferSliceObject *slice = (BufferSliceObject*) obj;
+		BufferSliceObject *slice = (BufferSliceObject*) obj;
 
-			if(size)
-				*size = slice->length;
+		if(size)
+			*size = slice->length;
 
-			return slice->sliced->body + slice->offset;
-		}
+		return slice->sliced->body + slice->offset;
+	}
 }
 
 static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error)
@@ -258,10 +258,10 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 	assert(error != NULL);
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
@@ -269,10 +269,10 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 	BufferObject *buffer = (BufferObject*) self;
 
 	if(idx < 0 || idx >= buffer->size)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	unsigned char byte = buffer->body[idx];
 
@@ -288,10 +288,10 @@ static Object *slice_select(Object *self, Object *key, Heap *heap, Error *error)
 	assert(error != NULL);
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
@@ -299,10 +299,10 @@ static Object *slice_select(Object *self, Object *key, Heap *heap, Error *error)
 	BufferSliceObject *slice = (BufferSliceObject*) self;
 
 	if(idx < 0 || idx >= slice->length)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	unsigned char byte = slice->sliced->body[slice->offset + idx];
 
@@ -321,27 +321,27 @@ static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, E
 	BufferObject *buffer = (BufferObject*) self;
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
 
 	if(idx < 0 || idx >= buffer->size)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	long long int qword = Object_ToInt(val, error);
 
 	if(qword > 255 || qword < 0)
-		{
-			Error_Report(error, 0, "Not in range [0, 255]");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Not in range [0, 255]");
+		return NULL;
+	}
 
 	unsigned char byte = qword & 0xff;
 
@@ -364,27 +364,27 @@ static _Bool slice_insert(Object *self, Object *key, Object *val, Heap *heap, Er
 	BufferSliceObject *slice = (BufferSliceObject*) self;
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
 
 	if(idx < 0 || idx >= slice->length)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	long long int qword = Object_ToInt(val, error);
 
 	if(qword > 255 || qword < 0)
-		{
-			Error_Report(error, 0, "Not in range [0, 255]");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Not in range [0, 255]");
+		return NULL;
+	}
 
 	unsigned char byte = qword & 0xff;
 
@@ -414,26 +414,26 @@ static void print_bytes(FILE *fp, unsigned char *addr, int size)
 	fprintf(fp, "[");
 
 	for(int i = 0; i < size; i += 1)
-		{
-			unsigned char byte, low, high;
+	{
+		unsigned char byte, low, high;
 
-			byte = addr[i];
-			low  = byte & 0xf;
-			high = byte >> 4;
+		byte = addr[i];
+		low  = byte & 0xf;
+		high = byte >> 4;
 
-			assert(low  < 16);
-			assert(high < 16);
+		assert(low  < 16);
+		assert(high < 16);
 
-			char c1, c2;
+		char c1, c2;
 
-			c1 = low  < 10 ? low  + '0' : low  - 10 + 'A';
-			c2 = high < 10 ? high + '0' : high - 10 + 'A';
+		c1 = low  < 10 ? low  + '0' : low  - 10 + 'A';
+		c2 = high < 10 ? high + '0' : high - 10 + 'A';
 
-			fprintf(fp, "%c%c", c2, c1);
+		fprintf(fp, "%c%c", c2, c1);
 
-			if(i+1 < size)
-				fprintf(fp, ", ");
-		}
+		if(i+1 < size)
+			fprintf(fp, ", ");
+	}
 	fprintf(fp, "]");
 }
 

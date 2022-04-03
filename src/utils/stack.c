@@ -135,15 +135,15 @@ _Bool Stack_Push(Stack *s, void *item)
 Stack *Stack_Copy(Stack *s, _Bool readonly)
 {
 	if(Stack_IsReadOnlyCopy(s))
-		{
-			// Reference is readonly,
-			// so the copy must be
-			// readonly.
-			readonly = 1;
+	{
+		// Reference is readonly,
+		// so the copy must be
+		// readonly.
+		readonly = 1;
 
-			// Remove readonly bit.
-			s = unmark(s);
-		}
+		// Remove readonly bit.
+		s = unmark(s);
+	}
 
 	s->refs += 1;
 	

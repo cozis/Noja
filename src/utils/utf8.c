@@ -60,46 +60,46 @@
 int utf8_sequence_from_utf32_codepoint(char *utf8_data, int nbytes, uint32_t utf32_code)
 {
     if(utf32_code < 128)
-        {
-            if(nbytes < 1)
-                return -1;
+    {
+        if(nbytes < 1)
+            return -1;
 
-            utf8_data[0] = utf32_code;
-            return 1;
-        }
+        utf8_data[0] = utf32_code;
+        return 1;
+    }
 
     if(utf32_code < 2048)
-        {
-            if(nbytes < 2)
-                return -1;
+    {
+        if(nbytes < 2)
+            return -1;
 
-            utf8_data[0] = 0xc0 | (utf32_code >> 6);
-            utf8_data[1] = 0x80 | (utf32_code & 0x3f);
-            return 2;
-        }
+        utf8_data[0] = 0xc0 | (utf32_code >> 6);
+        utf8_data[1] = 0x80 | (utf32_code & 0x3f);
+        return 2;
+    }
 
     if(utf32_code < 65536)
-        {
-            if(nbytes < 3)
-                return -1;
+    {
+        if(nbytes < 3)
+            return -1;
 
-            utf8_data[0] = 0xe0 | (utf32_code >> 12);
-            utf8_data[1] = 0x80 | ((utf32_code >> 6) & 0x3f);
-            utf8_data[2] = 0x80 | (utf32_code & 0x3f);
-            return 3;
-        }
+        utf8_data[0] = 0xe0 | (utf32_code >> 12);
+        utf8_data[1] = 0x80 | ((utf32_code >> 6) & 0x3f);
+        utf8_data[2] = 0x80 | (utf32_code & 0x3f);
+        return 3;
+    }
 
     if(utf32_code <= 0x10ffff)
-        {
-            if(nbytes < 4)
-                return -1;
+    {
+        if(nbytes < 4)
+            return -1;
 
-            utf8_data[0] = 0xf0 | (utf32_code >> 18);
-            utf8_data[1] = 0x80 | ((utf32_code >> 12) & 0x3f);
-            utf8_data[2] = 0x80 | ((utf32_code >>  6) & 0x3f);
-            utf8_data[3] = 0x80 | (utf32_code & 0x3f);
-            return 4;
-        }
+        utf8_data[0] = 0xf0 | (utf32_code >> 18);
+        utf8_data[1] = 0x80 | ((utf32_code >> 12) & 0x3f);
+        utf8_data[2] = 0x80 | ((utf32_code >>  6) & 0x3f);
+        utf8_data[3] = 0x80 | (utf32_code & 0x3f);
+        return 4;
+    }
 
     // Code is out of range for UTF-8.
     return -1;
@@ -148,71 +148,71 @@ int utf8_sequence_to_utf32_codepoint(const char *utf8_data, int nbytes, uint32_t
         return -1;
 
     if(utf8_data[0] & 0x80)
-        {
-            // May be UTF-8.
+    {
+        // May be UTF-8.
             
-            if((unsigned char) utf8_data[0] >= 0xF0)
-                {
-                    // 4 bytes.
-                    // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        if((unsigned char) utf8_data[0] >= 0xF0)
+            {
+                // 4 bytes.
+                // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 
-                    if(nbytes < 4)
-                        return -1;
+                if(nbytes < 4)
+                    return -1;
                     
-                    uint32_t temp 
-                        = (((uint32_t) utf8_data[0] & 0x07) << 18) 
-                        | (((uint32_t) utf8_data[1] & 0x3f) << 12)
-                        | (((uint32_t) utf8_data[2] & 0x3f) <<  6)
-                        | (((uint32_t) utf8_data[3] & 0x3f));
+                uint32_t temp 
+                    = (((uint32_t) utf8_data[0] & 0x07) << 18) 
+                    | (((uint32_t) utf8_data[1] & 0x3f) << 12)
+                    | (((uint32_t) utf8_data[2] & 0x3f) <<  6)
+                    | (((uint32_t) utf8_data[3] & 0x3f));
 
-                    if(temp > 0x10ffff)
-                        return -1;
+                if(temp > 0x10ffff)
+                    return -1;
 
-                    *utf32_code = temp;
-                    return 4;
-                }
+                *utf32_code = temp;
+                return 4;
+            }
             
             if((unsigned char) utf8_data[0] >= 0xE0)
-                {
-                    // 3 bytes.
-                    // 1110xxxx 10xxxxxx 10xxxxxx
+            {
+                // 3 bytes.
+                // 1110xxxx 10xxxxxx 10xxxxxx
 
-                    if(nbytes < 3)
-                        return -1;
+                if(nbytes < 3)
+                    return -1;
 
-                    uint32_t temp
-                        = (((uint32_t) utf8_data[0] & 0x0f) << 12)
-                        | (((uint32_t) utf8_data[1] & 0x3f) <<  6)
-                        | (((uint32_t) utf8_data[2] & 0x3f));
-                    
-                    if(temp > 0x10ffff)
-                        return -1;
+                uint32_t temp
+                    = (((uint32_t) utf8_data[0] & 0x0f) << 12)
+                    | (((uint32_t) utf8_data[1] & 0x3f) <<  6)
+                    | (((uint32_t) utf8_data[2] & 0x3f));
+                
+                if(temp > 0x10ffff)
+                    return -1;
 
-                    *utf32_code = temp;
-                    return 3;
-                }
+                *utf32_code = temp;
+                return 3;
+            }
             
             if((unsigned char) utf8_data[0] >= 0xC0)
-                {
-                    // 2 bytes.
-                    // 110xxxxx 10xxxxxx
+            {
+                // 2 bytes.
+                // 110xxxxx 10xxxxxx
 
-                    if(nbytes < 2)
-                        return -1;
+                if(nbytes < 2)
+                    return -1;
 
-                    *utf32_code 
-                        = (((uint32_t) utf8_data[0] & 0x1f) << 6)
-                        | (((uint32_t) utf8_data[1] & 0x3f));
+                *utf32_code 
+                    = (((uint32_t) utf8_data[0] & 0x1f) << 6)
+                    | (((uint32_t) utf8_data[1] & 0x3f));
                     
-                    assert(*utf32_code <= 0x10ffff);
-                    return 2;
-                }
+                assert(*utf32_code <= 0x10ffff);
+                return 2;
+            }
             
-            // 1 byte
-            // 10xxxxxx
-            *utf32_code = (uint32_t) utf8_data[0] & 0x3f;
-            return 1;
-        }
+        // 1 byte
+        // 10xxxxxx
+        *utf32_code = (uint32_t) utf8_data[0] & 0x3f;
+        return 1;
+    }
 
     // It's ASCII
     // 0xxxxxxx
@@ -255,40 +255,40 @@ int utf8_strlen(const char *utf8_data, int nbytes)
 
     int i = 0;
     while(i < nbytes)
-        {
+    {
 
 #if ASSUME_ASCII
-            {
-                int ASCII_start = i;
+        {
+            int ASCII_start = i;
 
-                // Skip through ASCII
-                while(i < nbytes && (utf8_data[i] & 0x80) == 0)
-                    i += 1;
+            // Skip through ASCII
+            while(i < nbytes && (utf8_data[i] & 0x80) == 0)
+                i += 1;
 
-                int ASCII_end = i;
+            int ASCII_end = i;
 
-                len += (ASCII_end - ASCII_start);
+            len += (ASCII_end - ASCII_start);
 
-                // Either we scanned through all of the
-                // string, or we encountered some unicode.
+            // Either we scanned through all of the
+            // string, or we encountered some unicode.
 
-                if(i == nbytes)
-                    // String ended.
-                    break;
-            }
+            if(i == nbytes)
+                // String ended.
+                break;
+        }
 #endif
 
-            // Found unicode.
-            {
-                int n = utf8_sequence_to_utf32_codepoint(utf8_data + i, nbytes - i, NULL);
+        // Found unicode.
+        {
+            int n = utf8_sequence_to_utf32_codepoint(utf8_data + i, nbytes - i, NULL);
 
-                if(n < 1)
-                    return -1;
+            if(n < 1)
+                return -1;
 
-                i += n;
-                len += 1;
-            }
+            i += n;
+            len += 1;
         }
+    }
     return len;
 }
 
@@ -347,11 +347,11 @@ int utf8_prev(const char *utf8_data, int nbytes, int idx, uint32_t *utf32_code)
         // to go faster.
 
         if((utf8_data[tail] & 0x80) == 0)
-            {
-                if(utf32_code)
-                    *utf32_code = utf8_data[tail];
-                return tail;
-            }
+        {
+            if(utf32_code)
+                *utf32_code = utf8_data[tail];
+            return tail;
+        }
     }
 #endif
 
@@ -362,11 +362,11 @@ int utf8_prev(const char *utf8_data, int nbytes, int idx, uint32_t *utf32_code)
         idx -= 1;
 
     if(idx == -1)
-        {
-            // No head sequence byte was found,
-            // so this isn't valid UTF-8.
-            return -1;
-        }
+    {
+        // No head sequence byte was found,
+        // so this isn't valid UTF-8.
+        return -1;
+    }
 
     // The index of the head byte.
     int head = idx;

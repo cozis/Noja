@@ -131,51 +131,51 @@ void Executable_Free(Executable *exe)
 	assert(exe->refs >= 0);
 
 	if(exe->refs == 0)
-		{
-			if(exe->src)
-				Source_Free(exe->src);
-			free(exe);
-		}
+	{
+		if(exe->src)
+			Source_Free(exe->src);
+		free(exe);
+	}
 }
 
 void Executable_Dump(Executable *exe)
 {
 	for(int i = 0; i < exe->bodyl; i += 1)
+	{
+		Opcode opcode;
+		Operand ops[MAX_OPS];
+		int opc = MAX_OPS;
+
+		(void) Executable_Fetch(exe, i, &opcode, ops, &opc);
+
+		const InstrInfo *info = instr_table + exe->body[i].opcode;
+
+		fprintf(stderr, "%d: %s ", i, info->name);
+
+		for(int j = 0; j < opc; j += 1)
 		{
-			Opcode opcode;
-			Operand ops[MAX_OPS];
-			int opc = MAX_OPS;
+			switch(ops[j].type)
+			{
+				case OPTP_INT:
+				fprintf(stderr, "%lld ", ops[j].as_int);
+				break;
 
-			(void) Executable_Fetch(exe, i, &opcode, ops, &opc);
+				case OPTP_FLOAT:
+				fprintf(stderr, "%f ", ops[j].as_float);
+				break;
 
-			const InstrInfo *info = instr_table + exe->body[i].opcode;
+				case OPTP_STRING:
+				fprintf(stderr, "[%s] ", ops[j].as_string);
+				break;
 
-			fprintf(stderr, "%d: %s ", i, info->name);
-
-			for(int j = 0; j < opc; j += 1)
-				{
-					switch(ops[j].type)
-						{
-							case OPTP_INT:
-							fprintf(stderr, "%lld ", ops[j].as_int);
-							break;
-
-							case OPTP_FLOAT:
-							fprintf(stderr, "%f ", ops[j].as_float);
-							break;
-
-							case OPTP_STRING:
-							fprintf(stderr, "[%s] ", ops[j].as_string);
-							break;
-
-							case OPTP_PROMISE:
-							UNREACHABLE;
-							break;
-						}
-				}
-
-			fprintf(stderr, "\n");
+				case OPTP_PROMISE:
+				UNREACHABLE;
+				break;
+			}
 		}
+
+		fprintf(stderr, "\n");
+	}
 }
 
 _Bool Executable_SetSource(Executable *exe, Source *src)
@@ -232,45 +232,45 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 	int i;
 
 	if(ops && opc)
+	{
+		int k = MIN(*opc, info->opcount);
+
+		for(i = 0; i < k; i += 1)
 		{
-			int k = MIN(*opc, info->opcount);
+			OperandType type = info->optypes[i];
+			assert(type != OPTP_PROMISE);
 
-			for(i = 0; i < k; i += 1)
+			switch(type) 
+			{
+				case OPTP_STRING:
 				{
-					OperandType type = info->optypes[i];
-					assert(type != OPTP_PROMISE);
+					int data_offset = instr->operands[i].as_int;
 
-					switch(type) {
+					assert(data_offset < exe->headl);
 
-						case OPTP_STRING:
-						{
-							int data_offset = instr->operands[i].as_int;
-
-							assert(data_offset < exe->headl);
-
-							ops[i].type = OPTP_STRING;
-							ops[i].as_string = exe->head + data_offset;
-							break;
-						}
-						
-						case OPTP_INT:
-						ops[i].type = OPTP_INT;
-						ops[i].as_int = instr->operands[i].as_int;
-						break;
-
-						case OPTP_FLOAT:
-						ops[i].type = OPTP_FLOAT;
-						ops[i].as_int = instr->operands[i].as_int;
-						break;
-
-						case OPTP_PROMISE:
-						UNREACHABLE;
-						break;
-					}
+					ops[i].type = OPTP_STRING;
+					ops[i].as_string = exe->head + data_offset;
+					break;
 				}
-		
-			*opc = MIN(*opc, info->opcount);
+						
+				case OPTP_INT:
+				ops[i].type = OPTP_INT;
+				ops[i].as_int = instr->operands[i].as_int;
+				break;
+
+				case OPTP_FLOAT:
+				ops[i].type = OPTP_FLOAT;
+				ops[i].as_int = instr->operands[i].as_int;
+				break;
+
+				case OPTP_PROMISE:
+				UNREACHABLE;
+				break;
+			}
 		}
+		
+		*opc = MIN(*opc, info->opcount);
+	}
 
 	return 1;
 }
@@ -298,10 +298,10 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 	assert(exeb != NULL);
 
 	if(exeb->promc > 0)
-		{
-			Error_Report(error, 0, "There are still %d unfulfilled promises", exeb->promc);
-			return 0;
-		}
+	{
+		Error_Report(error, 0, "There are still %d unfulfilled promises", exeb->promc);
+		return 0;
+	}
 
 	Executable *exe;
 	{
@@ -313,10 +313,10 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 		void *temp = malloc(sizeof(Executable) + data_size + code_size);
 
 		if(temp == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(error, 1, "No memory");
+			return NULL;
+		}
 
 		exe = temp;
 		exe->headl = data_size;
@@ -369,13 +369,13 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 	const InstrInfo *info = instr_table + opcode;
 
 	if(opc != info->opcount)
-		{
-			// ERROR: Too many operands were provided.
-			Error_Report(error, 0, 
-				"Instruction %s expects %d operands, but %d were provided", 
-				info->name, info->opcount, opc);
-			return 0;
-		}
+	{
+		// ERROR: Too many operands were provided.
+		Error_Report(error, 0, 
+			"Instruction %s expects %d operands, but %d were provided", 
+			info->name, info->opcount, opc);
+		return 0;
+	}
 
 	assert(opc <= MAX_OPS);
 
@@ -383,106 +383,104 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 		Instruction *instr = BucketList_Append2(exeb->code, NULL, sizeof(Instruction));
 
 		if(instr == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				return 0;
-			}
+		{
+			Error_Report(error, 1, "No memory");
+			return 0;
+		}
 
 		instr->opcode = opcode;
 		instr->offset = off;
 		instr->length = len;
 
 		for(int i = 0; i < opc; i += 1)
+		{
+			// Check that the expected type and the provided one
+			// match, or that the provided type is a promise with
+			// the same size of the expected type.
 			{
-				// Check that the expected type and the provided one
-				// match, or that the provided type is a promise with
-				// the same size of the expected type.
+				OperandType expected_type = info->optypes[i];
+				OperandType provided_type = opv[i].type;
+
+				assert(expected_type != OPTP_PROMISE);
+
+				if(provided_type == OPTP_PROMISE)
 				{
-					OperandType expected_type = info->optypes[i];
-					OperandType provided_type = opv[i].type;
+					assert(opv[i].as_promise != NULL);
 
-					assert(expected_type != OPTP_PROMISE);
-
-					if(provided_type == OPTP_PROMISE)
-						{
-							assert(opv[i].as_promise != NULL);
-
-							if(expected_type == OPTP_STRING)
-								{
-									Error_Report(error, 0, "Promise values can't be provided as string operands");
-									return 0;
-								}
-							
-							if(Promise_Size(opv[i].as_promise) != operand_type_sizes[expected_type])
-								{
-									Error_Report(error, 0, 
-										"Provided promise has a value size of %d, "
-										"but since %s %s was expected, the promise "
-										"size must be %d",
-										Promise_Size(opv[i].as_promise),
-										operand_type_arts[expected_type],
-										operand_type_names[expected_type],
-										operand_type_sizes[expected_type]);
-									return 0;
-								}
-						}
-					else if(expected_type != provided_type)
-						{
-							// ERROR: Wrong operand type provided.
-							Error_Report(error, 0, 
-								"Instruction %s expects %s %s as operand %d, but %s %s was provided instead", 
-								info->name, 
-								operand_type_arts[expected_type], 
-								operand_type_names[expected_type], 
-								i, 
-								operand_type_arts[provided_type], 
-								operand_type_names[provided_type]
-							);
-							return 0;
-						}
-				}
-
-				// Do the copying of the operands.
-				switch(opv[i].type)
+					if(expected_type == OPTP_STRING)
 					{
-						case OPTP_STRING:
-
-						instr->operands[i].as_int = BucketList_Size(exeb->data);
-						
-						if(!BucketList_Append(exeb->data, opv[i].as_string, strlen(opv[i].as_string)+1))
-							{
-								Error_Report(error, 1, "No memory");
-								return 0;
-							}
-						break;
-
-						case OPTP_PROMISE:
-
-						assert(info->optypes[i] != OPTP_STRING);
-
-						// This must be incremented before subscribing
-						// since the counter-decrementing callback may 
-						// be called immediately if the promise was 
-						// already fulfilled.
-						exeb->promc += 1;
-
-						if(!Promise_Subscribe2(opv[i].as_promise, &instr->operands[i], exeb, promise_callback))
-							{
-								Error_Report(error, 1, "No memory");
-								return 0;
-							}
-						break;
-
-						case OPTP_INT:
-						instr->operands[i].as_int = opv[i].as_int;
-						break;
-
-						case OPTP_FLOAT:
-						instr->operands[i].as_float = opv[i].as_float;
-						break;
-
+						Error_Report(error, 0, "Promise values can't be provided as string operands");
+						return 0;
 					}
+							
+					if(Promise_Size(opv[i].as_promise) != operand_type_sizes[expected_type])
+					{
+						Error_Report(error, 0, 
+							"Provided promise has a value size of %d, "
+							"but since %s %s was expected, the promise "
+							"size must be %d",
+							Promise_Size(opv[i].as_promise),
+							operand_type_arts[expected_type],
+							operand_type_names[expected_type],
+							operand_type_sizes[expected_type]);
+						return 0;
+					}
+				}
+				else if(expected_type != provided_type)
+				{
+					// ERROR: Wrong operand type provided.
+					Error_Report(error, 0, 
+						"Instruction %s expects %s %s as operand %d, but %s %s was provided instead", 
+						info->name, 
+						operand_type_arts[expected_type], 
+						operand_type_names[expected_type], 
+						i, 
+						operand_type_arts[provided_type], 
+						operand_type_names[provided_type]
+					);
+					return 0;
+				}
 			}
+
+			// Do the copying of the operands.
+			switch(opv[i].type)
+			{
+				case OPTP_STRING:
+
+				instr->operands[i].as_int = BucketList_Size(exeb->data);
+						
+				if(!BucketList_Append(exeb->data, opv[i].as_string, strlen(opv[i].as_string)+1))
+				{
+					Error_Report(error, 1, "No memory");
+					return 0;
+				}
+				break;
+
+				case OPTP_PROMISE:
+				assert(info->optypes[i] != OPTP_STRING);
+
+				// This must be incremented before subscribing
+				// since the counter-decrementing callback may 
+				// be called immediately if the promise was 
+				// already fulfilled.
+				exeb->promc += 1;
+
+				if(!Promise_Subscribe2(opv[i].as_promise, &instr->operands[i], exeb, promise_callback))
+				{
+					Error_Report(error, 1, "No memory");
+					return 0;
+				}
+				break;
+
+				case OPTP_INT:
+				instr->operands[i].as_int = opv[i].as_int;
+				break;
+
+				case OPTP_FLOAT:
+				instr->operands[i].as_float = opv[i].as_float;
+				break;
+			}
+		}
 	}
 
 	return 1;

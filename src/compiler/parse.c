@@ -138,14 +138,10 @@ static Node *parse_dowhile_statement(Context *ctx);
 
 static inline _Bool isoper(char c)
 {
-	return 	c == '+' || 
-			c == '-' || 
-			c == '*' || 
-			c == '/' || 
-			c == '<' ||
-			c == '>' ||
-			c == '!' ||
-			c == '=';
+	return 	c == '+' || c == '-' || 
+			c == '*' || c == '/' || 
+			c == '<' || c == '>' ||
+			c == '!' || c == '=';
 }
 
 /* Symbol: tokenize
@@ -182,198 +178,196 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 		  *tail = NULL;
 	int i = 0;
 	while(1)
+	{
+		// Skip whitespace and comments.
+		while(i < len && (isspace(str[i]) || str[i] == '#'))
 		{
-			// Skip whitespace and comments.
-			while(i < len && (isspace(str[i]) || str[i] == '#'))
+			while(i < len && isspace(str[i]))
+				i += 1;
+
+			if(i < len && str[i] == '#')
+			{
+				i += 1;
+				while(i < len && str[i] != '\n')
+					i += 1;
+			}
+		}
+
+		if(i == len)
+			break; // No more tokens left.
+
+		Token *tok = BPAlloc_Malloc(alloc, sizeof(Token)); // Allocate a token.
+			
+		if(tok == NULL)
+		{
+			// Error: No memory.
+			Error_Report(error, 1, "No memory");
+			return NULL;
+		}
+
+		if(isalpha(str[i]) || str[i] == '_')
+		{
+			tok->kind = TIDENT;
+			tok->offset = i;
+					
+			while(i < len && (isalpha(str[i]) || isdigit(str[i]) || str[i] == '_'))
+				i += 1;
+
+			tok->length = i - tok->offset;
+
+			static const struct {
+				TokenKind    kind;
+				int          size;
+				const char  *text;
+			} kwords[] = {
+				{     TKWIF, 2, "if"     },
+				{    TKWFUN, 3, "fun"    },
+				{    TKWNOT, 3, "not"    },
+				{    TKWAND, 3, "and"    },
+				{     TKWOR, 2, "or"     },
+				{   TKWELSE, 4, "else"   },
+				{   TKWNONE, 4, "none"   },
+				{   TKWTRUE, 4, "true"   },
+				{  TKWFALSE, 5, "false"  },
+				{ TKWRETURN, 6, "return" },
+				{  TKWWHILE, 5, "while"  },
+				{  TKWBREAK, 5, "break"  },
+				{     TKWDO, 2, "do"     },
+			};
+
+			for(unsigned int i = 0; i < sizeof(kwords)/sizeof(*kwords); i += 1)
+				if(kwords[i].size == tok->length && !strncmp(kwords[i].text, str + tok->offset, tok->length))
 				{
-					while(i < len && isspace(str[i]))
-						i += 1;
-
-					if(i < len && str[i] == '#')
-						{
-							i += 1;
-
-							while(i < len && str[i] != '\n')
-								i += 1;
-						}
+					tok->kind = kwords[i].kind;
+					break;
 				}
+		}
+		else if(isdigit(str[i]))
+		{
+			tok->kind = TINT;
+			tok->offset = i;
+
+			while(i < len && isdigit(str[i]))
+				i += 1;
+
+			if(i+1 < len && str[i] == '.' && isdigit(str[i+1]))
+			{
+				i += 1; // Consume the dot.
+
+				tok->kind = TFLOAT;
+
+				while(i < len && isdigit(str[i]))
+					i += 1;
+			}
+
+			tok->length = i - tok->offset;
+		}
+		else if(str[i] == '\'' || str[i] == '"')
+		{
+			tok->kind = TSTRING;
+			tok->offset = i;
+
+			char f = str[i];
+
+			i += 1; // Skip the starting quote.
+
+			while(1)
+			{
+				while(i < len && str[i] != '\\' && str[i] != f)
+					i += 1;
+
+				if(str[i] == '\\')
+				{
+					i += 1; // Consume the \.
+					if(i < len && (str[i] == '\'' || str[i] == '"'))
+						i += 1;
+				}
+				else break;
+			}
 
 			if(i == len)
-				break; // No more tokens left.
+			{
+				Error_Report(error, 0, "Source ended inside string literal");
+				return NULL;
+			}
 
-			Token *tok = BPAlloc_Malloc(alloc, sizeof(Token)); // Allocate a token.
-			
-			if(tok == NULL)
-				{
-					// Error: No memory.
-					Error_Report(error, 1, "No memory");
-					return NULL;
-				}
+			i += 1; // Consume the ' or ".
 
-			if(isalpha(str[i]) || str[i] == '_')
-				{
-					tok->kind = TIDENT;
-					tok->offset = i;
-					
-					while(i < len && (isalpha(str[i]) || isdigit(str[i]) || str[i] == '_'))
-						i += 1;
-
-					tok->length = i - tok->offset;
-
-					static const struct {
-						TokenKind    kind;
-						int          size;
-						const char  *text;
-					} kwords[] = {
-						{     TKWIF, 2, "if"     },
-						{    TKWFUN, 3, "fun"    },
-						{    TKWNOT, 3, "not"    },
-						{    TKWAND, 3, "and"    },
-						{     TKWOR, 2, "or"     },
-						{   TKWELSE, 4, "else"   },
-						{   TKWNONE, 4, "none"   },
-						{   TKWTRUE, 4, "true"   },
-						{  TKWFALSE, 5, "false"  },
-						{ TKWRETURN, 6, "return" },
-						{  TKWWHILE, 5, "while"  },
-						{  TKWBREAK, 5, "break"  },
-						{     TKWDO, 2, "do"     },
-					};
-
-					for(unsigned int i = 0; i < sizeof(kwords)/sizeof(*kwords); i += 1)
-						if(kwords[i].size == tok->length && !strncmp(kwords[i].text, str + tok->offset, tok->length))
-							{
-								tok->kind = kwords[i].kind;
-								break;
-							}
-				}
-			else if(isdigit(str[i]))
-				{
-					tok->kind = TINT;
-					tok->offset = i;
-
-					while(i < len && isdigit(str[i]))
-						i += 1;
-
-					if(i+1 < len && str[i] == '.' && isdigit(str[i+1]))
-						{
-							i += 1; // Consume the dot.
-
-							tok->kind = TFLOAT;
-
-							while(i < len && isdigit(str[i]))
-								i += 1;
-						}
-
-					tok->length = i - tok->offset;
-				}
-			else if(str[i] == '\'' || str[i] == '"')
-				{
-					tok->kind = TSTRING;
-					tok->offset = i;
-
-					char f = str[i];
-
-					i += 1; // Skip the starting quote.
-
-					while(1)
-						{
-							while(i < len && str[i] != '\\' && str[i] != f)
-								i += 1;
-
-							if(str[i] == '\\')
-								{
-									i += 1; // Consume the \.
-
-									if(i < len && (str[i] == '\'' || str[i] == '"'))
-										i += 1;
-								}
-							else break;
-						}
-
-					if(i == len)
-						{
-							Error_Report(error, 0, "Source ended inside string literal");
-							return NULL;
-						}
-
-					i += 1; // Consume the ' or ".
-
-					tok->length = i - tok->offset;
-				}
-			else if(isoper(str[i]))
-				{
-					tok->offset = i;
-					
-					while(i < len && isoper(str[i]))
-						i += 1;
-
-					tok->length = i - tok->offset;
-				
-					// Determine the token
-
-					static const struct {
-						TokenKind    kind;
-						int          size;
-						const char  *text;
-					} optable[] = {
-						{ TADD, 1, "+"  },
-						{ TSUB, 1, "-"  },
-						{ TMUL, 1, "*"  },
-						{ TDIV, 1, "/"  },
-						{ TEQL, 2, "==" },
-						{ TNQL, 2, "!=" },
-						{ TLSS, 1, "<"  },
-						{ TLEQ, 2, "<=" },
-						{ TGRT, 1, ">"  },
-						{ TGEQ, 2, ">=" },
-						{ TASS, 1, "="  },
-					};
-
-					_Bool found = 0;
-					for(unsigned int i = 0; i < sizeof(optable)/sizeof(*optable); i += 1)
-						if(optable[i].size == tok->length && !strncmp(optable[i].text, str + tok->offset, tok->length))
-							{
-								found = 1;
-								tok->kind = optable[i].kind;
-								break;
-							}
-
-					if(found == 0)
-						{
-							// Not a known operator.
-							tok->kind = str[tok->offset];
-							tok->length = 1;
-							i = tok->offset + 1;
-						}
-				}
-			else	
-				{
-					tok->kind = str[i];
-					tok->offset = i;
-					tok->length = 1;
-					i += 1;
-				}
-
-			// Append to the token list.
-			if(head)
-				tail->next = tok;
-			else
-				head = tok;
-			tok->prev = tail;
-			tok->next = NULL;
-			tail = tok;
+			tok->length = i - tok->offset;
 		}
+		else if(isoper(str[i]))
+		{
+			tok->offset = i;
+					
+			while(i < len && isoper(str[i]))
+				i += 1;
+
+			tok->length = i - tok->offset;
+				
+			// Determine the token
+
+			static const struct {
+				TokenKind    kind;
+				int          size;
+				const char  *text;
+			} optable[] = {
+				{ TADD, 1, "+"  },
+				{ TSUB, 1, "-"  },
+				{ TMUL, 1, "*"  },
+				{ TDIV, 1, "/"  },
+				{ TEQL, 2, "==" },
+				{ TNQL, 2, "!=" },
+				{ TLSS, 1, "<"  },
+				{ TLEQ, 2, "<=" },
+				{ TGRT, 1, ">"  },
+				{ TGEQ, 2, ">=" },
+				{ TASS, 1, "="  },
+			};
+
+			_Bool found = 0;
+			for(unsigned int i = 0; i < sizeof(optable)/sizeof(*optable); i += 1)
+				if(optable[i].size == tok->length && !strncmp(optable[i].text, str + tok->offset, tok->length))
+				{
+					found = 1;
+					tok->kind = optable[i].kind;
+					break;
+				}
+
+			if(found == 0)
+			{
+				// Not a known operator.
+				tok->kind = str[tok->offset];
+				tok->length = 1;
+				i = tok->offset + 1;
+			}
+		}
+		else	
+		{
+			tok->kind = str[i];
+			tok->offset = i;
+			tok->length = 1;
+			i += 1;
+		}
+
+		// Append to the token list.
+		if(head)
+			tail->next = tok;
+		else
+			head = tok;
+		tok->prev = tail;
+		tok->next = NULL;
+		tail = tok;
+	}
 
 	{
 		Token *tok = BPAlloc_Malloc(alloc, sizeof(Token)); // Allocate a token.
 			
 		if(tok == NULL)
-			{
-				// Error: No memory.
-				Error_Report(error, 1, "No memory");
-				return NULL;
-			}
+		{
+			// Error: No memory.
+			Error_Report(error, 1, "No memory");
+			return NULL;
+		}
 
 		tok->kind = TDONE;
 		tok->offset = i;
@@ -536,104 +530,104 @@ static Node *parse_statement(Context *ctx)
 	assert(ctx != NULL);
 
 	switch(current(ctx))
+	{
+		default:
+		break;
+
+		case '(':
+		case '[':
+		case '+':
+		case '-':
+		case TINT:
+		case TFLOAT:
+		case TSTRING:
+		case TIDENT:
+		case TKWNOT:
+		case TKWNONE:
+		case TKWTRUE:
+		case TKWFALSE:
+		return parse_expression_statement(ctx);
+
+		case TKWIF:
+		return parse_ifelse_statement(ctx);
+
+		case '{':
 		{
-			default:
-			break;
+			next(ctx); // Consume the '{'.
 
-			case '(':
-			case '[':
-			case '+':
-			case '-':
-			case TINT:
-			case TFLOAT:
-			case TSTRING:
-			case TIDENT:
-			case TKWNOT:
-			case TKWNONE:
-			case TKWTRUE:
-			case TKWFALSE:
-			return parse_expression_statement(ctx);
+			Node *node = parse_compound_statement(ctx, '}');
 
-			case TKWIF:
-			return parse_ifelse_statement(ctx);
+			if(node != NULL)
+				next(ctx); // Consume the '}'.
 
-			case '{':
-			{
-				next(ctx); // Consume the '{'.
-
-				Node *node = parse_compound_statement(ctx, '}');
-
-				if(node != NULL)
-					next(ctx); // Consume the '}'.
-
-				return node;
-			}
-
-			case TKWBREAK:
-			{
-				Token *token = current_token(ctx);
-
-				next(ctx); // Consume the "break".
-
-				if(current(ctx) != ';')
-					{
-						Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
-						return NULL;
-					}
-
-				next(ctx); // Consume the ';'.
-				
-				Node *node = BPAlloc_Malloc(ctx->alloc, sizeof(Node));
-				
-				if(node == NULL)
-					{
-						Error_Report(ctx->error, 1, "No memory");
-						return NULL;
-					}
-
-				node->kind = NODE_BREAK;
-				node->next = NULL;
-				node->offset = token->offset;
-				node->length = token->length;
-				return node;
-			}
-
-			case TKWRETURN:
-			{
-				int offset = current_token(ctx)->offset;
-
-				next(ctx); // Consume the "return" keyword.
-
-				Node *val = parse_expression_statement(ctx);
-
-				if(val == NULL)
-					return NULL;
-
-				ReturnNode *node = BPAlloc_Malloc(ctx->alloc, sizeof(ReturnNode));
-				
-				if(node == NULL)
-					{
-						Error_Report(ctx->error, 1, "No memory");
-						return NULL;
-					}
-
-				node->base.kind = NODE_RETURN;
-				node->base.next = NULL;
-				node->base.offset = offset;
-				node->base.length = val->offset + val->length - offset;
-				node->val = val;
-				return (Node*) node;
-			}
-
-			case TKWFUN:
-			return parse_function_definition(ctx);
-
-			case TKWWHILE:
-			return parse_while_statement(ctx);
-
-			case TKWDO:
-			return parse_dowhile_statement(ctx);
+			return node;
 		}
+
+		case TKWBREAK:
+		{
+			Token *token = current_token(ctx);
+
+			next(ctx); // Consume the "break".
+
+			if(current(ctx) != ';')
+			{
+				Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
+
+			next(ctx); // Consume the ';'.
+				
+			Node *node = BPAlloc_Malloc(ctx->alloc, sizeof(Node));
+				
+			if(node == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+			node->kind = NODE_BREAK;
+			node->next = NULL;
+			node->offset = token->offset;
+			node->length = token->length;
+			return node;
+		}
+
+		case TKWRETURN:
+		{
+			int offset = current_token(ctx)->offset;
+
+			next(ctx); // Consume the "return" keyword.
+
+			Node *val = parse_expression_statement(ctx);
+
+			if(val == NULL)
+				return NULL;
+
+			ReturnNode *node = BPAlloc_Malloc(ctx->alloc, sizeof(ReturnNode));
+				
+			if(node == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+			node->base.kind = NODE_RETURN;
+			node->base.next = NULL;
+			node->base.offset = offset;
+			node->base.length = val->offset + val->length - offset;
+			node->val = val;
+			return (Node*) node;
+		}
+
+		case TKWFUN:
+		return parse_function_definition(ctx);
+
+		case TKWWHILE:
+		return parse_while_statement(ctx);
+
+		case TKWDO:
+		return parse_dowhile_statement(ctx);
+	}
 
 	Error_Report(ctx->error, 0, "Got token \"%.*s\" where the start of a statement was expected", 
 		ctx->token->length, ctx->src + ctx->token->offset);
@@ -650,19 +644,19 @@ static Node *parse_expression_statement(Context *ctx)
 		return NULL;
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended right after an expression, where a ';' was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended right after an expression, where a ';' was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != ';')
-		{
-			// ERROR: 	Got something other than a semicolon at the end 
-			// 			of statement.
+	{
+		// ERROR: 	Got something other than a semicolon at the end 
+		// 			of statement.
 
-			Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+		Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	next(ctx);
 	return expr;
@@ -682,10 +676,10 @@ static Node *makeStringExprNode(Context *ctx, const char *str, int len)
 		copy = BPAlloc_Malloc(ctx->alloc, len + 1);
 
 		if(copy == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		memcpy(copy, str, len);
 		copy[len] = '\0';
@@ -697,10 +691,10 @@ static Node *makeStringExprNode(Context *ctx, const char *str, int len)
 		node = BPAlloc_Malloc(ctx->alloc, sizeof(StringExprNode));
 
 		if(node == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		node->base.base.kind = NODE_EXPR;
 		node->base.base.next = NULL;
@@ -719,16 +713,16 @@ static Node *parse_string_primary_expression(Context *ctx)
 	assert(ctx != NULL);
 	
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a string literal was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a string literal was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != TSTRING)
-		{
-			Error_Report(ctx->error, 0, "Got token \"%.*s\" where a string literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got token \"%.*s\" where a string literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	const char *src = ctx->src;
 	int 		len = ctx->token->offset + ctx->token->length - 1;
@@ -741,61 +735,59 @@ static Node *parse_string_primary_expression(Context *ctx)
 	int  temp_used = 0;
 
 	do
+	{
+		int segm_off, segm_len;
 		{
-			int segm_off, segm_len;
+			segm_off = i;
+			while(i < len && src[i] != '\\')
+				i += 1;
+			segm_len = i - segm_off; 
+		}
+
+		if(temp_used + segm_len >= (int) sizeof(temp))
+		{
+			Error_Report(ctx->error, 1, "String is too big to be rendered inside the fixed size buffer");
+			return NULL;
+		}
+
+		memcpy(temp + temp_used, src + segm_off, segm_len);
+		temp_used += segm_len;
+
+		if(src[i] == '\\')
+		{
+			i += 1; // Consume the \.
+						
+			if(temp_used + 1 >= (int) sizeof(temp))
 			{
-				segm_off = i;
-
-				while(i < len && src[i] != '\\')
-					i += 1;
-
-				segm_len = i - segm_off; 
+				Error_Report(ctx->error, 1, "String is too big to be rendered inside the fixed size buffer");
+				return NULL;
 			}
 
-			if(temp_used + segm_len >= (int) sizeof(temp))
+			if(i == len)
+			{
+				// Append the \ as a normal char.
+				temp[temp_used++] = '\\';
+			}
+			else
+			{
+				switch(src[i])
 				{
-					Error_Report(ctx->error, 1, "String is too big to be rendered inside the fixed size buffer");
+					case '"': temp[temp_used++] = '"'; break;
+					case 'n': temp[temp_used++] = '\n'; break;
+					case 't': temp[temp_used++] = '\t'; break;
+					case 'r': temp[temp_used++] = '\r'; break;
+					case '\\': temp[temp_used++] = '\\'; break;
+					case '\'': temp[temp_used++] = '\''; break;
+								
+					default:
+					Error_Report(ctx->error, 0, "Invalid escape sequence \\%c", src[i]);
 					return NULL;
 				}
 
-			memcpy(temp + temp_used, src + segm_off, segm_len);
-			temp_used += segm_len;
-
-			if(src[i] == '\\')
-				{
-					i += 1; // Consume the \.
-						
-					if(temp_used + 1 >= (int) sizeof(temp))
-						{
-							Error_Report(ctx->error, 1, "String is too big to be rendered inside the fixed size buffer");
-							return NULL;
-						}
-
-					if(i == len)
-						{
-							// Append the \ as a normal char.
-							temp[temp_used++] = '\\';
-						}
-					else
-						{
-							switch(src[i])
-								{
-									case '"': temp[temp_used++] = '"'; break;
-									case 'n': temp[temp_used++] = '\n'; break;
-									case 't': temp[temp_used++] = '\t'; break;
-									case 'r': temp[temp_used++] = '\r'; break;
-									case '\\': temp[temp_used++] = '\\'; break;
-									case '\'': temp[temp_used++] = '\''; break;
-									
-									default:
-									Error_Report(ctx->error, 0, "Invalid escape sequence \\%c", src[i]);
-									return NULL;
-								}
-
-							i += 1; // Consume the char after the \.
-						}
-				}
+				i += 1; // Consume the char after the \.
+			}
 		}
+	}
 	while(i < len);
 
 	assert(temp_used < (int) sizeof(temp));
@@ -812,16 +804,16 @@ static Node *parse_list_primary_expression(Context *ctx)
 	assert(ctx != NULL);
 	
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a list literal was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a list literal was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != '[')
-		{
-			Error_Report(ctx->error, 0, "Got token \"%.*s\" where a list literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got token \"%.*s\" where a list literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	int offset = current_token(ctx)->offset;
 
@@ -831,42 +823,42 @@ static Node *parse_list_primary_expression(Context *ctx)
 	next(ctx); // Skip the '['.
 
 	if(current(ctx) != ']')
+	{
+		Node *tail = NULL;
+
+		while(1)
 		{
-			Node *tail = NULL;
+			// Parse.
+			Node *item = parse_expression(ctx);
 
-			while(1)
-				{
-					// Parse.
-					Node *item = parse_expression(ctx);
+			if(item == NULL)
+				return NULL;
 
-					if(item == NULL)
-						return NULL;
+			// Append.
+			if(tail)
+				tail->next = item;
+			else
+				items = item;
+			tail = item;
+			itemc += 1;
 
-					// Append.
-					if(tail)
-						tail->next = item;
-					else
-						items = item;
-					tail = item;
-					itemc += 1;
+			// Get ',' or ']'.
 
-					// Get ',' or ']'.
+			if(current(ctx) == ']')
+				break;
 
-					if(current(ctx) == ']')
-						break;
+			if(current(ctx) != ',')
+			{
+				if(current(ctx) == TDONE)
+					Error_Report(ctx->error, 0, "Source ended inside a list literal");
+				else
+					Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside list literal, where ',' or ']' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
 
-					if(current(ctx) != ',')
-						{
-							if(current(ctx) == TDONE)
-								Error_Report(ctx->error, 0, "Source ended inside a list literal");
-							else
-								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside list literal, where ',' or ']' were expected", ctx->token->length, ctx->src + ctx->token->offset);
-							return NULL;
-						}
-
-					next(ctx); // Skip the ','.
-				}
+			next(ctx); // Skip the ','.
 		}
+	}
 
 	int length = current_token(ctx)->offset
 			   + current_token(ctx)->length
@@ -879,10 +871,10 @@ static Node *parse_list_primary_expression(Context *ctx)
 		list = BPAlloc_Malloc(ctx->alloc, sizeof(ListExprNode));
 
 		if(list == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		list->base.base.kind = NODE_EXPR;
 		list->base.base.next = NULL;
@@ -902,16 +894,16 @@ static Node *parse_map_primary_expression(Context *ctx)
 	assert(ctx != NULL);
 	
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a map literal was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a map literal was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != '{')
-		{
-			Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	int offset = current_token(ctx)->offset;
 
@@ -922,92 +914,91 @@ static Node *parse_map_primary_expression(Context *ctx)
 	next(ctx); // Skip the '['.
 
 	if(current(ctx) != '}')
+	{
+		Node *ktail = NULL, *tail = NULL;
+
+		while(1)
 		{
-			Node *ktail = NULL, *tail = NULL;
+			Node *key;
+			_Bool key_is_a_single_ident;
+			{
+				_Bool key_starts_with_an_ident = current(ctx) == TIDENT;
 
-			while(1)
-				{
-					Node *key;
+				next(ctx);
 
-					_Bool key_is_a_single_ident;
-					{
-						_Bool key_starts_with_an_ident = current(ctx) == TIDENT;
+				key_is_a_single_ident = key_starts_with_an_ident && (current(ctx) == TDONE || current(ctx) == ':');
 
-						next(ctx);
+				prev(ctx);
+			}
 
-						key_is_a_single_ident = key_starts_with_an_ident && (current(ctx) == TDONE || current(ctx) == ':');
+			if(key_is_a_single_ident)
+			{
+				assert(current(ctx) == TIDENT);
+				key = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
 
-						prev(ctx);
-					}
+				next(ctx);
+			}
+			else
+			{
+				key = parse_expression(ctx);
+			}
 
-					if(key_is_a_single_ident)
-						{
-							assert(current(ctx) == TIDENT);
-							key = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
+			if(key == NULL)
+				return NULL;
 
-							next(ctx);
-						}
-					else
-						{
-							key = parse_expression(ctx);
-						}
+			if(done(ctx))
+			{
+				Error_Report(ctx->error, 0, "Source ended where a map key-value separator ':' was expected");
+				return NULL;
+			}
 
-					if(key == NULL)
-						return NULL;
+			if(current(ctx) != ':')
+			{
+				Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map key-value separator ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
 
-					if(done(ctx))
-						{
-							Error_Report(ctx->error, 0, "Source ended where a map key-value separator ':' was expected");
-							return NULL;
-						}
+			next(ctx);
 
-					if(current(ctx) != ':')
-						{
-							Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map key-value separator ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
-							return NULL;
-						}
+			// Parse.
+			Node *item = parse_expression(ctx);
 
-					next(ctx);
+			if(item == NULL)
+				return NULL;
 
-					// Parse.
-					Node *item = parse_expression(ctx);
+			// Append.
+			if(tail)
+			{
+				ktail->next = key;
+				tail->next = item;
+			}
+			else
+			{
+				keys = key;
+				items = item;
+			}
 
-					if(item == NULL)
-						return NULL;
+			ktail = key;
+			tail = item;
+			itemc += 1;
 
-					// Append.
-					if(tail)
-						{
-							ktail->next = key;
-							tail->next = item;
-						}
-					else
-						{
-							keys = key;
-							items = item;
-						}
+			// Get ',' or '}'.
 
-					ktail = key;
-					tail = item;
-					itemc += 1;
+			if(current(ctx) == '}')
+				break;
 
-					// Get ',' or '}'.
+			if(current(ctx) != ',')
+			{
+				if(current(ctx) == TDONE)
+					Error_Report(ctx->error, 0, "Source ended inside a map literal");
+				else
+					Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside map literal, where ',' or '}' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
 
-					if(current(ctx) == '}')
-						break;
-
-					if(current(ctx) != ',')
-						{
-							if(current(ctx) == TDONE)
-								Error_Report(ctx->error, 0, "Source ended inside a map literal");
-							else
-								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside map literal, where ',' or '}' were expected", ctx->token->length, ctx->src + ctx->token->offset);
-							return NULL;
-						}
-
-					next(ctx); // Skip the ','.
-				}
+			next(ctx); // Skip the ','.
 		}
+	}
 
 	int length = current_token(ctx)->offset
 			   + current_token(ctx)->length
@@ -1020,10 +1011,10 @@ static Node *parse_map_primary_expression(Context *ctx)
 		map = BPAlloc_Malloc(ctx->alloc, sizeof(MapExprNode));
 
 		if(map == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		map->base.base.kind = NODE_EXPR;
 		map->base.base.next = NULL;
@@ -1059,20 +1050,20 @@ static Node *makeIdentExprNode(Context *ctx)
 	int   copyl = ctx->token->length;
 
 	if(copy == NULL)
-		{
-			Error_Report(ctx->error, 1, "No memory");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 1, "No memory");
+		return NULL;
+	}
 
 	IdentExprNode *node;
 	{
 		node = BPAlloc_Malloc(ctx->alloc, sizeof(IdentExprNode));
 
 		if(node == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		node->base.base.kind = NODE_EXPR;
 		node->base.base.next = NULL;
@@ -1091,233 +1082,232 @@ static Node *parse_primary_expresion(Context *ctx)
 	assert(ctx != NULL);
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a primary expression was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a primary expression was expected");
+		return NULL;
+	}
+	
 
 	switch(current(ctx))
+	{
+		case '[':
+		return parse_list_primary_expression(ctx);
+
+		case '{':
+		return parse_map_primary_expression(ctx);
+
+		case '(':
 		{
-			case '[':
-			return parse_list_primary_expression(ctx);
+			next(ctx); // Consume the '('.
+				
+			Node *node = parse_expression(ctx);
+				
+			if(node == NULL)
+				return NULL;
 
-			case '{':
-			return parse_map_primary_expression(ctx);
-
-			case '(':
+			if(done(ctx))
 			{
-				next(ctx); // Consume the '('.
-				
-				Node *node = parse_expression(ctx);
-				
-				if(node == NULL)
-					return NULL;
-
-				if(done(ctx))
-					{
-						Error_Report(ctx->error, 0, "Source ended before \")\", after sub-expression");
-						return NULL;
-					}
-
-				if(current(ctx) != ')')
-					{
-						Error_Report(ctx->error, 0, "Missing \")\", after sub-expression");
-						return NULL;
-					}
-
-				next(ctx); // Consume the ')'.
-				return node;
+				Error_Report(ctx->error, 0, "Source ended before \")\", after sub-expression");
+				return NULL;
 			}
 
-			case TINT:
+			if(current(ctx) != ')')
 			{
-				char buffer[64];
-
-				if(ctx->token->length >= (int) sizeof(buffer))
-					{
-						Error_Report(ctx->error, 1, "Integer is too big");
-						return NULL;
-					}
-
-				memcpy(buffer, ctx->src + ctx->token->offset, ctx->token->length);
-				buffer[ctx->token->length] = '\0';
-
-				errno = 0;
-
-				long long int val = strtoll(buffer, NULL, 10);
-
-				if(errno == ERANGE)
-					{
-						Error_Report(ctx->error, 1, "Integer is too big");
-						return NULL;
-					}
-				else assert(errno == 0);
-
-				IntExprNode *node;
-				{
-					node = BPAlloc_Malloc(ctx->alloc, sizeof(IntExprNode));
-
-					if(node == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					node->base.base.kind = NODE_EXPR;
-					node->base.base.next = NULL;
-					node->base.base.offset = ctx->token->offset;
-					node->base.base.length = ctx->token->length;
-					node->base.kind = EXPR_INT;
-					node->val = val;
-				}
-				
-				next(ctx);
-
-				return (Node*) node;
+				Error_Report(ctx->error, 0, "Missing \")\", after sub-expression");
+				return NULL;
 			}
-
-			case TFLOAT:
-			{
-				char buffer[64];
-
-				if(ctx->token->length >= (int) sizeof(buffer))
-					{
-						Error_Report(ctx->error, 1, "Floating is too big");
-						return NULL;
-					}
-
-				memcpy(buffer, ctx->src + ctx->token->offset, ctx->token->length);
-				buffer[ctx->token->length] = '\0';
-
-				errno = 0;
-
-				double val = strtod(buffer, NULL);
-
-				if(errno == ERANGE)
-					{
-						Error_Report(ctx->error, 1, "Floating is too big");
-						return NULL;
-					}
-				else assert(errno == 0);
-
-				FloatExprNode *node;
-				{
-					node = BPAlloc_Malloc(ctx->alloc, sizeof(FloatExprNode));
-
-					if(node == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					node->base.base.kind = NODE_EXPR;
-					node->base.base.next = NULL;
-					node->base.base.offset = ctx->token->offset;
-					node->base.base.length = ctx->token->length;
-					node->base.kind = EXPR_FLOAT;
-					node->val = val;
-				}
-
-				next(ctx);
-				
-				return (Node*) node;
-			}
-
-			case TSTRING:
-			return parse_string_primary_expression(ctx);
-
-			case TKWNONE:
-			{
-				next(ctx);
-
-				ExprNode *node;
-				{
-					node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
-				
-					if(node == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					node->base.kind = NODE_EXPR;
-					node->base.next = NULL;
-					node->base.offset = ctx->token->offset;
-					node->base.length = ctx->token->length;
-					node->kind = EXPR_NONE;
-				}
-
-				return (Node*) node;
-			}
-
-			case TKWTRUE:
-			{
-				next(ctx);
-
-				ExprNode *node;
-				{
-					node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
-				
-					if(node == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					node->base.kind = NODE_EXPR;
-					node->base.next = NULL;
-					node->base.offset = ctx->token->offset;
-					node->base.length = ctx->token->length;
-					node->kind = EXPR_TRUE;
-				}
-
-				return (Node*) node;
-			}
-
-			case TKWFALSE:
-			{
-				next(ctx);
-
-				ExprNode *node;
-				{
-					node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
-				
-					if(node == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					node->base.kind = NODE_EXPR;
-					node->base.next = NULL;
-					node->base.offset = ctx->token->offset;
-					node->base.length = ctx->token->length;
-					node->kind = EXPR_FALSE;
-				}
-
-				return (Node*) node;
-			}
-
-			case TIDENT:
-			{
-				Node *node = makeIdentExprNode(ctx);
-
-				if(node == NULL)
-					return NULL;
-
-				next(ctx);
-
-				return (Node*) node;
-			}
-
-			case TDONE:
-			Error_Report(ctx->error, 1, "Unexpected end of source where a primary expression was expected");
-			return NULL;
-
-			default:
-			Error_Report(ctx->error, 1, "Unexpected token \"%.*s\" where a primary expression was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
+			next(ctx); // Consume the ')'.
+			return node;
 		}
+
+		case TINT:
+		{
+			char buffer[64];
+
+			if(ctx->token->length >= (int) sizeof(buffer))
+			{
+				Error_Report(ctx->error, 1, "Integer is too big");
+				return NULL;
+			}
+
+			memcpy(buffer, ctx->src + ctx->token->offset, ctx->token->length);
+			buffer[ctx->token->length] = '\0';
+
+			errno = 0;
+
+			long long int val = strtoll(buffer, NULL, 10);
+
+			if(errno == ERANGE)
+			{
+				Error_Report(ctx->error, 1, "Integer is too big");
+				return NULL;
+			}
+			else assert(errno == 0);
+
+			IntExprNode *node;
+			{
+				node = BPAlloc_Malloc(ctx->alloc, sizeof(IntExprNode));
+
+				if(node == NULL)
+				{
+					Error_Report(ctx->error, 1, "No memory");
+					return NULL;
+				}
+
+				node->base.base.kind = NODE_EXPR;
+				node->base.base.next = NULL;
+				node->base.base.offset = ctx->token->offset;
+				node->base.base.length = ctx->token->length;
+				node->base.kind = EXPR_INT;
+				node->val = val;
+			}
+				
+			next(ctx);
+
+			return (Node*) node;
+		}
+
+		case TFLOAT:
+		{
+			char buffer[64];
+
+			if(ctx->token->length >= (int) sizeof(buffer))
+			{
+				Error_Report(ctx->error, 1, "Floating is too big");
+				return NULL;
+			}
+
+			memcpy(buffer, ctx->src + ctx->token->offset, ctx->token->length);
+			buffer[ctx->token->length] = '\0';
+
+			errno = 0;
+
+			double val = strtod(buffer, NULL);
+
+			if(errno == ERANGE)
+			{
+				Error_Report(ctx->error, 1, "Floating is too big");
+				return NULL;
+			}
+			else assert(errno == 0);
+
+			FloatExprNode *node;
+			{
+				node = BPAlloc_Malloc(ctx->alloc, sizeof(FloatExprNode));
+
+				if(node == NULL)
+				{
+					Error_Report(ctx->error, 1, "No memory");
+					return NULL;
+				}
+
+				node->base.base.kind = NODE_EXPR;
+				node->base.base.next = NULL;
+				node->base.base.offset = ctx->token->offset;
+				node->base.base.length = ctx->token->length;
+				node->base.kind = EXPR_FLOAT;
+				node->val = val;
+			}
+
+			next(ctx);
+				
+			return (Node*) node;
+		}
+
+		case TSTRING:
+		return parse_string_primary_expression(ctx);
+
+		case TKWNONE:
+		{
+			next(ctx);
+
+			ExprNode *node;
+			{
+				node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
+				
+				if(node == NULL)
+				{
+					Error_Report(ctx->error, 1, "No memory");
+					return NULL;
+				}
+
+				node->base.kind = NODE_EXPR;
+				node->base.next = NULL;
+				node->base.offset = ctx->token->offset;
+				node->base.length = ctx->token->length;
+				node->kind = EXPR_NONE;
+			}
+
+			return (Node*) node;
+		}
+
+		case TKWTRUE:
+		{
+			next(ctx);
+
+			ExprNode *node;
+			{
+				node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
+				
+				if(node == NULL)
+				{
+					Error_Report(ctx->error, 1, "No memory");
+					return NULL;
+				}
+
+				node->base.kind = NODE_EXPR;
+				node->base.next = NULL;
+				node->base.offset = ctx->token->offset;
+				node->base.length = ctx->token->length;
+				node->kind = EXPR_TRUE;
+			}
+
+			return (Node*) node;
+		}
+
+		case TKWFALSE:
+		{
+			next(ctx);
+
+			ExprNode *node;
+			{
+				node = BPAlloc_Malloc(ctx->alloc, sizeof(ExprNode));
+				
+				if(node == NULL)
+				{
+					Error_Report(ctx->error, 1, "No memory");
+					return NULL;
+				}
+
+				node->base.kind = NODE_EXPR;
+				node->base.next = NULL;
+				node->base.offset = ctx->token->offset;
+				node->base.length = ctx->token->length;
+				node->kind = EXPR_FALSE;
+			}
+			return (Node*) node;
+		}
+
+		case TIDENT:
+		{
+			Node *node = makeIdentExprNode(ctx);
+
+			if(node == NULL)
+				return NULL;
+
+			next(ctx);
+
+			return (Node*) node;
+		}
+
+		case TDONE:
+		Error_Report(ctx->error, 1, "Unexpected end of source where a primary expression was expected");
+		return NULL;
+
+		default:
+		Error_Report(ctx->error, 1, "Unexpected token \"%.*s\" where a primary expression was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	UNREACHABLE;
 	return NULL;
@@ -1328,10 +1318,10 @@ static Node *makeIndexSelectionExprNode(Context *ctx, Node *set, Node *idx)
 	IndexSelectionExprNode *sel = BPAlloc_Malloc(ctx->alloc, sizeof(IndexSelectionExprNode));
 
 	if(sel == NULL)
-		{
-			Error_Report(ctx->error, 1, "No memory");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 1, "No memory");
+		return NULL;
+	}
 
 	sel->base.base.kind = NODE_EXPR;
 	sel->base.base.next = NULL;
@@ -1353,147 +1343,142 @@ static Node *parse_postfix_expression(Context *ctx)
 		return NULL;
 
 	while(1)
+	{
+		switch(current(ctx))
 		{
-			switch(current(ctx))
+			case '.':
+			{
+				next(ctx);
+
+				// We expect an identifier after the dot.
+
+				if(done(ctx))
 				{
-					case '.':
-					{
-						next(ctx);
+					Error_Report(ctx->error, 0, "Source ended after dot of dot selection expression");
+					return NULL;
+				}
 
-						// We expect an identifier after the dot.
+				if(current(ctx) != TIDENT)
+				{
+					Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after fot of dot selection expression where an identifier was expected", ctx->token->length, ctx->src + ctx->token->offset);
+					return NULL;
+				}
 
-						if(done(ctx))
-							{
-								Error_Report(ctx->error, 0, "Source ended after dot of dot selection expression");
-								return NULL;
-							}
+				Node *idx = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
+				if(idx == NULL)
+					return NULL;
 
-						if(current(ctx) != TIDENT)
-							{
-								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after fot of dot selection expression where an identifier was expected", ctx->token->length, ctx->src + ctx->token->offset);
-								return NULL;
-							}
+				Node *sel = makeIndexSelectionExprNode(ctx, node, idx);
+				if(sel == NULL)
+					return NULL;
 
-						Node *idx = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
+				sel->offset = node->offset;
+				sel->length = idx->offset + idx->length - node->offset;
 
-						if(idx == NULL)
-							return NULL;
+				next(ctx); // Get to the token after the identifier.
 
-						Node *sel = makeIndexSelectionExprNode(ctx, node, idx);
+				node = (Node*) sel;
+				break;
+			}
 
-						if(sel == NULL)
-							return NULL;
+			case '[':
+			{
+				Node *idx = parse_list_primary_expression(ctx);
+				if(idx == NULL)
+					return NULL;
 
-						sel->offset = node->offset;
-						sel->length = idx->offset + idx->length - node->offset;
+				ListExprNode *ls = (ListExprNode*) idx;
 
-						next(ctx); // Get to the token after the identifier.
+				if(ls->itemc == 0)
+				{
+					Error_Report(ctx->error, 0, "Missing index in index selection expression");
+					return NULL;
+				}
 
-						node = (Node*) sel;
-						break;
-					}
+				Node *sel = makeIndexSelectionExprNode(ctx, node, ls->itemc == 1 ? ls->items : (Node*) ls);
+				if(sel == NULL)
+					return NULL;
 
-					case '[':
-					{
-						Node *idx = parse_list_primary_expression(ctx);
+				sel->offset = node->offset;
+				sel->length = idx->offset + idx->length - node->offset;
 
-						if(idx == NULL)
-							return NULL;
+				node = (Node*) sel;
+				break;
+			}
 
-						ListExprNode *ls = (ListExprNode*) idx;
+			case '(':
+			{
+				int offset = current_token(ctx)->offset;
 
-						if(ls->itemc == 0)
-							{
-								Error_Report(ctx->error, 0, "Missing index in index selection expression");
-								return NULL;
-							}
-
-						Node *sel = makeIndexSelectionExprNode(ctx, node, ls->itemc == 1 ? ls->items : (Node*) ls);
-
-						if(sel == NULL)
-							return NULL;
-
-						sel->offset = node->offset;
-						sel->length = idx->offset + idx->length - node->offset;
-
-						node = (Node*) sel;
-						break;
-					}
-
-					case '(':
-					{
-						int offset = current_token(ctx)->offset;
-
-						Node *argv = NULL;
-						int   argc = 0;
+				Node *argv = NULL;
+				int   argc = 0;
 							
-						next(ctx); // Skip the '('.
+				next(ctx); // Skip the '('.
 
-						if(current(ctx) != ')')
-							while(1)
-								{
-									// Parse.
-									Node *arg = parse_expression(ctx);
+				if(current(ctx) != ')')
+					while(1)
+					{
+						// Parse.
+						Node *arg = parse_expression(ctx);
 
-									if(arg == NULL)
-										return NULL;
+						if(arg == NULL)
+							return NULL;
 
-									// Append.
-									arg->next = argv;
-									argv = arg;
-									argc += 1;
+						// Append.
+						arg->next = argv;
+						argv = arg;
+						argc += 1;
 
-									// Get ',' or ')'.
+						// Get ',' or ')'.
 
-									if(current(ctx) == ')')
-										break;
+						if(current(ctx) == ')')
+							break;
 
-									if(current(ctx) != ',')
-										{
-											if(current(ctx) == TDONE)
-												Error_Report(ctx->error, 0, "Source ended inside a function argument list");
-											else
-												Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
-											return NULL;
-										}
-
-									next(ctx); // Skip the ','.
-								}
-
-						int length = current_token(ctx)->offset
-								   + current_token(ctx)->length
-								   - offset;
-
-						next(ctx); // Skip the ')'.
-
-						CallExprNode *call;
+						if(current(ctx) != ',')
 						{
-							call = BPAlloc_Malloc(ctx->alloc, sizeof(CallExprNode));
-
-							if(call == NULL)
-								{
-									Error_Report(ctx->error, 1, "No memory");
-									return NULL;
-								}
-
-							call->base.base.kind = NODE_EXPR;
-							call->base.base.next = NULL;
-							call->base.base.offset = offset;
-							call->base.base.length = length;
-							call->base.kind = EXPR_CALL;
-							call->func = node;
-							call->argv = argv;
-							call->argc = argc;
+							if(current(ctx) == TDONE)
+								Error_Report(ctx->error, 0, "Source ended inside a function argument list");
+							else
+								Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+							return NULL;
 						}
 
-						node = (Node*) call;
-						break;
+						next(ctx); // Skip the ','.
 					}
 
-					default: 
-					goto done;
-				} // End switch.
-		} // End loop.
+				int length = current_token(ctx)->offset
+						   + current_token(ctx)->length
+						   - offset;
+
+				next(ctx); // Skip the ')'.
+
+				CallExprNode *call;
+				{
+					call = BPAlloc_Malloc(ctx->alloc, sizeof(CallExprNode));
+
+					if(call == NULL)
+					{
+						Error_Report(ctx->error, 1, "No memory");
+						return NULL;
+					}
+
+					call->base.base.kind = NODE_EXPR;
+					call->base.base.next = NULL;
+					call->base.base.offset = offset;
+					call->base.base.length = length;
+					call->base.kind = EXPR_CALL;
+					call->func = node;
+					call->argv = argv;
+					call->argc = argc;
+				}
+				node = (Node*) call;
+				break;
+			}
+
+			default: 
+			goto done;
+		} // End switch.
+	} // End loop.
 done:
 	
 	return node;
@@ -1502,56 +1487,56 @@ done:
 static Node *parse_prefix_expression(Context *ctx)
 {
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a prefix expression was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a prefix expression was expected");
+		return NULL;
+	}
 
 	switch(current(ctx))
+	{
+		case TDONE:
+		Error_Report(ctx->error, 1, "Unexpected end of source where a prefix expression was expected");
+		return NULL;
+
+		case '+':
+		case '-':
+		case TKWNOT:
 		{
-			case TDONE:
-			Error_Report(ctx->error, 1, "Unexpected end of source where a prefix expression was expected");
-			return NULL;
+			Token *unary_operator = current_token(ctx);
 
-			case '+':
-			case '-':
-			case TKWNOT:
-			{
-				Token *unary_operator = current_token(ctx);
+			next(ctx);
 
-				next(ctx);
-
-				Node *operand = parse_prefix_expression(ctx);
+			Node *operand = parse_prefix_expression(ctx);
 				
-				if(operand == NULL) 
+			if(operand == NULL) 
+				return NULL;
+
+			OperExprNode *temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
+			{
+				if(temp == NULL)
 					return NULL;
 
-				OperExprNode *temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
+				temp->base.base.kind = NODE_EXPR;
+				temp->base.base.next = NULL;
+				temp->base.base.offset = unary_operator->offset;
+				temp->base.base.length = operand->offset + operand->length - unary_operator->offset;
+				temp->head = operand;
+				temp->count = 1;
+
+				switch(unary_operator->kind)
 				{
-					if(temp == NULL)
-						return NULL;
-
-					temp->base.base.kind = NODE_EXPR;
-					temp->base.base.next = NULL;
-					temp->base.base.offset = unary_operator->offset;
-					temp->base.base.length = operand->offset + operand->length - unary_operator->offset;
-					temp->head = operand;
-					temp->count = 1;
-
-					switch(unary_operator->kind)
-						{
-							case '+': temp->base.kind = EXPR_POS; break;
-							case '-': temp->base.kind = EXPR_NEG; break;
-							case TKWNOT: temp->base.kind = EXPR_NOT; break;
-							default: assert(0); break;
-						}
+					case '+': temp->base.kind = EXPR_POS; break;
+					case '-': temp->base.kind = EXPR_NEG; break;
+					case TKWNOT: temp->base.kind = EXPR_NOT; break;
+					default: assert(0); break;
 				}
-				return (Node*) temp;
 			}
-
-			default:
-			return parse_postfix_expression(ctx);
+			return (Node*) temp;
 		}
+
+		default:
+		return parse_postfix_expression(ctx);
+	}
 
 	UNREACHABLE;
 	return NULL;
@@ -1561,18 +1546,12 @@ static inline _Bool isbinop(Token *tok)
 {
 	assert(tok != NULL);
 
-	return 	tok->kind == '+' || 
-			tok->kind == '-' || 
-			tok->kind == '*' || 
-			tok->kind == '/' ||
-			tok->kind == '<' ||
-			tok->kind == '>' ||
-			tok->kind == TLEQ ||
-			tok->kind == TGEQ ||
-			tok->kind == TEQL ||
-			tok->kind == TNQL ||
-			tok->kind == TKWAND ||
-			tok->kind == TKWOR ||
+	return 	tok->kind == '+' || tok->kind == '-' || 
+			tok->kind == '*' || tok->kind == '/' ||
+			tok->kind == '<' || tok->kind == '>' ||
+			tok->kind == TLEQ || tok->kind == TGEQ ||
+			tok->kind == TEQL || tok->kind == TNQL ||
+			tok->kind == TKWAND || tok->kind == TKWOR ||
 			tok->kind == '=';
 }
 
@@ -1588,35 +1567,35 @@ static inline int precedenceof(Token *tok)
 	assert(tok != NULL);
 
 	switch(tok->kind)
-		{
-			case '=':
-			return 0;
+	{
+		case '=':
+		return 0;
 
-			case TKWOR:
-			return 1;
+		case TKWOR:
+		return 1;
 
-			case TKWAND:
-			return 2;
+		case TKWAND:
+		return 2;
 
-			case '<':
-			case '>':
-			case TLEQ:
-			case TGEQ:
-			case TEQL:
-			case TNQL:
-			return 3;
+		case '<':
+		case '>':
+		case TLEQ:
+		case TGEQ:
+		case TEQL:
+		case TNQL:
+		return 3;
 
-			case '+':
-			case '-':
-			return 4;
+		case '+':
+		case '-':
+		return 4;
 
-			case '*':
-			case '/':
-			return 5;
-			
-			default:
-			return -100000000;
-		}
+		case '*':
+		case '/':
+		return 5;
+		
+		default:
+		return -100000000;
+	}
 
 	UNREACHABLE;
 	return -100000000;
@@ -1625,68 +1604,68 @@ static inline int precedenceof(Token *tok)
 static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 {
 	while(isbinop(ctx->token) && precedenceof(ctx->token) >= min_prec)
+	{
+		Token *op = ctx->token;
+
+		next(ctx);
+
+		Node *right_expr = parse_prefix_expression(ctx);
+
+		if(right_expr == NULL)
+			return NULL;
+
+		while(isbinop(ctx->token) && (precedenceof(ctx->token) > precedenceof(op) || (precedenceof(ctx->token) == precedenceof(op) && isrightassoc(ctx->token))))
 		{
-			Token *op = ctx->token;
-
-			next(ctx);
-
-			Node *right_expr = parse_prefix_expression(ctx);
-
+			right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1);
+			
 			if(right_expr == NULL)
-				return NULL;
+				return NULL;				
+		}
 
-			while(isbinop(ctx->token) && (precedenceof(ctx->token) > precedenceof(op) || (precedenceof(ctx->token) == precedenceof(op) && isrightassoc(ctx->token))))
-				{
-					right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1);
-					
-					if(right_expr == NULL)
-						return NULL;				
-				}
+		OperExprNode *temp;
+		{
+			temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
 
-			OperExprNode *temp;
+			if(temp == NULL)
 			{
-				temp = BPAlloc_Malloc(ctx->alloc, sizeof(OperExprNode));
-
-				if(temp == NULL)
-					{
-						Error_Report(ctx->error, 1, "No memory");
-						return NULL;
-					}
-
-				temp->base.base.kind = NODE_EXPR;
-				temp->base.base.next = NULL;
-				temp->base.base.offset = left_expr->offset;
-				temp->base.base.length = right_expr->offset + right_expr->length - left_expr->offset;
-
-				switch(op->kind)
-					{
-						case '+': temp->base.kind = EXPR_ADD; break;
-						case '-': temp->base.kind = EXPR_SUB; break;
-						case '*': temp->base.kind = EXPR_MUL; break;
-						case '/': temp->base.kind = EXPR_DIV; break;
-						case '<': temp->base.kind = EXPR_LSS; break;
-						case '>': temp->base.kind = EXPR_GRT; break;
-						case TLEQ: temp->base.kind = EXPR_LEQ; break;
-						case TGEQ: temp->base.kind = EXPR_GEQ; break;
-						case TEQL: temp->base.kind = EXPR_EQL; break;
-						case TNQL: temp->base.kind = EXPR_NQL; break;
-						case TKWAND: temp->base.kind = EXPR_AND; break;
-						case TKWOR: temp->base.kind = EXPR_OR; break;
-						case '=': temp->base.kind = EXPR_ASS; break;
-						
-						default:
-						UNREACHABLE;
-						break;
-					}
-
-				temp->head = left_expr;
-				temp->head->next = right_expr;
-				temp->count = 2;
-				assert(right_expr->next == NULL);
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
 			}
 
-			left_expr = (Node*) temp;
+			temp->base.base.kind = NODE_EXPR;
+			temp->base.base.next = NULL;
+			temp->base.base.offset = left_expr->offset;
+			temp->base.base.length = right_expr->offset + right_expr->length - left_expr->offset;
+
+			switch(op->kind)
+			{
+				case '+': temp->base.kind = EXPR_ADD; break;
+				case '-': temp->base.kind = EXPR_SUB; break;
+				case '*': temp->base.kind = EXPR_MUL; break;
+				case '/': temp->base.kind = EXPR_DIV; break;
+				case '<': temp->base.kind = EXPR_LSS; break;
+				case '>': temp->base.kind = EXPR_GRT; break;
+				case TLEQ: temp->base.kind = EXPR_LEQ; break;
+				case TGEQ: temp->base.kind = EXPR_GEQ; break;
+				case TEQL: temp->base.kind = EXPR_EQL; break;
+				case TNQL: temp->base.kind = EXPR_NQL; break;
+				case TKWAND: temp->base.kind = EXPR_AND; break;
+				case TKWOR: temp->base.kind = EXPR_OR; break;
+				case '=': temp->base.kind = EXPR_ASS; break;
+				
+				default:
+				UNREACHABLE;
+				break;
+			}
+
+			temp->head = left_expr;
+			temp->head->next = right_expr;
+			temp->count = 2;
+			assert(right_expr->next == NULL);
 		}
+
+		left_expr = (Node*) temp;
+	}
 
 	return left_expr;
 }
@@ -1709,16 +1688,16 @@ static Node *parse_ifelse_statement(Context *ctx)
 	assert(ctx != NULL);
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where an if-else statement was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where an if-else statement was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != TKWIF)
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an if-else statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an if-else statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	Token *if_token = current_token(ctx);
 	assert(if_token != NULL);
@@ -1731,16 +1710,16 @@ static Node *parse_ifelse_statement(Context *ctx)
 		return NULL;
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended right after an if-else condition, where a ':' was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended right after an if-else condition, where a ':' was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != ':')
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after an if-else condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after an if-else condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	next(ctx); // Skip the ':'.
 
@@ -1752,25 +1731,25 @@ static Node *parse_ifelse_statement(Context *ctx)
 	Node *false_branch = NULL;
 
 	if(ctx->token->kind == TKWELSE)
-		{
-			next(ctx); // Consume the "else" token.
+	{
+		next(ctx); // Consume the "else" token.
 
-			false_branch = parse_statement(ctx);
+		false_branch = parse_statement(ctx);
 
-			if(false_branch == NULL) 
-				return NULL;
-		}
+		if(false_branch == NULL) 
+			return NULL;
+	}
 
 	IfElseNode *ifelse;
 	{
 		ifelse = BPAlloc_Malloc(ctx->alloc, sizeof(IfElseNode));
 		
 		if(ifelse == NULL)
-			{
-				// ERROR: No memory.
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			// ERROR: No memory.
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		ifelse->base.kind = NODE_IFELSE;
 		ifelse->base.next = NULL;
@@ -1793,34 +1772,34 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 	*tail = NULL;
 
 	while(current(ctx) != end && current(ctx) != TDONE)
-		{
-			Node *temp = parse_statement(ctx);
+	{
+		Node *temp = parse_statement(ctx);
 
-			if(temp == NULL)
-				return NULL;
+		if(temp == NULL)
+			return NULL;
 
-			*tail = temp;
-			tail = &temp->next;
+		*tail = temp;
+		tail = &temp->next;
 
-			end_offset = temp->offset + temp->length;
-		}
+		end_offset = temp->offset + temp->length;
+	}
 
 	if(current(ctx) != end)
-		{
-			Error_Report(ctx->error, 0, "Source ended inside compound statement");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended inside compound statement");
+		return NULL;
+	}
 
 	CompoundNode *node;
 	{
 		node = BPAlloc_Malloc(ctx->alloc, sizeof(CompoundNode));
 		
 		if(node == NULL)
-			{
-				// ERROR: No memory.
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			// ERROR: No memory.
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		node->base.kind = NODE_COMP;
 		node->base.next = NULL;
@@ -1837,126 +1816,126 @@ static Node *parse_function_definition(Context *ctx)
 	assert(ctx != NULL);
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a function definition was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a function definition was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != TKWFUN)
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function definition was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function definition was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	int offset = current_token(ctx)->offset;
 
 	if(next(ctx) != TIDENT)
-		{
-			if(done(ctx))
-				Error_Report(ctx->error, 0, "Source ended where an identifier was expected as function name");
-			else
-				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an identifier was expected as function name", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		if(done(ctx))
+			Error_Report(ctx->error, 0, "Source ended where an identifier was expected as function name");
+		else
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an identifier was expected as function name", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	char *name = copy_token_text(ctx);
 
 	if(name == NULL)
-		{
-			Error_Report(ctx->error, 1, "No memory");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 1, "No memory");
+		return NULL;
+	}
 
 	if(next(ctx) != '(')
-		{
-			if(done(ctx))
-				Error_Report(ctx->error, 0, "Source ended where a function argument list was expected");
-			else
-				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument list was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		if(done(ctx))
+			Error_Report(ctx->error, 0, "Source ended where a function argument list was expected");
+		else
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument list was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	Node *argv = NULL;
 	int   argc = 0;
 
 	if(next(ctx) != ')')
+	{
+		// Parse arguments.
+
+		while(1)
 		{
-			// Parse arguments.
+			if(done(ctx))
+			{
+				Error_Report(ctx->error, 0, "Source ended inside a function argument list");
+				return NULL;
+			}
 
-			while(1)
+			if(current(ctx) != TIDENT)
+			{
+				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument name was expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
+
+			char *arg_name = copy_token_text(ctx);
+
+			if(arg_name == NULL)
+			{
+				Error_Report(ctx->error, 1, "No memory");
+				return NULL;
+			}
+
+			ArgumentNode *arg;
+			{
+				// Make argument node.
+				arg = BPAlloc_Malloc(ctx->alloc, sizeof(ArgumentNode));
+
+				if(arg == NULL)
 				{
-					if(done(ctx))
-						{
-							Error_Report(ctx->error, 0, "Source ended inside a function argument list");
-							return NULL;
-						}
-
-					if(current(ctx) != TIDENT)
-						{
-							Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument name was expected", ctx->token->length, ctx->src + ctx->token->offset);
-							return NULL;
-						}
-
-					char *arg_name = copy_token_text(ctx);
-
-					if(arg_name == NULL)
-						{
-							Error_Report(ctx->error, 1, "No memory");
-							return NULL;
-						}
-
-					ArgumentNode *arg;
-					{
-						// Make argument node.
-						arg = BPAlloc_Malloc(ctx->alloc, sizeof(ArgumentNode));
-
-						if(arg == NULL)
-							{
-								Error_Report(ctx->error, 1, "No memory");
-								return NULL;
-							}
-
-						arg->base.kind = NODE_ARG;
-						arg->base.next = NULL;
-						arg->base.offset = current_token(ctx)->offset;
-						arg->base.length = current_token(ctx)->length;
-						arg->name = arg_name;
-					}
-
-					// Add it to the list.
-					argc += 1;
-					arg->base.next = argv;
-					argv = (Node*) arg;
-
-					// Get either ',' or ')'.
-
-					if(next(ctx) == ')')
-						break;
-
-					if(done(ctx))
-						{
-							Error_Report(ctx->error, 0, "Source ended inside a function argument list");
-							return NULL;
-						}
-
-					if(current(ctx) != ',')
-						{
-							Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
-							return NULL;
-						}
-
-					// Now prepare for the next identifier.
-					next(ctx);
+					Error_Report(ctx->error, 1, "No memory");
+					return NULL;
 				}
+
+				arg->base.kind = NODE_ARG;
+				arg->base.next = NULL;
+				arg->base.offset = current_token(ctx)->offset;
+				arg->base.length = current_token(ctx)->length;
+				arg->name = arg_name;
+			}
+
+			// Add it to the list.
+			argc += 1;
+			arg->base.next = argv;
+			argv = (Node*) arg;
+
+			// Get either ',' or ')'.
+
+			if(next(ctx) == ')')
+				break;
+
+			if(done(ctx))
+			{
+				Error_Report(ctx->error, 0, "Source ended inside a function argument list");
+				return NULL;
+			}
+
+			if(current(ctx) != ',')
+			{
+				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
+
+			// Now prepare for the next identifier.
+			next(ctx);
 		}
+	}
 
 	next(ctx); // Consume the ')'.
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended before function body");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended before function body");
+		return NULL;
+	}
 
 	Node *body = parse_statement(ctx);
 
@@ -1969,10 +1948,10 @@ static Node *parse_function_definition(Context *ctx)
 		func = BPAlloc_Malloc(ctx->alloc, sizeof(FunctionNode));
 
 		if(func == NULL)
-			{
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		func->base.kind = NODE_FUNC;
 		func->base.next = NULL;
@@ -1992,16 +1971,16 @@ static Node *parse_while_statement(Context *ctx)
 	assert(ctx != NULL);
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a while statement was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a while statement was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != TKWWHILE)
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	Token *while_token = current_token(ctx);
 	assert(while_token != NULL);
@@ -2014,16 +1993,16 @@ static Node *parse_while_statement(Context *ctx)
 		return NULL;
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended right after a while loop condition, where a ':' was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended right after a while loop condition, where a ':' was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != ':')
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a while loop condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a while loop condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	next(ctx); // Skip the ':'.
 
@@ -2037,11 +2016,11 @@ static Node *parse_while_statement(Context *ctx)
 		whl = BPAlloc_Malloc(ctx->alloc, sizeof(WhileNode));
 		
 		if(whl == NULL)
-			{
-				// ERROR: No memory.
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			// ERROR: No memory.
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		whl->base.kind = NODE_WHILE;
 		whl->base.next = NULL;
@@ -2059,16 +2038,16 @@ static Node *parse_dowhile_statement(Context *ctx)
 	assert(ctx != NULL);
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended where a do-while statement was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended where a do-while statement was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != TKWDO)
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a do-while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a do-while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	Token *do_token = current_token(ctx);
 	assert(do_token != NULL);
@@ -2081,16 +2060,16 @@ static Node *parse_dowhile_statement(Context *ctx)
 		return NULL;
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended right after a do-while body, where the \"while\" keyword was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended right after a do-while body, where the \"while\" keyword was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != TKWWHILE)
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a do-while body, where the \"while\" keyword was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a do-while body, where the \"while\" keyword was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	next(ctx); // Consume the "while" keyword.
 
@@ -2100,16 +2079,16 @@ static Node *parse_dowhile_statement(Context *ctx)
 		return NULL;
 
 	if(done(ctx))
-		{
-			Error_Report(ctx->error, 0, "Source ended right after a do-while condition, where a ';' was expected");
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Source ended right after a do-while condition, where a ';' was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != ';')
-		{
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a do-while conditnion, where a ';' was expected", ctx->token->length, ctx->src + ctx->token->offset);
-			return NULL;
-		}
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after a do-while conditnion, where a ';' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
 
 	next(ctx); // Skip the ';'.
 
@@ -2118,11 +2097,11 @@ static Node *parse_dowhile_statement(Context *ctx)
 		dowhl = BPAlloc_Malloc(ctx->alloc, sizeof(DoWhileNode));
 		
 		if(dowhl == NULL)
-			{
-				// ERROR: No memory.
-				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
-			}
+		{
+			// ERROR: No memory.
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
 
 		dowhl->base.kind = NODE_DOWHILE;
 		dowhl->base.next = NULL;

@@ -75,22 +75,22 @@ static Object *copy(Object *self, Heap *heap, Error *err)
 	if(m2 == NULL) return NULL;
 
 	for(int i = 0; i < m1->count; i += 1)
-		{
-			Object *key, *key_cpy;
-			Object *val, *val_cpy;
+	{
+		Object *key, *key_cpy;
+		Object *val, *val_cpy;
 
-			key = m1->keys[i];
-			val = m1->vals[i];
+		key = m1->keys[i];
+		val = m1->vals[i];
 
-			key_cpy = Object_Copy(key, heap, err);
-			if(key_cpy == NULL) return NULL;
+		key_cpy = Object_Copy(key, heap, err);
+		if(key_cpy == NULL) return NULL;
 
-			val_cpy = Object_Copy(val, heap, err);
-			if(val_cpy == NULL) return NULL;
+		val_cpy = Object_Copy(val, heap, err);
+		if(val_cpy == NULL) return NULL;
 
-			if(!Object_Insert(m2, key_cpy, val_cpy, heap, err))
-				return NULL;
-		}
+		if(!Object_Insert(m2, key_cpy, val_cpy, heap, err))
+			return NULL;
+	}
 
 	return (Object*) m2;
 }
@@ -103,8 +103,8 @@ static int hash(Object *self)
 	// The hash of the map is the sum of the
 	// hashes of each key and each item.
 	for(int i = 0; i < m->count; i += 1)
-			h += Object_Hash(m->keys[i])
-			   + Object_Hash(m->vals[i]);
+		h += Object_Hash(m->keys[i])
+		   + Object_Hash(m->vals[i]);
 	return h;
 }
 
@@ -151,10 +151,10 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 	MapObject *map = (MapObject*) self;
 
 	for(int i = 0; i < map->count; i += 1)
-		{
-			callback(&map->keys[i], userp);
-			callback(&map->vals[i], userp);
-		}
+	{
+		callback(&map->keys[i], userp);
+		callback(&map->vals[i], userp);
+	}
 }
 
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
@@ -187,36 +187,36 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	int i = hash & mask;
 
 	while(1)
+	{
+		int k = map->mapper[i];
+
+		if(k == -1)
 		{
-			int k = map->mapper[i];
-
-			if(k == -1)
-				{
-					// Empty slot. 
-					// This key is not present.
-					return NULL;
-				}
-			else
-				{
-					// Found an item. 
-					// Is it the right one?
-					
-					assert(k >= 0);
-
-					if(Object_Compare(key, map->keys[k], error))
-						// Found it!
-						return map->vals[k];
-
-					if(error->occurred)
-						// Key doesn't implement compare.
-						return 0;
-
-					// Not the one we wanted.
-				}
-
-			pert >>= 5;
-			i = (i * 5 + pert + 1) & mask;
+			// Empty slot. 
+			// This key is not present.
+			return NULL;
 		}
+		else
+		{
+			// Found an item. 
+			// Is it the right one?
+					
+			assert(k >= 0);
+
+			if(Object_Compare(key, map->keys[k], error))
+				// Found it!
+				return map->vals[k];
+
+			if(error->occurred)
+				// Key doesn't implement compare.
+				return 0;
+
+			// Not the one we wanted.
+		}
+
+		pert >>= 5;
+		i = (i * 5 + pert + 1) & mask;
+	}
 
 	UNREACHABLE;
 	return NULL;
@@ -237,42 +237,42 @@ static _Bool grow(MapObject *map, Heap *heap, Error *error)
 		return 0;
 
 	for(int i = 0; i < map->count; i += 1)
-		{
-			keys[i] = map->keys[i];
-			vals[i] = map->vals[i];
-		}
+	{
+		keys[i] = map->keys[i];
+		vals[i] = map->vals[i];
+	}
 
 	for(int i = 0; i < new_mapper_size; i += 1)
 		mapper[i] = -1;
 
 	// Rehash everything.
 	for(int i = 0; i < map->count; i += 1)
-		{
-			// This won't trigger an error because the key
-			// surely has a hash method since we already
-			// hashed it once.
-			int hash = Object_Hash(keys[i]);
+	{
+		// This won't trigger an error because the key
+		// surely has a hash method since we already
+		// hashed it once.
+		int hash = Object_Hash(keys[i]);
 
-			int mask = new_mapper_size - 1;
-			int pert = hash;
+		int mask = new_mapper_size - 1;
+		int pert = hash;
 			
-			int j = hash & mask;
+		int j = hash & mask;
 
-			while(1)
-				{
-					if(mapper[j] == -1)
-						{
-							// No collision.
-							// Insert here.
-							mapper[j] = i;
-							break;
-						}
+		while(1)
+		{
+			if(mapper[j] == -1)
+			{
+				// No collision.
+				// Insert here.
+				mapper[j] = i;
+				break;
+			}
 
-					// Collided. Find a new place.
-					pert >>= 5;
-					j = (j * 5 + pert + 1) & mask;
-				}
+			// Collided. Find a new place.
+			pert >>= 5;
+			j = (j * 5 + pert + 1) & mask;
 		}
+	}
 
 	// Done.
 	map->mapper = mapper;
@@ -304,45 +304,45 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 	int i = hash & mask;
 
 	while(1)
+	{
+		int k = map->mapper[i];
+
+		if(k == -1)
 		{
-			int k = map->mapper[i];
+			// Empty slot. We can insert it here.
+			Object *key_copy = Object_Copy(key, heap, error);
 
-			if(k == -1)
-				{
-					// Empty slot. We can insert it here.
-					Object *key_copy = Object_Copy(key, heap, error);
+			if(key_copy == NULL)
+				return NULL;
 
-					if(key_copy == NULL)
-						return NULL;
-
-					map->mapper[i] = map->count;
-					map->keys[map->count] = key_copy;
-					map->vals[map->count] = val;
-					map->count += 1;
-					return 1;
-				}
-			else
-				{
-					assert(k >= 0);
-
-					if(Object_Compare(key, map->keys[k], error))
-						{
-							// Already inserted.
-							// Overwrite the value.
-							map->vals[k] = val;
-							return 1;
-						}
-
-					if(error->occurred)
-						// Key doesn't implement compare.
-						return 0;
-
-					// Collision.
-				}
-
-			pert >>= 5;
-			i = (i * 5 + pert + 1) & mask;
+			map->mapper[i] = map->count;
+			map->keys[map->count] = key_copy;
+			map->vals[map->count] = val;
+			map->count += 1;
+			return 1;
 		}
+		else
+		{
+			assert(k >= 0);
+
+			if(Object_Compare(key, map->keys[k], error))
+			{
+				// Already inserted.
+				// Overwrite the value.
+				map->vals[k] = val;
+				return 1;
+			}
+
+			if(error->occurred)
+				// Key doesn't implement compare.
+				return 0;
+
+			// Collision.
+		}
+
+		pert >>= 5;
+		i = (i * 5 + pert + 1) & mask;
+	}
 
 	UNREACHABLE;
 	return 0;
@@ -361,13 +361,13 @@ static void print(Object *self, FILE *fp)
 
 	fprintf(fp, "{");
 	for(int i = 0; i < map->count; i += 1)
-		{
-			Object_Print(map->keys[i], fp);
-			fprintf(fp, ": ");
-			Object_Print(map->vals[i], fp);
+	{
+		Object_Print(map->keys[i], fp);
+		fprintf(fp, ": ");
+		Object_Print(map->vals[i], fp);
 
-			if(i+1 < map->count)
-				fprintf(fp, ", ");
-		}
+		if(i+1 < map->count)
+			fprintf(fp, ", ");
+	}
 	fprintf(fp, "}");
 }

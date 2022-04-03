@@ -109,41 +109,41 @@ _Bool BucketList_Append(BucketList *blist, const void *data, int size)
 	int not_copied_yet = size;
 
 	while(not_copied_yet > 0)
+	{
+		// Copy until there's nothing left
+		// or until the current bucket is
+		// full. If the bucket is already
+		// full, add another one.
+
+		int left_in_bucket = blist->tail->size - blist->tail->used;
+
+		if(left_in_bucket == 0)
 		{
-			// Copy until there's nothing left
-			// or until the current bucket is
-			// full. If the bucket is already
-			// full, add another one.
+			Bucket *new_bucket = make_bucket(blist->alloc, MIN_BUCKET_SIZE);
 
-			int left_in_bucket = blist->tail->size - blist->tail->used;
+			if(new_bucket == NULL)
+				return 0;
 
-			if(left_in_bucket == 0)
-				{
-					Bucket *new_bucket = make_bucket(blist->alloc, MIN_BUCKET_SIZE);
-
-					if(new_bucket == NULL)
-						return 0;
-
-					append_bucket(blist, new_bucket);
-				}
-
-			// Decide how much to copy.
-			int copying = MIN(not_copied_yet, left_in_bucket);
-
-			// Copy into the bucket.
-			{
-				char *dst = blist->tail->body + blist->tail->used;
-
-				if(data == NULL)
-					memset(dst, 0, copying);
-				else
-					memcpy(dst, data + size - not_copied_yet, copying);
-
-				blist->tail->used += copying;
-			}
-
-			not_copied_yet -= copying;				
+			append_bucket(blist, new_bucket);
 		}
+
+		// Decide how much to copy.
+		int copying = MIN(not_copied_yet, left_in_bucket);
+
+		// Copy into the bucket.
+		{
+			char *dst = blist->tail->body + blist->tail->used;
+
+			if(data == NULL)
+				memset(dst, 0, copying);
+			else
+				memcpy(dst, data + size - not_copied_yet, copying);
+
+			blist->tail->used += copying;
+		}
+
+		not_copied_yet -= copying;				
+	}
 
 	blist->size += size;
 	return 1;
@@ -158,16 +158,16 @@ void *BucketList_Append2(BucketList *blist, const void *data, int size)
 	// current bucket, add another one with
 	// enough space.
 	if(blist->tail->used + size > blist->tail->size)
-		{
-			int bucket_size = MAX(MIN_BUCKET_SIZE, size);
+	{
+		int bucket_size = MAX(MIN_BUCKET_SIZE, size);
 
-			Bucket *new_bucket = make_bucket(blist->alloc, bucket_size);
+		Bucket *new_bucket = make_bucket(blist->alloc, bucket_size);
 
-			if(new_bucket == NULL)
-				return 0;
+		if(new_bucket == NULL)
+			return 0;
 
-			append_bucket(blist, new_bucket);
-		}
+		append_bucket(blist, new_bucket);
+	}
 
 	void *addr = blist->tail->body + blist->tail->used;
 
@@ -195,15 +195,15 @@ void BucketList_Copy(BucketList *blist, void *dest, int len)
 	Bucket *bucket = blist->head;
 
 	while(bucket && copied < len)
-		{
-			int copying = MIN(len - copied, bucket->used);
-			assert(copying >= 0);
+	{
+		int copying = MIN(len - copied, bucket->used);
+		assert(copying >= 0);
 
-			memcpy((char*) dest + copied, bucket->body, copying);
+		memcpy((char*) dest + copied, bucket->body, copying);
 
-			copied += copying;
-			bucket = bucket->next;
-		}
+		copied += copying;
+		bucket = bucket->next;
+	}
 }
 
 BPAlloc *BucketList_GetAlloc(BucketList *blist)

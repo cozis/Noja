@@ -90,23 +90,23 @@ Runtime *Runtime_New2(int stack_size, Heap *heap, _Bool free_heap, void *callbac
 	Runtime *runtime = malloc(sizeof(Runtime));
 
 	if(runtime != NULL)
+	{
+		runtime->heap = heap;
+		runtime->stack = Stack_New(stack_size);
+
+		if(runtime->stack == NULL)
 		{
-			runtime->heap = heap;
-			runtime->stack = Stack_New(stack_size);
-
-			if(runtime->stack == NULL)
-				{
-					Heap_Free(runtime->heap);
-					free(runtime);
-				}
-
-			runtime->free_heap = free_heap;
-			runtime->callback_userp = callback_userp;
-			runtime->callback_addr = callback_addr;
-			runtime->builtins = NULL;
-			runtime->frame = NULL;
-			runtime->depth = 0;
+			Heap_Free(runtime->heap);
+			free(runtime);
 		}
+
+		runtime->free_heap = free_heap;
+		runtime->callback_userp = callback_userp;
+		runtime->callback_addr = callback_addr;
+		runtime->builtins = NULL;
+		runtime->frame = NULL;
+		runtime->depth = 0;
+	}
 
 	return runtime;
 }
@@ -148,24 +148,24 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 	assert(obj != NULL);
 
 	if(runtime->depth == 0)
-		{
-			Error_Report(error, 0, "There are no frames on the stack");
-			return 0;
-		}
+	{
+		Error_Report(error, 0, "There are no frames on the stack");
+		return 0;
+	}
 
 	assert(runtime->frame->used <= MAX_FRAME_STACK);
 	
 	if(runtime->frame->used == MAX_FRAME_STACK)
-		{
-			Error_Report(error, 0, "Frame stack limit of %d reached", MAX_FRAME_STACK);
-			return 0;
-		}
+	{
+		Error_Report(error, 0, "Frame stack limit of %d reached", MAX_FRAME_STACK);
+		return 0;
+	}
 
 	if(!Stack_Push(runtime->stack, obj))
-		{
-			Error_Report(error, 0, "Out of stack");
-			return 0;	
-		}
+	{
+		Error_Report(error, 0, "Out of stack");
+		return 0;	
+	}
 
 	runtime->frame->used += 1;
 	return 1;
@@ -177,18 +177,18 @@ _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 	assert(error != NULL);
 
 	if(runtime->depth == 0)
-		{
-			Error_Report(error, 0, "There are no frames on the stack");
-			return 0;
-		}
+	{
+		Error_Report(error, 0, "There are no frames on the stack");
+		return 0;
+	}
 
 	assert(runtime->frame->used >= 0);
 
 	if((unsigned int) runtime->frame->used < n)
-		{
-			Error_Report(error, 0, "Frame has not enough values on the stack");
-			return 0;
-		}
+	{
+		Error_Report(error, 0, "Frame has not enough values on the stack");
+		return 0;
+	}
 
 	// The frame has something on the stack,
 	// this means that the stack isn't empty
@@ -227,20 +227,20 @@ Snapshot *Snapshot_New(Runtime *runtime)
 		snapshot->depth = 0;
 
 		while(snapshot->depth < runtime->depth)
-			{
-				assert(f != NULL);
+		{
+			assert(f != NULL);
 
-				SnapshotNode *node = snapshot->nodes + snapshot->depth;
+			SnapshotNode *node = snapshot->nodes + snapshot->depth;
 
-				node->exe   = Executable_Copy(f->exe);
-				node->index = f->index;
+			node->exe   = Executable_Copy(f->exe);
+			node->index = f->index;
 
-				if(node->exe == NULL)
-					goto abort;
+			if(node->exe == NULL)
+				goto abort;
 
-				f = f->prev;
-				snapshot->depth += 1;
-			}
+			f = f->prev;
+			snapshot->depth += 1;
+		}
 
 		assert(f == NULL);
 	}
@@ -255,11 +255,10 @@ abort:
 void Snapshot_Free(Snapshot *snapshot)
 {
 	for(int i = 0; i < snapshot->depth; i += 1)
-		{
-			Executable *exe = snapshot->nodes[i].exe;
-			
-			Executable_Free(exe);
-		}
+	{
+		Executable *exe = snapshot->nodes[i].exe;		
+		Executable_Free(exe);
+	}
 	free(snapshot);
 }
 
@@ -271,51 +270,51 @@ void Snapshot_Print(Snapshot *snapshot, FILE *fp)
 	fprintf(fp, "Stack trace:\n");
 
 	for(int i = 0; i < snapshot->depth; i += 1)
+	{
+		SnapshotNode node = snapshot->nodes[i];
+
+		Executable *exe = node.exe;
+		Source     *src = Executable_GetSource(exe);
+
+		const char *name;
 		{
-			SnapshotNode node = snapshot->nodes[i];
+			name = NULL;
 
-			Executable *exe = node.exe;
-			Source     *src = Executable_GetSource(exe);
+			if(src != NULL) 
+				name = Source_GetName(src);
 
-			const char *name;
-			{
-				name = NULL;
-
-				if(src != NULL) 
-					name = Source_GetName(src);
-
-				if(name == NULL)
-					name = "(unnamed)";
-			}
-
-			int line;
-			{
-				if(src == NULL)
-					line = 0;
-				else
-					{
-						line = 1;
-
-						const char *body = Source_GetBody(src);
-						int offset = Executable_GetInstrOffset(exe, node.index);
-
-						int i = 0;
-				
-						while(i < offset)
-							{
-								if(body[i] == '\n')
-									line += 1;
-
-								i += 1;
-							}
-					}
-			}
-
-			if(line == 0)
-				fprintf(fp, "\t#%d %s\n", i, name);
-			else
-				fprintf(fp, "\t#%d %s:%d\n", i, name, line);
+			if(name == NULL)
+				name = "(unnamed)";
 		}
+
+		int line;
+		{
+			if(src == NULL)
+				line = 0;
+			else
+				{
+					line = 1;
+
+					const char *body = Source_GetBody(src);
+					int offset = Executable_GetInstrOffset(exe, node.index);
+
+					int i = 0;
+				
+					while(i < offset)
+					{
+						if(body[i] == '\n')
+							line += 1;
+
+						i += 1;
+					}
+				}
+		}
+
+		if(line == 0)
+			fprintf(fp, "\t#%d %s\n", i, name);
+		else
+			fprintf(fp, "\t#%d %s:%d\n", i, name, line);
+	}
 
 	//fprintf(fp, "  (Snapshot can't be printed yet)\n");
 }
@@ -327,103 +326,103 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 
 	#define APPLY(x, y, z, id) 								\
 		switch(opcode)										\
-			{												\
-				case OPCODE_ADD: (z) = (x) + (y); break;	\
-				case OPCODE_SUB: (z) = (x) - (y); break;	\
-				case OPCODE_MUL: (z) = (x) * (y); break;	\
-				case OPCODE_DIV: (z) = (x) / (y); break;	\
-				default: assert(0); break;					\
-			}
+		{												\
+			case OPCODE_ADD: (z) = (x) + (y); break;	\
+			case OPCODE_SUB: (z) = (x) - (y); break;	\
+			case OPCODE_MUL: (z) = (x) * (y); break;	\
+			case OPCODE_DIV: (z) = (x) / (y); break;	\
+			default: assert(0); break;					\
+		}
 
 	Object *res;
 
 	if(Object_IsInt(lop))
+	{
+		long long int raw_lop = Object_ToInt(lop, error);
+
+		if(error->occurred)
+			return NULL;
+
+		if(Object_IsInt(rop))
 		{
-			long long int raw_lop = Object_ToInt(lop, error);
+			// int + int
+			long long int raw_rop = Object_ToInt(rop, error);
 
 			if(error->occurred)
 				return NULL;
 
-			if(Object_IsInt(rop))
-				{
-					// int + int
-					long long int raw_rop = Object_ToInt(rop, error);
+			long long int raw_res;
 
-					if(error->occurred)
-						return NULL;
+			APPLY(raw_lop, raw_rop, raw_res, id)
 
-					long long int raw_res;
-
-					APPLY(raw_lop, raw_rop, raw_res, id)
-
-					res = Object_FromInt(raw_res, heap, error);
-				}
-			else if(Object_IsFloat(rop))
-				{
-					// int + float
-					double raw_rop = Object_ToFloat(rop, error);
-
-					if(error->occurred)
-						return NULL;
-
-					double raw_res;
-
-					APPLY((double) raw_lop, raw_rop, raw_res, id)
-
-					res = Object_FromFloat(raw_res, heap, error);
-				}
-			else
-				{
-					Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
-					return NULL;
-				}
+			res = Object_FromInt(raw_res, heap, error);
 		}
-	else if(Object_IsFloat(lop))
+		else if(Object_IsFloat(rop))
 		{
-			double raw_lop = Object_ToFloat(lop, error);
+			// int + float
+			double raw_rop = Object_ToFloat(rop, error);
 
 			if(error->occurred)
 				return NULL;
 
-			if(Object_IsInt(rop))
-				{
-					// float + int
-					long long int raw_rop = Object_ToInt(rop, error);
+			double raw_res;
 
-					if(error->occurred)
-						return NULL;
+			APPLY((double) raw_lop, raw_rop, raw_res, id)
 
-					double raw_res;
-
-					APPLY(raw_lop, (double) raw_rop, raw_res, id)
-
-					res = Object_FromFloat(raw_res, heap, error);
-				}
-			else if(Object_IsFloat(rop))
-				{
-					// float + float
-					double raw_rop = Object_ToFloat(rop, error);
-
-					if(error->occurred)
-						return NULL;
-
-					double raw_res;
-
-					APPLY(raw_lop, raw_rop, raw_res, id)
-
-					res = Object_FromFloat(raw_res, heap, error);
-				}
-			else
-				{
-					Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
-					return NULL;
-				}
+			res = Object_FromFloat(raw_res, heap, error);
 		}
-	else
+		else
 		{
 			Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
 			return NULL;
 		}
+	}
+	else if(Object_IsFloat(lop))
+	{
+		double raw_lop = Object_ToFloat(lop, error);
+
+		if(error->occurred)
+			return NULL;
+
+		if(Object_IsInt(rop))
+		{
+			// float + int
+			long long int raw_rop = Object_ToInt(rop, error);
+
+			if(error->occurred)
+				return NULL;
+
+			double raw_res;
+
+			APPLY(raw_lop, (double) raw_rop, raw_res, id)
+
+			res = Object_FromFloat(raw_res, heap, error);
+		}
+		else if(Object_IsFloat(rop))
+		{
+			// float + float
+			double raw_rop = Object_ToFloat(rop, error);
+
+			if(error->occurred)
+				return NULL;
+
+			double raw_res;
+
+			APPLY(raw_lop, raw_rop, raw_res, id)
+
+			res = Object_FromFloat(raw_res, heap, error);
+		}
+		else
+		{
+			Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+			return NULL;
+		}
+	}
+	else
+	{
+		Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+		return NULL;
+	}
 
 	#undef APPLY
 
@@ -437,87 +436,87 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 
 	#define APPLY(x, y, z, id) 								\
 		switch(opcode)										\
-			{												\
-				case OPCODE_LSS: (z) = (x) <  (y); break;	\
-				case OPCODE_GRT: (z) = (x) >  (y); break;	\
-				case OPCODE_LEQ: (z) = (x) <= (y); break;	\
-				case OPCODE_GEQ: (z) = (x) >= (y); break;	\
-				default: assert(0); break;					\
-			}
+		{												\
+			case OPCODE_LSS: (z) = (x) <  (y); break;	\
+			case OPCODE_GRT: (z) = (x) >  (y); break;	\
+			case OPCODE_LEQ: (z) = (x) <= (y); break;	\
+			case OPCODE_GEQ: (z) = (x) >= (y); break;	\
+			default: assert(0); break;					\
+		}
 
 	_Bool res;
 
 	if(Object_IsInt(lop))
+	{
+		long long int raw_lop = Object_ToInt(lop, error);
+
+		if(error->occurred)
+			return NULL;
+
+		if(Object_IsInt(rop))
 		{
-			long long int raw_lop = Object_ToInt(lop, error);
+			// int + int
+			long long int raw_rop = Object_ToInt(rop, error);
 
 			if(error->occurred)
 				return NULL;
 
-			if(Object_IsInt(rop))
-				{
-					// int + int
-					long long int raw_rop = Object_ToInt(rop, error);
-
-					if(error->occurred)
-						return NULL;
-
-					APPLY(raw_lop, raw_rop, res, id)
-				}
-			else if(Object_IsFloat(rop))
-				{
-					// int + float
-					double raw_rop = Object_ToFloat(rop, error);
-
-					if(error->occurred)
-						return NULL;
-
-					APPLY((double) raw_lop, raw_rop, res, id)
-				}
-			else
-				{
-					Error_Report(error, 0, "Relational operation on a non-numeric object");
-					return NULL;
-				}
+			APPLY(raw_lop, raw_rop, res, id)
 		}
-	else if(Object_IsFloat(lop))
+		else if(Object_IsFloat(rop))
 		{
-			double raw_lop = Object_ToFloat(lop, error);
+			// int + float
+			double raw_rop = Object_ToFloat(rop, error);
 
 			if(error->occurred)
 				return NULL;
 
-			if(Object_IsInt(rop))
-				{
-					// float + int
-					long long int raw_rop = Object_ToInt(rop, error);
-
-					if(error->occurred)
-						return NULL;
-
-					APPLY(raw_lop, (double) raw_rop, res, id)
-				}
-			else if(Object_IsFloat(rop))
-				{
-					// float + float
-					double raw_rop = Object_ToFloat(rop, error);
-
-					if(error->occurred)
-						return NULL;
-
-					APPLY(raw_lop, raw_rop, res, id)
-				}
-			else
-				{
-					Error_Report(error, 0, "Relational operation on a non-numeric object");
-					return NULL;
-				}
+			APPLY((double) raw_lop, raw_rop, res, id)
 		}
-	else
+		else
 		{
 			Error_Report(error, 0, "Relational operation on a non-numeric object");
 			return NULL;
 		}
+	}
+	else if(Object_IsFloat(lop))
+	{
+		double raw_lop = Object_ToFloat(lop, error);
+
+		if(error->occurred)
+			return NULL;
+
+		if(Object_IsInt(rop))
+		{
+			// float + int
+			long long int raw_rop = Object_ToInt(rop, error);
+
+			if(error->occurred)
+				return NULL;
+
+			APPLY(raw_lop, (double) raw_rop, res, id)
+		}
+		else if(Object_IsFloat(rop))
+		{
+			// float + float
+			double raw_rop = Object_ToFloat(rop, error);
+
+			if(error->occurred)
+				return NULL;
+
+			APPLY(raw_lop, raw_rop, res, id)
+		}
+		else
+		{
+			Error_Report(error, 0, "Relational operation on a non-numeric object");
+			return NULL;
+		}
+	}
+	else
+	{
+		Error_Report(error, 0, "Relational operation on a non-numeric object");
+		return NULL;
+	}
 
 	#undef APPLY
 
@@ -533,676 +532,676 @@ static _Bool step(Runtime *runtime, Error *error)
 	int     opc = sizeof(ops) / sizeof(ops[0]);
 
 	if(!Executable_Fetch(runtime->frame->exe, runtime->frame->index, &opcode, ops, &opc))
-		{
-			Error_Report(error, 1, "Invalid instruction index");
-			return 0;
-		}
+	{
+		Error_Report(error, 1, "Invalid instruction index");
+		return 0;
+	}
 	
 	runtime->frame->index += 1;
 
 	switch(opcode)
+	{
+		case OPCODE_NOPE:
+		// Do nothing.
+		return 1;
+
+		case OPCODE_POS:
 		{
-			case OPCODE_NOPE:
-			// Do nothing.
+			assert(opc == 0);
+
+			if(runtime->frame->used == 0)
+			{
+				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute POS");
+				return 0;
+			}
+
+			/* Do nothing */
 			return 1;
+		}
 
-			case OPCODE_POS:
+		case OPCODE_NEG:
+		{
+			assert(opc == 0);
+
+			if(runtime->frame->used == 0)
 			{
-				assert(opc == 0);
-
-				if(runtime->frame->used == 0)
-					{
-						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute POS");
-						return 0;
-					}
-
-				/* Do nothing */
-				return 1;
+				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NEG");
+				return 0;
 			}
 
-			case OPCODE_NEG:
+			Object *top = Stack_Top(runtime->stack, 0);
+			assert(top != NULL);
+
+			if(!Runtime_Pop(runtime, error, 1))
+				return 0;
+
+			Heap *heap = Runtime_GetHeap(runtime);
+			assert(heap != NULL);
+
+			if(Object_IsInt(top))
 			{
-				assert(opc == 0);
-
-				if(runtime->frame->used == 0)
-					{
-						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NEG");
-						return 0;
-					}
-
-				Object *top = Stack_Top(runtime->stack, 0);
-				assert(top != NULL);
-
-				if(!Runtime_Pop(runtime, error, 1))
-					return 0;
-
-				Heap *heap = Runtime_GetHeap(runtime);
-				assert(heap != NULL);
-
-				if(Object_IsInt(top))
-					{
-						long long n = Object_ToInt(top, error);
-
-						if(error->occurred)
-							return 0;
-
-						top = Object_FromInt(-n, heap, error);
-					}
-				else if(Object_IsFloat(top))
-					{
-						double f = Object_ToFloat(top, error);
-
-						if(error->occurred)
-							return 0;
-
-						top = Object_FromFloat(-f, heap, error);
-					}
-				else
-					{
-						Error_Report(error, 0, "Negation operand on a non-numeric object");
-						return 0;
-					}
-
-				if(top == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, top))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_NOT:
-			{
-				assert(opc == 0);
-
-				if(runtime->frame->used == 0)
-					{
-						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NOT");
-						return 0;
-					}
-
-				Object *top = Stack_Top(runtime->stack, 0);
-
-				if(!Runtime_Pop(runtime, error, 1))
-					return 0;
-
-				assert(top != NULL);
-
-				_Bool v = Object_ToBool(top, error);
+				long long n = Object_ToInt(top, error);
 
 				if(error->occurred)
 					return 0;
 
-				Object *negated = Object_FromBool(!v, runtime->heap, error);
-
-				if(negated == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, negated))
-					return 0;
-				return 1;
+				top = Object_FromInt(-n, heap, error);
 			}
-
-			case OPCODE_ADD:
-			case OPCODE_SUB:
-			case OPCODE_MUL:
-			case OPCODE_DIV:
+			else if(Object_IsFloat(top))
 			{
-				assert(opc == 0);
+				double f = Object_ToFloat(top, error);
 
-				Object *rop = Stack_Top(runtime->stack,  0);
-				Object *lop = Stack_Top(runtime->stack, -1);
-
-				if(!Runtime_Pop(runtime, error, 2))
+				if(error->occurred)
 					return 0;
 
-				// We managed to pop rop and lop,
-				// so we know they're not NULL.
-				assert(rop != NULL);
-				assert(lop != NULL);
-
-				Object *res = do_math_op(lop, rop, opcode, runtime->heap, error);
-
-				if(res == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, res))
-					return 0;
-				return 1;
+				top = Object_FromFloat(-f, heap, error);
 			}
-
-			case OPCODE_EQL:
-			case OPCODE_NQL:
+			else
 			{
-				assert(opc == 0);
-
-				Object *rop = Stack_Top(runtime->stack,  0);
-				Object *lop = Stack_Top(runtime->stack, -1);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				// We managed to pop rop and lop,
-				// so we know they're not NULL.
-				assert(rop != NULL);
-				assert(lop != NULL);
-
-				_Bool rawres = Object_Compare(lop, rop, error);
-
-				if(error->occurred == 1)
-					return 0;
-
-				if(opcode == OPCODE_NQL)
-					rawres = !rawres;
-
-				Object *res = Object_FromBool(rawres, runtime->heap, error);
-
-				if(res == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, res))
-					return 0;
-				return 1;
+				Error_Report(error, 0, "Negation operand on a non-numeric object");
+				return 0;
 			}
 
-			case OPCODE_LSS:
-			case OPCODE_GRT:
-			case OPCODE_LEQ:
-			case OPCODE_GEQ:
+			if(top == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, top))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_NOT:
+		{
+			assert(opc == 0);
+
+			if(runtime->frame->used == 0)
 			{
-				assert(opc == 0);
-
-				Object *rop = Stack_Top(runtime->stack,  0);
-				Object *lop = Stack_Top(runtime->stack, -1);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				// We managed to pop rop and lop,
-				// so we know they're not NULL.
-				assert(rop != NULL);
-				assert(lop != NULL);
-
-				Object *res = do_relational_op(lop, rop, opcode, runtime->heap, error);
-
-				if(res == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, res))
-					return 0;
-				return 1;
+				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NOT");
+				return 0;
 			}
 
-			case OPCODE_AND:
-			case OPCODE_OR:
+			Object *top = Stack_Top(runtime->stack, 0);
+
+			if(!Runtime_Pop(runtime, error, 1))
+				return 0;
+
+			assert(top != NULL);
+
+			_Bool v = Object_ToBool(top, error);
+
+			if(error->occurred)
+				return 0;
+
+			Object *negated = Object_FromBool(!v, runtime->heap, error);
+
+			if(negated == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, negated))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_ADD:
+		case OPCODE_SUB:
+		case OPCODE_MUL:
+		case OPCODE_DIV:
+		{
+			assert(opc == 0);
+
+			Object *rop = Stack_Top(runtime->stack,  0);
+			Object *lop = Stack_Top(runtime->stack, -1);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			// We managed to pop rop and lop,
+			// so we know they're not NULL.
+			assert(rop != NULL);
+			assert(lop != NULL);
+
+			Object *res = do_math_op(lop, rop, opcode, runtime->heap, error);
+
+			if(res == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, res))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_EQL:
+		case OPCODE_NQL:
+		{
+			assert(opc == 0);
+
+			Object *rop = Stack_Top(runtime->stack,  0);
+			Object *lop = Stack_Top(runtime->stack, -1);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			// We managed to pop rop and lop,
+			// so we know they're not NULL.
+			assert(rop != NULL);
+			assert(lop != NULL);
+
+			_Bool rawres = Object_Compare(lop, rop, error);
+
+			if(error->occurred == 1)
+				return 0;
+
+			if(opcode == OPCODE_NQL)
+				rawres = !rawres;
+
+			Object *res = Object_FromBool(rawres, runtime->heap, error);
+
+			if(res == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, res))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_LSS:
+		case OPCODE_GRT:
+		case OPCODE_LEQ:
+		case OPCODE_GEQ:
+		{
+			assert(opc == 0);
+
+			Object *rop = Stack_Top(runtime->stack,  0);
+			Object *lop = Stack_Top(runtime->stack, -1);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			// We managed to pop rop and lop,
+			// so we know they're not NULL.
+			assert(rop != NULL);
+			assert(lop != NULL);
+
+			Object *res = do_relational_op(lop, rop, opcode, runtime->heap, error);
+
+			if(res == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, res))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_AND:
+		case OPCODE_OR:
+		{
+			assert(opc == 0);
+
+			Object *rop = Stack_Top(runtime->stack,  0);
+			Object *lop = Stack_Top(runtime->stack, -1);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			// We managed to pop rop and lop,
+			// so we know they're not NULL.
+			assert(rop != NULL);
+			assert(lop != NULL);
+
+			_Bool raw_rop, raw_lop, raw_res;
+			raw_lop = Object_ToBool(lop, error);
+			raw_rop = Object_ToBool(rop, error);
+			if(error->occurred) return 0;
+
+			switch(opcode)
 			{
-				assert(opc == 0);
-
-				Object *rop = Stack_Top(runtime->stack,  0);
-				Object *lop = Stack_Top(runtime->stack, -1);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				// We managed to pop rop and lop,
-				// so we know they're not NULL.
-				assert(rop != NULL);
-				assert(lop != NULL);
-
-				_Bool raw_rop, raw_lop, raw_res;
-				raw_lop = Object_ToBool(lop, error);
-				raw_rop = Object_ToBool(rop, error);
-				if(error->occurred) return 0;
-
-				switch(opcode)
-					{
-						case OPCODE_AND: raw_res = raw_lop && raw_rop; break;
-						case OPCODE_OR:  raw_res = raw_lop || raw_rop; break;
-						default: assert(0); break;
-					}
-
-				Object *res = Object_FromBool(raw_res, runtime->heap, error);
-
-				if(res == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, res))
-					return 0;
-				return 1;
+				case OPCODE_AND: raw_res = raw_lop && raw_rop; break;
+				case OPCODE_OR:  raw_res = raw_lop || raw_rop; break;
+				default: assert(0); break;
 			}
 
-			case OPCODE_ASS:
+			Object *res = Object_FromBool(raw_res, runtime->heap, error);
+
+			if(res == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, res))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_ASS:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_STRING);
+
+			if(runtime->frame->used == 0)
 			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_STRING);
-
-				if(runtime->frame->used == 0)
-					{
-						Error_Report(error, 0, "Frame has not enough values on the stack");
-						return 0;
-					}
-
-				Object *val = Stack_Top(runtime->stack, 0);
-				assert(val != NULL);
-
-				Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
-
-				if(key == NULL)
-					return 0;
-
-				if(!Object_Insert(runtime->frame->locals, key, val, runtime->heap, error))
-					return 0;
-				return 1;
+				Error_Report(error, 0, "Frame has not enough values on the stack");
+				return 0;
 			}
 
-			case OPCODE_POP:
-			{
-				assert(opc == 1);
+			Object *val = Stack_Top(runtime->stack, 0);
+			assert(val != NULL);
 
-				if(!Runtime_Pop(runtime, error, ops[0].as_int))
-					return 0;
-				return 1;
-			}
+			Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
 
-			case OPCODE_CALL:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_INT);
+			if(key == NULL)
+				return 0;
 
-				int argc = ops[0].as_int;
-				assert(argc >= 0);
+			if(!Object_Insert(runtime->frame->locals, key, val, runtime->heap, error))
+				return 0;
+			return 1;
+		}
 
-				if(runtime->frame->used < argc + 1)
-					{
-						Error_Report(error, 1, "Frame doesn't own enough objects to execute call");
-						return 0;
-					}
+		case OPCODE_POP:
+		{
+			assert(opc == 1);
 
-				Object *callable = Stack_Top(runtime->stack, 0);
-				assert(callable != NULL);
+			if(!Runtime_Pop(runtime, error, ops[0].as_int))
+				return 0;
+			return 1;
+		}
 
-				Object *argv[8];
-
-				int max_argc = sizeof(argv) / sizeof(argv[0]);
-				if(argc > max_argc)
-					{
-						Error_Report(error, 1, "Static buffer only allows function calls with up to %d arguments", max_argc);
-						return 0;
-					}
-
-				for(int i = 0; i < argc; i += 1)
-					{
-						argv[i] = Stack_Top(runtime->stack, -(i+1));
-						assert(argv[i] != NULL);
-					}
-
-				assert(error->occurred == 0);
-				(void) Runtime_Pop(runtime, error, argc+1);
-				assert(error->occurred == 0);
-
-				Object *obj = Object_Call(callable, argv, argc, runtime->heap, error);
-				// NOTE: Every local object reference is invalidated from here.
-				
-				if(obj == NULL)
-					{
-						assert(error->occurred != 0);
-						return 0;
-					}
-
-				assert(error->occurred == 0);
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_SELECT:
-			{
-				assert(opc == 0);
-
-				if(runtime->frame->used < 2)
-					{
-						Error_Report(error, 1, "Frame has not enough values on the stack to run SELECT instruction");
-						return 0;
-					}
-
-				Object *col = Stack_Top(runtime->stack, -1);
-				Object *key = Stack_Top(runtime->stack,  0);
-
-				assert(col != NULL && key != NULL);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				assert(error->occurred == 0);
-
-				Error dummy;
-				Error_Init(&dummy); // We want to catch the error reported by this Object_Select.
-
-				Object *val = Object_Select(col, key, runtime->heap, &dummy);
-
-				if(val == NULL)
-					{
-						Error_Free(&dummy);
-
-						val = Object_NewNone(runtime->heap, error);
-
-						if(val == NULL)
-							return 0;
-					}
-
-				assert(error->occurred == 0);
-
-				if(!Runtime_Push(runtime, error, val))
-					return 0;
-
-				assert(error->occurred == 0);
-				return 1;
-			}
-
-			case OPCODE_INSERT:
-			{
-				assert(opc == 0);
-
-				if(runtime->frame->used < 3)
-					{
-						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT instruction");
-						return 0;
-					}
-
-				Object *col = Stack_Top(runtime->stack, -2);
-				Object *key = Stack_Top(runtime->stack, -1);
-				Object *val = Stack_Top(runtime->stack,  0);
-
-				assert(col != NULL && key != NULL && val != NULL);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				if(!Object_Insert(col, key, val, runtime->heap, error))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_INSERT2:
-			{
-				assert(opc == 0);
-
-				if(runtime->frame->used < 3)
-					{
-						Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT2 instruction");
-						return 0;
-					}
-
-				Object *val = Stack_Top(runtime->stack, -2);
-				Object *col = Stack_Top(runtime->stack, -1);
-				Object *key = Stack_Top(runtime->stack,  0);
-
-				assert(col != NULL && key != NULL && val != NULL);
-
-				if(!Runtime_Pop(runtime, error, 2))
-					return 0;
-
-				if(!Object_Insert(col, key, val, runtime->heap, error))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHINT:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_INT);
-
-				Object *obj = Object_FromInt(ops[0].as_int, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHFLT:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_FLOAT);
-
-				Object *obj = Object_FromFloat(ops[0].as_float, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHSTR:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_STRING);
-
-				Object *obj = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHVAR:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_STRING);
-
-				Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
-				
-				if(key == NULL)
-					return 0;
-
-				Object *locations[] = {
-					runtime->frame->locals,
-					runtime->frame->closure,
-					Runtime_GetBuiltins(runtime),
-				};
-				
-				Object *obj = NULL;
-
-				for(int p = 0; obj == NULL && (unsigned int) p < sizeof(locations)/sizeof(locations[0]); p += 1)
-					{
-						if(locations[p] == NULL)
-							continue;
-
-						obj = Object_Select(locations[p], key, Runtime_GetHeap(runtime), error);
-					}
-
-				if(obj == NULL)
-					{
-						if(error->occurred == 0)
-							// There's no such variable.
-							Error_Report(error, 0, "Reference to undefined variable \"%s\"", ops[0].as_string);
-						return 0;
-					}
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-
-				return 1;
-			}
-
-			case OPCODE_PUSHNNE:
-			{
-				assert(opc == 0);
-
-				Object *obj = Object_NewNone(runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHTRU:
-			{
-				assert(opc == 0);
-
-				Object *obj = Object_FromBool(1, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHFLS:
-			{
-				assert(opc == 0);
-
-				Object *obj = Object_FromBool(0, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHFUN:
-			{
-				assert(opc == 2);
-				assert(ops[0].type == OPTP_INT);
-				assert(ops[1].type == OPTP_INT);
-
-				Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
-
-				if(closure == NULL)
-					return 0;
-
-				Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, closure, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHLST:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_INT);
-
-				Object *obj = Object_NewList(ops[0].as_int, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_PUSHMAP:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_INT);
-
-				Object *obj = Object_NewMap(ops[0].as_int, runtime->heap, error);
-
-				if(obj == NULL)
-					return 0;
-
-				if(!Runtime_Push(runtime, error, obj))
-					return 0;
-				return 1;
-			}
-
-			case OPCODE_RETURN:
-			return 0;
-
-			case OPCODE_JUMP:
+		case OPCODE_CALL:
+		{
 			assert(opc == 1);
 			assert(ops[0].type == OPTP_INT);
-			runtime->frame->index = ops[0].as_int;
+
+			int argc = ops[0].as_int;
+			assert(argc >= 0);
+
+			if(runtime->frame->used < argc + 1)
+			{
+				Error_Report(error, 1, "Frame doesn't own enough objects to execute call");
+				return 0;
+			}
+
+			Object *callable = Stack_Top(runtime->stack, 0);
+			assert(callable != NULL);
+
+			Object *argv[8];
+
+			int max_argc = sizeof(argv) / sizeof(argv[0]);
+			if(argc > max_argc)
+			{
+				Error_Report(error, 1, "Static buffer only allows function calls with up to %d arguments", max_argc);
+				return 0;
+			}
+
+			for(int i = 0; i < argc; i += 1)
+			{
+				argv[i] = Stack_Top(runtime->stack, -(i+1));
+				assert(argv[i] != NULL);
+			}
+
+			assert(error->occurred == 0);
+			(void) Runtime_Pop(runtime, error, argc+1);
+			assert(error->occurred == 0);
+
+			Object *obj = Object_Call(callable, argv, argc, runtime->heap, error);
+			// NOTE: Every local object reference is invalidated from here.
+				
+			if(obj == NULL)
+			{
+				assert(error->occurred != 0);
+				return 0;
+			}
+
+			assert(error->occurred == 0);
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
 			return 1;
-
-			case OPCODE_JUMPIFANDPOP:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_INT);
-				
-				long long int target = ops[0].as_int;
-
-				if(runtime->frame->used == 0)
-					{
-						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
-						return 0;
-					}
-
-				Object *top = Stack_Top(runtime->stack, 0);
-
-				if(!Runtime_Pop(runtime, error, 1))
-					return 0;			
-
-				assert(top != NULL);
-
-				if(!Object_IsBool(top))
-					{
-						Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
-						return 0;
-					}
-
-				if(Object_ToBool(top, error)) // This can't fail because we know it's a bool.
-					runtime->frame->index = target;
-
-				return 1;
-			}
-
-			case OPCODE_JUMPIFNOTANDPOP:
-			{
-				assert(opc == 1);
-				assert(ops[0].type == OPTP_INT);
-				
-				long long int target = ops[0].as_int;
-
-				if(runtime->frame->used == 0)
-					{
-						Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
-						return 0;
-					}
-
-				Object *top = Stack_Top(runtime->stack, 0);
-
-				if(!Runtime_Pop(runtime, error, 1))
-					return 0;			
-
-				assert(top != NULL);
-
-				if(!Object_IsBool(top))
-					{
-						Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
-						return 0;
-					}
-
-				if(!Object_ToBool(top, error)) // This can't fail because we know it's a bool.
-					runtime->frame->index = target;
-
-				return 1;
-			}
-
-			default:
-			UNREACHABLE;
-			return 0;
 		}
+
+		case OPCODE_SELECT:
+		{
+			assert(opc == 0);
+
+			if(runtime->frame->used < 2)
+			{
+				Error_Report(error, 1, "Frame has not enough values on the stack to run SELECT instruction");
+				return 0;
+			}
+
+			Object *col = Stack_Top(runtime->stack, -1);
+			Object *key = Stack_Top(runtime->stack,  0);
+
+			assert(col != NULL && key != NULL);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			assert(error->occurred == 0);
+
+			Error dummy;
+			Error_Init(&dummy); // We want to catch the error reported by this Object_Select.
+
+			Object *val = Object_Select(col, key, runtime->heap, &dummy);
+
+			if(val == NULL)
+				{
+					Error_Free(&dummy);
+
+					val = Object_NewNone(runtime->heap, error);
+
+					if(val == NULL)
+						return 0;
+				}
+
+			assert(error->occurred == 0);
+
+			if(!Runtime_Push(runtime, error, val))
+				return 0;
+
+			assert(error->occurred == 0);
+			return 1;
+		}
+
+		case OPCODE_INSERT:
+		{
+			assert(opc == 0);
+
+			if(runtime->frame->used < 3)
+			{
+				Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT instruction");
+				return 0;
+			}
+
+			Object *col = Stack_Top(runtime->stack, -2);
+			Object *key = Stack_Top(runtime->stack, -1);
+			Object *val = Stack_Top(runtime->stack,  0);
+
+			assert(col != NULL && key != NULL && val != NULL);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			if(!Object_Insert(col, key, val, runtime->heap, error))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_INSERT2:
+		{
+			assert(opc == 0);
+
+			if(runtime->frame->used < 3)
+			{
+				Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT2 instruction");
+				return 0;
+			}
+
+			Object *val = Stack_Top(runtime->stack, -2);
+			Object *col = Stack_Top(runtime->stack, -1);
+			Object *key = Stack_Top(runtime->stack,  0);
+
+			assert(col != NULL && key != NULL && val != NULL);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			if(!Object_Insert(col, key, val, runtime->heap, error))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHINT:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+
+			Object *obj = Object_FromInt(ops[0].as_int, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHFLT:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_FLOAT);
+
+			Object *obj = Object_FromFloat(ops[0].as_float, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHSTR:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_STRING);
+
+			Object *obj = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHVAR:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_STRING);
+
+			Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
+				
+			if(key == NULL)
+				return 0;
+
+			Object *locations[] = {
+				runtime->frame->locals,
+				runtime->frame->closure,
+				Runtime_GetBuiltins(runtime),
+			};
+				
+			Object *obj = NULL;
+
+			for(int p = 0; obj == NULL && (unsigned int) p < sizeof(locations)/sizeof(locations[0]); p += 1)
+			{
+				if(locations[p] == NULL)
+					continue;
+
+				obj = Object_Select(locations[p], key, Runtime_GetHeap(runtime), error);
+			}
+
+			if(obj == NULL)
+			{
+				if(error->occurred == 0)
+					// There's no such variable.
+					Error_Report(error, 0, "Reference to undefined variable \"%s\"", ops[0].as_string);
+				return 0;
+			}
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+
+			return 1;
+		}
+
+		case OPCODE_PUSHNNE:
+		{
+			assert(opc == 0);
+
+			Object *obj = Object_NewNone(runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHTRU:
+		{
+			assert(opc == 0);
+
+			Object *obj = Object_FromBool(1, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHFLS:
+		{
+			assert(opc == 0);
+
+			Object *obj = Object_FromBool(0, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHFUN:
+		{
+			assert(opc == 2);
+			assert(ops[0].type == OPTP_INT);
+			assert(ops[1].type == OPTP_INT);
+
+			Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
+
+			if(closure == NULL)
+				return 0;
+
+			Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, closure, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHLST:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+
+			Object *obj = Object_NewList(ops[0].as_int, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHMAP:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+
+			Object *obj = Object_NewMap(ops[0].as_int, runtime->heap, error);
+
+			if(obj == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_RETURN:
+		return 0;
+
+		case OPCODE_JUMP:
+		assert(opc == 1);
+		assert(ops[0].type == OPTP_INT);
+		runtime->frame->index = ops[0].as_int;
+		return 1;
+
+		case OPCODE_JUMPIFANDPOP:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+				
+			long long int target = ops[0].as_int;
+
+			if(runtime->frame->used == 0)
+			{
+				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
+				return 0;
+			}
+
+			Object *top = Stack_Top(runtime->stack, 0);
+
+			if(!Runtime_Pop(runtime, error, 1))
+				return 0;			
+
+			assert(top != NULL);
+
+			if(!Object_IsBool(top))
+			{
+				Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
+				return 0;
+			}
+
+			if(Object_ToBool(top, error)) // This can't fail because we know it's a bool.
+				runtime->frame->index = target;
+
+			return 1;
+		}
+
+		case OPCODE_JUMPIFNOTANDPOP:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+				
+			long long int target = ops[0].as_int;
+
+			if(runtime->frame->used == 0)
+			{
+				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
+				return 0;
+			}
+
+			Object *top = Stack_Top(runtime->stack, 0);
+
+			if(!Runtime_Pop(runtime, error, 1))
+				return 0;			
+
+			assert(top != NULL);
+
+			if(!Object_IsBool(top))
+			{
+				Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
+				return 0;
+			}
+
+			if(!Object_ToBool(top, error)) // This can't fail because we know it's a bool.
+				runtime->frame->index = target;
+
+			return 1;
+		}
+
+		default:
+		UNREACHABLE;
+		return 0;
+	}
 
 	return 1;
 }
@@ -1217,19 +1216,19 @@ static _Bool collect(Runtime *runtime, Error *error)
 	Heap_CollectReference(&runtime->builtins,  runtime->heap);
 
 	while(frame)
-		{
-			Heap_CollectReference(&frame->locals,  runtime->heap);
-			Heap_CollectReference(&frame->closure, runtime->heap);
-			frame = frame->prev;
-		}
+	{
+		Heap_CollectReference(&frame->locals,  runtime->heap);
+		Heap_CollectReference(&frame->closure, runtime->heap);
+		frame = frame->prev;
+	}
 
 	for(unsigned int i = 0; i < Stack_Size(runtime->stack); i += 1)
-		{
-			Object **ref = (Object**) Stack_TopRef(runtime->stack, -i);
-			assert(ref != NULL);
+	{
+		Object **ref = (Object**) Stack_TopRef(runtime->stack, -i);
+		assert(ref != NULL);
 
-			Heap_CollectReference(ref, runtime->heap);
-		}
+		Heap_CollectReference(ref, runtime->heap);
+	}
 
 	return Heap_StopCollection(runtime->heap);
 }
@@ -1243,10 +1242,10 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	assert(argc >= 0);
 
 	if(runtime->depth == MAX_FRAMES)
-		{
-			Error_Report(error, 1, "Maximum nested call limit of %d was reached", MAX_FRAMES);
-			return NULL;
-		}
+	{
+		Error_Report(error, 1, "Maximum nested call limit of %d was reached", MAX_FRAMES);
+		return NULL;
+	}
 
 	assert(runtime->depth < MAX_FRAMES);
 		
@@ -1264,10 +1263,10 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 			return NULL;
 
 		if(frame.exe == NULL)
-			{
-				Error_Report(error, 1, "Failed to copy executable");
-				return NULL;
-			}
+		{
+			Error_Report(error, 1, "Failed to copy executable");
+			return NULL;
+		}
 	
 		// Add the frame to the runtime.
 		frame.prev = runtime->frame;
@@ -1286,53 +1285,53 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	// Run the code.
 
 	if(runtime->callback_addr != NULL)
-		{
-			if(!runtime->callback_addr(runtime, runtime->callback_userp))
-				Error_Report(error, 0, "Forced abortion");
-			else
-				while(step(runtime, error))
-					{
-						if(!runtime->callback_addr(runtime, runtime->callback_userp))
-							{
-								Error_Report(error, 0, "Forced abortion");
-								break;
-							}
-
-						//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
-
-						if(Heap_GetUsagePercentage(runtime->heap) > 100)
-							if(!collect(runtime, error))
-								break;
-					}
-		}
-	else
-		while(step(runtime, error))
+	{
+		if(!runtime->callback_addr(runtime, runtime->callback_userp))
+			Error_Report(error, 0, "Forced abortion");
+		else
+			while(step(runtime, error))
 			{
+				if(!runtime->callback_addr(runtime, runtime->callback_userp))
+				{
+					Error_Report(error, 0, "Forced abortion");
+					break;
+				}
+
+				//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
+
 				if(Heap_GetUsagePercentage(runtime->heap) > 100)
 					if(!collect(runtime, error))
 						break;
-
-				//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
 			}
+	}
+	else
+		while(step(runtime, error))
+		{
+			if(Heap_GetUsagePercentage(runtime->heap) > 100)
+				if(!collect(runtime, error))
+					break;
+
+			//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
+		}
 
 	// If an error occurred, we want to return NULL.
 	if(error->occurred == 0)
+	{
+		// If the step function left something
+		// on the stack, we return that. If it
+		// didn't, we return some other default
+		// value like "none".
+		if(frame.used == 0)
 		{
-			// If the step function left something
-			// on the stack, we return that. If it
-			// didn't, we return some other default
-			// value like "none".
-			if(frame.used == 0)
-				{
-					// Nothing to return on the stack. Set to none.
-					result = Object_NewNone(runtime->heap, error);
-				}
-			else
-				{
-					result = Stack_Top(runtime->stack, 0);
-					assert(result != NULL);
-				}
+			// Nothing to return on the stack. Set to none.
+			result = Object_NewNone(runtime->heap, error);
 		}
+		else
+		{
+			result = Stack_Top(runtime->stack, 0);
+			assert(result != NULL);
+		}
+	}
 
 cleanup:
 	// Remove the frame-owned items from the stack.

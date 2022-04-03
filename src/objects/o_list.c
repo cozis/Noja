@@ -89,10 +89,10 @@ static Object *copy(Object *self, Heap *heap, Error *err)
 	if(ls2 == NULL) return NULL;
 
 	for(int i = 0; i < ls->count; i += 1)
-		{
-			ls2->vals[i] = Object_Copy(ls->vals[i], heap, err);
-			if(err->occurred) return NULL;
-		}
+	{
+		ls2->vals[i] = Object_Copy(ls->vals[i], heap, err);
+		if(err->occurred) return NULL;
+	}
 
 	ls2->count = ls->count;
 
@@ -168,10 +168,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	assert(error != NULL);
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
@@ -179,10 +179,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	ListObject *list = (ListObject*) self;
 
 	if(idx < 0 || idx >= list->count)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	return list->vals[idx];
 }
@@ -223,33 +223,33 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 	ListObject *list = (ListObject*) self;
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
 
 	if(idx < 0 || idx > list->count)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	if(idx == list->count)
-		{
-			if(list->count == list->capacity)
-				if(!grow(list, heap, error))
-					return 0;
+	{
+		if(list->count == list->capacity)
+			if(!grow(list, heap, error))
+				return 0;
 			
-			list->vals[list->count] = val;
-			list->count += 1;
-		}
+		list->vals[list->count] = val;
+		list->count += 1;
+	}
 	else
-		{
-			list->vals[idx] = val;
-		}
+	{
+		list->vals[idx] = val;
+	}
 
 	return 1;
 }
@@ -267,11 +267,11 @@ static void print(Object *self, FILE *fp)
 
 	fprintf(fp, "[");
 	for(int i = 0; i < list->count; i += 1)
-		{
-			Object_Print(list->vals[i], fp);
+	{
+		Object_Print(list->vals[i], fp);
 
-			if(i+1 < list->count)
-				fprintf(fp, ", ");
-		}
+		if(i+1 < list->count)
+			fprintf(fp, ", ");
+	}
 	fprintf(fp, "]");
 }

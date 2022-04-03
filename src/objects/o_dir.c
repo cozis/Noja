@@ -64,10 +64,10 @@ Object *Object_FromDIR(DIR *handle, Heap *heap, Error *error)
 DIR *Object_ToDIR(Object *obj, Error *error)
 {
 	if(!Object_IsDir(obj))
-		{
-			Error_Report(error, 0, "Object is not a directory");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Object is not a directory");
+		return NULL;
+	}
 
 	return ((DirObject*) obj)->dir;
 }

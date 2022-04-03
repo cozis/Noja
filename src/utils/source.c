@@ -86,36 +86,36 @@ Source *Source_FromFile(const char *file, Error *error)
 		fp = fopen(file, "rb");
 
 		if(fp == NULL)
-			{
-				if(errno == ENOENT)
-					Error_Report(error, 0, "File \"%s\" doesn't exist", file);
-				else
-					Error_Report(error, 1, "Call to fopen failed (%s, errno = %d)", strerror(errno), errno);
-				return NULL;
-			}
+		{
+			if(errno == ENOENT)
+				Error_Report(error, 0, "File \"%s\" doesn't exist", file);
+			else
+				Error_Report(error, 1, "Call to fopen failed (%s, errno = %d)", strerror(errno), errno);
+			return NULL;
+		}
 
 		if(fseek(fp, 0, SEEK_END))
-			{
-				Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
-				fclose(fp);
-				return NULL;	
-			}
+		{
+			Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
+			fclose(fp);
+			return NULL;	
+		}
 
 		size = ftell(fp);
 
 		if(size < 0)
-			{
-				Error_Report(error, 1, "Call to ftell failed (%s, errno = %d)", strerror(errno), errno);
-				fclose(fp);
-				return NULL;	
-			}
+		{
+			Error_Report(error, 1, "Call to ftell failed (%s, errno = %d)", strerror(errno), errno);
+			fclose(fp);
+			return NULL;	
+		}
 
 		if(fseek(fp, 0, SEEK_SET))
-			{
-				Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
-				fclose(fp);
-				return NULL;
-			}
+		{
+			Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
+			fclose(fp);
+			return NULL;
+		}
 	}
 
 	// Allocate the source structure.
@@ -126,11 +126,11 @@ Source *Source_FromFile(const char *file, Error *error)
 		s = malloc(sizeof(Source) + namel + size + 2);
 
 		if(s == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				fclose(fp);
-				return NULL;
-			}
+		{
+			Error_Report(error, 1, "No memory");
+			fclose(fp);
+			return NULL;
+		}
 
 		s->name = (char*) (s + 1);
 		s->body = s->name + namel + 1;
@@ -146,12 +146,12 @@ Source *Source_FromFile(const char *file, Error *error)
 		int p = fread(s->body, 1, size, fp);
 
 		if(p != size)
-			{
-				Error_Report(error, 1, "Call to fread failed, %d bytes out of %d were read (%s, errno = %d)", p, size, strerror(errno), errno);
-				fclose(fp);
-				free(s);
-				return NULL;
-			}
+		{
+			Error_Report(error, 1, "Call to fread failed, %d bytes out of %d were read (%s, errno = %d)", p, size, strerror(errno), errno);
+			fclose(fp);
+			free(s);
+			return NULL;
+		}
 
 		s->body[s->size] = '\0';
 	}
@@ -172,10 +172,10 @@ Source *Source_FromString(const char *name, const char *body, int size, Error *e
 	void *memory = malloc(sizeof(Source) + namel + size + 2);
 
 	if(memory == NULL)
-		{
-			Error_Report(error, 1, "No memory");
-			return NULL;
-		}
+	{
+		Error_Report(error, 1, "No memory");
+		return NULL;
+	}
 
 	Source *s = memory;
 	s->name = (char*) (s + 1);

@@ -52,10 +52,10 @@ _Bool Object_IsFile(Object *obj)
 FILE *Object_ToStream(Object *obj, Error *error)
 {
 	if(!Object_IsFile(obj))
-		{
-			Error_Report(error, 0, "Object is not a file");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Object is not a file");
+		return NULL;
+	}
 
 	return ((FileObject*) obj)->fp;
 }

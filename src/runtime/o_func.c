@@ -59,9 +59,7 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 
 static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error)
 {
-	assert(self != NULL);
-	assert(heap != NULL);
-	assert(error != NULL);
+	assert(self != NULL && heap != NULL && error != NULL);
 	
 	FunctionObject *func = (FunctionObject*) self;
 
@@ -76,36 +74,36 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	int expected_argc = func->argc;
 
 	if(expected_argc < (int) argc)
-		{
-			// Nothing to be done. By using
-			// the right argc the additional
-			// arguments are ignored implicitly.
-			argv2 = argv;
-		}
+	{
+		// Nothing to be done. By using
+		// the right argc the additional
+		// arguments are ignored implicitly.
+		argv2 = argv;
+	}
 	else if(expected_argc > (int) argc)
+	{
+		// Some arguments are missing.
+		argv2 = malloc(sizeof(Object*) * expected_argc);
+
+		if(argv2 == NULL)
 		{
-			// Some arguments are missing.
-			argv2 = malloc(sizeof(Object*) * expected_argc);
-
-			if(argv2 == NULL)
-				{
-					Error_Report(error, 1, "No memory");
-					return NULL;
-				}
-
-			// Copy the provided arguments.
-			for(int i = 0; i < (int) argc; i += 1)
-				argv2[i] = argv[i];
-
-			// Set the unspecified arguments to none.
-			for(int i = argc; i < expected_argc; i += 1)
-				{
-					argv2[i] = Object_NewNone(heap, error);
-
-					if(argv2[i] == NULL)
-						return 0;
-				}
+			Error_Report(error, 1, "No memory");
+			return NULL;
 		}
+
+		// Copy the provided arguments.
+		for(int i = 0; i < (int) argc; i += 1)
+			argv2[i] = argv[i];
+
+		// Set the unspecified arguments to none.
+		for(int i = argc; i < expected_argc; i += 1)
+		{
+			argv2[i] = Object_NewNone(heap, error);
+
+			if(argv2[i] == NULL)
+				return 0;
+		}
+	}
 	else
 		// The right amount of arguments was provided.
 		argv2 = argv;
@@ -176,10 +174,10 @@ Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, in
 	Executable *exe_copy = Executable_Copy(exe);
 
 	if(exe_copy == NULL)
-		{
-			Error_Report(error, 1, "Failed to copy executable");
-			return NULL;
-		}
+	{
+		Error_Report(error, 1, "Failed to copy executable");
+		return NULL;
+	}
 
 	func->runtime = runtime;
 	func->exe = exe_copy;

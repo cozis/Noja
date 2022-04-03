@@ -80,11 +80,11 @@ BPAlloc *BPAlloc_Init2(int first_size, int chunk_size,
 		first_size = chunk_size;
 
 	if(fn_malloc == NULL)
-		{
-			userp = NULL;
-			fn_malloc = default_fn_malloc;
-			fn_free   = default_fn_free;
-		}
+	{
+		userp = NULL;
+		fn_malloc = default_fn_malloc;
+		fn_free   = default_fn_free;
+	}
 
 	void *temp = fn_malloc(userp, sizeof(BPAlloc) + sizeof(BPAllocChunk) + first_size + PADDING);
 
@@ -124,11 +124,11 @@ BPAlloc *BPAlloc_Init3(void *mem, int mem_size, int chunk_size,
 		chunk_size = CHUNK_SIZE;
 
 	if(fn_malloc == NULL)
-		{
-			userp = NULL;
-			fn_malloc = default_fn_malloc;
-			fn_free   = default_fn_free;
-		}
+	{
+		userp = NULL;
+		fn_malloc = default_fn_malloc;
+		fn_free   = default_fn_free;
+	}
 
 	int required = sizeof(BPAlloc) 
 				 + sizeof(BPAllocChunk) 
@@ -170,14 +170,14 @@ void BPAlloc_Free(BPAlloc *alloc)
 	BPAllocChunk *chunk = alloc->tail;
 
 	while(chunk->prev)
-		{
-			BPAllocChunk *prev = chunk->prev;
+	{
+		BPAllocChunk *prev = chunk->prev;
 
-			if(alloc->fn_free)
-				alloc->fn_free(alloc->userp, chunk);
+		if(alloc->fn_free)
+			alloc->fn_free(alloc->userp, chunk);
 
-			chunk = prev;
-		}
+		chunk = prev;
+	}
 
 	if(!(alloc->flags & FG_STATIC))
 		if(alloc->fn_free)
@@ -195,26 +195,26 @@ void *BPAlloc_Malloc(BPAlloc *alloc, int req_size)
 		alloc->used = (alloc->used & ~7) + 8;
 
 	if(alloc->used + req_size > alloc->size)
-		{
-			// If the chunk size is lower than the
-			// requested size, then set the chunk
-			// size to the requested size.
-			int chunk_size = MAX(alloc->minsize, req_size + PADDING);
+	{
+		// If the chunk size is lower than the
+		// requested size, then set the chunk
+		// size to the requested size.
+		int chunk_size = MAX(alloc->minsize, req_size + PADDING);
 
-			assert(alloc->fn_malloc != NULL);
-			BPAllocChunk *chunk = alloc->fn_malloc(alloc->userp, sizeof(BPAllocChunk) + chunk_size);
+		assert(alloc->fn_malloc != NULL);
+		BPAllocChunk *chunk = alloc->fn_malloc(alloc->userp, sizeof(BPAllocChunk) + chunk_size);
 		
-			if(chunk == NULL)
-				return NULL;
+		if(chunk == NULL)
+			return NULL;
 
-			chunk->prev = alloc->tail;
-			alloc->tail = chunk;
-			alloc->size = chunk_size;
-			alloc->used = PADDING;
+		chunk->prev = alloc->tail;
+		alloc->tail = chunk;
+		alloc->size = chunk_size;
+		alloc->used = PADDING;
 
-			if(alloc->used & 7)
-				alloc->used = (alloc->used & ~7) + 8;
-		}
+		if(alloc->used & 7)
+			alloc->used = (alloc->used & ~7) + 8;
+	}
 
 	void *addr = alloc->tail->body + alloc->used;
 

@@ -68,6 +68,9 @@ static TypeObject t_string = {
 
 static int char_index_to_offset(StringObject *str, int idx)
 {
+	if(str->count == str->bytes)
+		return idx;
+
 	// Iterate over a string to find the first byte of
 	// the utf-8 character number [idx].
 
@@ -75,13 +78,13 @@ static int char_index_to_offset(StringObject *str, int idx)
 	    last_code_len = 0;
 
 	while(idx > 0)
-		{
-			last_code_len = utf8_sequence_to_utf32_codepoint(str->body + scanned_bytes, str->bytes - scanned_bytes, NULL);
-			scanned_bytes += last_code_len;
-			idx -= 1;
+	{
+		last_code_len = utf8_sequence_to_utf32_codepoint(str->body + scanned_bytes, str->bytes - scanned_bytes, NULL);
+		scanned_bytes += last_code_len;
+		idx -= 1;
 
-			assert(scanned_bytes <= str->bytes);
-		}
+		assert(scanned_bytes <= str->bytes);
+	}
 
 	assert(idx == 0);
 	return scanned_bytes;
@@ -93,10 +96,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	assert(key != NULL && heap != NULL && error != NULL);
 
 	if(!Object_IsInt(key))
-		{
-			Error_Report(error, 0, "Non integer key");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Non integer key");
+		return NULL;
+	}
 
 	int idx = Object_ToInt(key, error);
 	assert(error->occurred == 0);
@@ -104,10 +107,10 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	StringObject *str = (StringObject*) self;
 
 	if(idx < 0 || idx >= str->count)
-		{
-			Error_Report(error, 0, "Out of range index");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Out of range index");
+		return NULL;
+	}
 
 	int byteoffset = char_index_to_offset(str, idx);
 	int codelength = utf8_sequence_to_utf32_codepoint(str->body + byteoffset, str->bytes - byteoffset, NULL);
@@ -143,10 +146,10 @@ Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 	int count = utf8_strlen(str, len);
 
 	if(count < 0)
-		{
-			Error_Report(error, 0, "Invalid UTF-8 sequence");
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Invalid UTF-8 sequence");
+		return NULL;
+	}
 
 	StringObject *strobj = Heap_Malloc(heap, &t_string, error);
 

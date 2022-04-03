@@ -64,48 +64,48 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 	int expected_argc = func->argc;
 
 	if(expected_argc < 0 || expected_argc == (int) argc)
-		{
-			// The function is variadic or the right 
-			// amount of arguments was provided.
-			argv2 = argv;
-			argc2 = argc;
-		}
+	{
+		// The function is variadic or the right 
+		// amount of arguments was provided.
+		argv2 = argv;
+		argc2 = argc;
+	}
 	else if(expected_argc < (int) argc)
-		{
-			// Nothing to be done. By using
-			// the right argc the additional
-			// arguments are ignored implicitly.
-			argv2 = argv;
-			argc2 = expected_argc;
-		}
+	{
+		// Nothing to be done. By using
+		// the right argc the additional
+		// arguments are ignored implicitly.
+		argv2 = argv;
+		argc2 = expected_argc;
+	}
 	else if(expected_argc > (int) argc)
-		{
-			// Some arguments are missing.
-			argv2 = malloc(sizeof(Object*) * expected_argc);
-			argc2 = expected_argc;
+	{
+		// Some arguments are missing.
+		argv2 = malloc(sizeof(Object*) * expected_argc);
+		argc2 = expected_argc;
 			
-			if(argv2 == NULL)
-				{
-					Error_Report(error, 1, "No memory");
-					return NULL;
-				}
-
-			// Copy the provided arguments.
-			for(int i = 0; i < (int) argc; i += 1)
-				argv2[i] = argv[i];
-
-			// Set the unspecified arguments to none.
-			for(int i = argc; i < expected_argc; i += 1)
-				{
-					argv2[i] = Object_NewNone(heap, error);
-
-					if(argv2[i] == NULL)
-						{
-							free(argv2);
-							return NULL;
-						}
-				}
+		if(argv2 == NULL)
+		{
+			Error_Report(error, 1, "No memory");
+			return NULL;
 		}
+
+		// Copy the provided arguments.
+		for(int i = 0; i < (int) argc; i += 1)
+			argv2[i] = argv[i];
+
+		// Set the unspecified arguments to none.
+		for(int i = argc; i < expected_argc; i += 1)
+		{
+			argv2[i] = Object_NewNone(heap, error);
+
+			if(argv2[i] == NULL)
+			{
+				free(argv2);
+				return NULL;
+			}
+		}
+	}
 	else UNREACHABLE;
 
 	assert(func->callback != NULL);

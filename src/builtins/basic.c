@@ -64,10 +64,10 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 	uint32_t ret = 0;
 
 	if(!Object_IsString(argv[0]))
-		{
-			Error_Report(error, 0, "Argument #%d is not a string", 1);
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Argument #%d is not a string", 1);
+		return NULL;
+	}
 
 	const char  *string;
 	int n;
@@ -76,10 +76,10 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 		return NULL;
 		
 	if(n == 0)
-		{
-			Error_Report(error, 0, "Argument #%d is an empty string", 1);
-			return NULL;
-		}
+	{
+		Error_Report(error, 0, "Argument #%d is an empty string", 1);
+		return NULL;
+	}
 
 
 	int k = utf8_sequence_to_utf32_codepoint(string,n,&ret);
@@ -111,30 +111,30 @@ static Object *bin_input(Runtime *runtime, Object **argv, unsigned int argc, Err
 	int size = 0, cap = sizeof(maybe)-1;
 
 	while(1)
+	{
+		char c = getc(stdin);
+
+		if(c == '\n')
+			break;
+
+		if(size == cap)
 		{
-			char c = getc(stdin);
+			int newcap = cap*2;
+			char *tmp = realloc(str, newcap + 1);
 
-			if(c == '\n')
-				break;
+			if(tmp == NULL)
+			{
+				if(str != maybe) free(str);
+				Error_Report(error, 1, "No memory");
+				return NULL;
+			}
 
-			if(size == cap)
-				{
-					int newcap = cap*2;
-					char *tmp = realloc(str, newcap + 1);
-
-					if(tmp == NULL)
-						{
-							if(str != maybe) free(str);
-							Error_Report(error, 1, "No memory");
-							return NULL;
-						}
-
-					str = tmp;
-					cap = newcap;
-				}
-
-			str[size++] = c;
+			str = tmp;
+			cap = newcap;
 		}
+
+		str[size++] = c;
+	}
 
 	str[size] = '\0';
 
@@ -150,11 +150,11 @@ static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Er
 {
 	for(unsigned int i = 0; i < argc; i += 1)
 		if(!Object_ToBool(argv[i], error))
-			{
-				if(!error->occurred)
-					Error_Report(error, 0, "Assertion failed");
-				return NULL;
-			}
+		{
+			if(!error->occurred)
+				Error_Report(error, 0, "Assertion failed");
+			return NULL;
+		}
 	return Object_NewNone(Runtime_GetHeap(runtime), error);
 }
 
@@ -179,48 +179,47 @@ static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Er
 	unsigned int total_count = 0;
 
 	for(unsigned int i = 0; i < argc; i += 1)
+	{
+		if(!Object_IsString(argv[i]))
 		{
-			if(!Object_IsString(argv[i]))
-				{
-					Error_Report(error, 0, "Argument #%d is not a string", i+1);
-					return NULL;
-				}
-
-			total_count += Object_Count(argv[i], error);
-
-			if(error->occurred)
-				return NULL;
+			Error_Report(error, 0, "Argument #%d is not a string", i+1);
+			return NULL;
 		}
+
+		total_count += Object_Count(argv[i], error);
+
+		if(error->occurred)
+			return NULL;
+	}
 
 	char starting[128];
 	char *buffer = starting;
 
 	if(total_count > sizeof(starting)-1)
-		{
-			buffer = malloc(total_count+1);
+	{
+		buffer = malloc(total_count+1);
 
-			if(buffer == NULL)
-				{
-					Error_Report(error, 1, "No memory");
-					return NULL;
-				}
+		if(buffer == NULL)
+		{
+			Error_Report(error, 1, "No memory");
+			return NULL;
 		}
+	}
 
 	Object *result = NULL;
 
 	for(unsigned int i = 0, written = 0; i < argc; i += 1)
-		{
-			int         n;
-			const char *s;
+	{
+		int n;
+		const char *s = Object_ToString(argv[i], &n, 
+			Runtime_GetHeap(runtime), error);
 
-			s = Object_ToString(argv[i], &n, Runtime_GetHeap(runtime), error);
+		if(error->occurred)
+			goto done;
 
-			if(error->occurred)
-				goto done;
-
-			memcpy(buffer + written, s, n);
-			written += n;
-		}
+		memcpy(buffer + written, s, n);
+		written += n;
+	}
 
 	buffer[total_count] = '\0';
 

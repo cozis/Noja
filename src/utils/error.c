@@ -87,29 +87,29 @@ void _Error_Report2(Error *err, _Bool internal,
 	assert(p > -1);
 
 	if((unsigned int) p > sizeof(err->message2)-1)
-		{
-			char *temp = malloc(p+1);
+	{
+		char *temp = malloc(p+1);
 
-			if(temp == NULL)
-				{
-					err->truncated = 1;
-					err->message   = err->message2;
-					err->length    = sizeof(err->message2)-1;
-				}
-			else
-				{
-					snprintf(temp, p+1, fmt, va2);
-					err->truncated = 0;
-					err->message   = temp;
-					err->length    = p;
-				}
-		}
-	else
+		if(temp == NULL)
 		{
-			err->truncated = 0;
+			err->truncated = 1;
 			err->message   = err->message2;
+			err->length    = sizeof(err->message2)-1;
+		}
+		else
+		{
+			snprintf(temp, p+1, fmt, va2);
+			err->truncated = 0;
+			err->message   = temp;
 			err->length    = p;
 		}
+	}
+	else
+	{
+		err->truncated = 0;
+		err->message   = err->message2;
+		err->length    = p;
+	}
 
 	va_end(va2);
 

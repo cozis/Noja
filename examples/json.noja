@@ -42,10 +42,10 @@ fun parse(str) {
         return none;
     }
 
-    return parseAnyValue(ctx);
+    return parseAny(ctx);
 }
 
-fun parseArrayValue(ctx) {
+fun parseArray(ctx) {
     
     assert(current(ctx) == '[');
 
@@ -67,7 +67,7 @@ fun parseArrayValue(ctx) {
 
     while true: {
 
-        child = parseAnyValue(ctx);
+        child = parseAny(ctx);
 
         if child == none:
             return none;
@@ -103,7 +103,7 @@ fun parseArrayValue(ctx) {
     return arr;
 }
 
-fun parseObjectValue(ctx) {
+fun parseObject(ctx) {
     
     assert(current(ctx) == '{');
 
@@ -130,7 +130,7 @@ fun parseObjectValue(ctx) {
             return none;
         }
 
-        key = parseStringValue(ctx);
+        key = parseString(ctx);
 
         if key == none:
             return none;
@@ -146,7 +146,7 @@ fun parseObjectValue(ctx) {
 
         skip(ctx, isSpace);
 
-        child = parseAnyValue(ctx);
+        child = parseAny(ctx);
 
         if child == none:
             return none;
@@ -182,7 +182,7 @@ fun parseObjectValue(ctx) {
     return obj;
 }
 
-fun parseStringValue(ctx) {
+fun parseString(ctx) {
     
     next(ctx); # Skip the '"'.
         
@@ -207,7 +207,7 @@ fun parseStringValue(ctx) {
     return buff;
 }
 
-fun parseNumberValue(ctx) {
+fun parseNumber(ctx) {
 
     assert(isDigit(current(ctx)));
 
@@ -251,49 +251,50 @@ fun parseNumberValue(ctx) {
     return parsed;
 }
 
-fun parseAnyValue(ctx) {
+fun parseAny(ctx) {
+
+    print('Parsing value\n');
 
     assert(not ended(ctx));
 
     if current(ctx) == '[':
-        return parseArrayValue(ctx);
+        return parseArray(ctx);
 
     if current(ctx) == '{':
-        return parseObjectValue(ctx);
+        return parseObject(ctx);
 
     if current(ctx) == '"':
-        return parseStringValue(ctx);
+        return parseString(ctx);
 
     if isDigit(current(ctx)):
-        return parseNumberValue(ctx);
+        return parseNumber(ctx);
 
     error("Not implemented yet");
 }
 
 
-tests = [
-    '',
-    '1',
-    '10',
-    '1.10',
-    '"jeje"',
-    '[]',
-    '[1,2,3]',
-    '  [  ]  ',
-    '  [  1  ,  2  ,  3  ]',
-    '{}',
-    '  {  }  ',
-    '{"hoy":4}',
-    '  {  "hoy"  :  4  }  ',
-    'a'
-];
+#tests = ['', '1', '10', '1.10', '"jeje"', '[]', '[1,2,3]', '  [  ]  ', '  [  1  ,  2  ,  3  ]', '{}', '  {  }  ', '{"hoy":4}', '  {  "hoy"  :  4  }  '];
 
-i = 0;
-while i < count(tests): {
-    r = parse(tests[i]);
-    if r == none:
-        print('\nTest ', i, ' failed\n');
-    else
-        print(tests[i], ' -> ', r, '\n');
-    i = i + 1;
-}
+#i = 0;
+#while i < count(tests): {
+#    r = parse(tests[i]);
+#    if r == none:
+#        print('\nTest ', i, ' failed\n');
+#    else
+#        print(tests[i], ' -> ', r, '\n');
+#    i = i + 1;
+#}
+
+file = files.openFile('examples/large-file.json', files.READ);
+if file == none:
+    error("Failed to open file");
+
+buff = newBuffer(30000000);
+if buff == none:
+    error("Failed to create buffer");
+
+n = files.read(file, buff);
+
+text = bufferToString(sliceBuffer(buff, 0, n));
+
+print(parse(text));
