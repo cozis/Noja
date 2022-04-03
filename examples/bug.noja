@@ -1,0 +1,6 @@
+a = [];
+i = 0;
+while(i<10000):{
+    a[i]= "ciao mondo mmododooddododododododododododdodododododd";
+    i = i+1;
+}
