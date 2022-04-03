@@ -90,6 +90,40 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 	return Object_FromInt(ret,Runtime_GetHeap(runtime),error);
 }
 
+static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+{
+	(void) runtime;
+	(void) error;
+
+	assert(argc == 1);
+
+	
+	if(!Object_IsString(argv[0]))
+		{
+			Error_Report(error, 0, "Argument #%d is not a string", 1);
+			return NULL;
+		}
+
+	const char *string;
+	int n;
+	string = Object_ToString(argv[0],&n,Runtime_GetHeap(runtime),error);
+	if (string == NULL)
+		return NULL;
+		
+	if(n == 0)
+		{
+			Error_Report(error, 0, "Argument #%d is an empty string", 1);
+			return NULL;
+		}
+
+	
+	int k = utf8_sequence_from_utf32_codepoint((char *)string,4,strtol(string,0,16));
+	assert(k >= 0);
+	
+	return Object_FromString(string,k,Runtime_GetHeap(runtime),error);
+}
+
+
 static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
 	assert(argc == 1);
@@ -271,6 +305,7 @@ const StaticMapSlot bins_basic[] = {
 
 	{ "type", SM_FUNCT, .as_funct = bin_type, .argc = 1 },
 	{ "unicode", SM_FUNCT, .as_funct = bin_unicode, .argc = 1 },
+	{ "chr", SM_FUNCT, .as_funct = bin_chr, .argc = 1 },
 	{ "print", SM_FUNCT, .as_funct = bin_print, .argc = -1 },
 	{ "input", SM_FUNCT, .as_funct = bin_input, .argc = 0 },
 	{ "count", SM_FUNCT, .as_funct = bin_count, .argc = 1 },
