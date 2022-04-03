@@ -96,7 +96,7 @@ static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error
 	
 	if(!Object_IsInt(argv[0]))
 		{
-			Error_Report(error, 0, "Argument #%d is not a integer", 1);
+			Error_Report(error, 0, "Argument #%d is not an integer", 1);
 			return NULL;
 		}
 
