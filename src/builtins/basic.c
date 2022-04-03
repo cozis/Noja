@@ -92,36 +92,32 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 
 static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
 {
-	(void) runtime;
-	(void) error;
 
 	assert(argc == 1);
 
 	
-	if(!Object_IsString(argv[0]))
+	if(!Object_IsInt(argv[0]))
 		{
-			Error_Report(error, 0, "Argument #%d is not a string", 1);
+			Error_Report(error, 0, "Argument #%d is not a integer", 1);
 			return NULL;
 		}
 
-	const char *string;
-	int n;
-	string = Object_ToString(argv[0],&n,Runtime_GetHeap(runtime),error);
-	if (string == NULL)
+
+	char buff[32];
+	
+	int value = Object_ToInt(argv[0],error);
+
+	if(error->occurred)
 		return NULL;
-		
-	if(n == 0)
-		{
-			Error_Report(error, 0, "Argument #%d is an empty string", 1);
-			return NULL;
-		}
 
 	
-	int k = utf8_sequence_from_utf32_codepoint((char *)string,4,strtol(string,0,16));
+	int k = utf8_sequence_from_utf32_codepoint(buff,sizeof(buff),value);
+
 	assert(k >= 0);
 	
-	return Object_FromString(string,k,Runtime_GetHeap(runtime),error);
+	return Object_FromString(buff,k,Runtime_GetHeap(runtime),error);
 }
+
 
 
 static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
