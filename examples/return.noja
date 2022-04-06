@@ -1,8 +1,9 @@
 
 fun hello()
-    return 1, "hello";
+    return [1, 2, 3], "hello";
 
-a, b = hello();
+print((a, b, c) = hello(), '\n');
 
 print('a = ', a, '\n');
 print('b = ', b, '\n');
+print('c = ', c, '\n');
