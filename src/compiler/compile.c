@@ -50,6 +50,8 @@
 #include "compile.h"
 #include "ASTi.h"
 
+static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_dest, Error *error);
+
 static Opcode exprkind_to_opcode(ExprKind kind)
 {
 	switch(kind)
@@ -75,6 +77,43 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 	}
 }
 
+static _Bool emit_instr_for_funccall(ExeBuilder *exeb, CallExprNode *expr, Promise *break_dest, int returns, Error *error)
+{
+	Node *arg = expr->argv;
+    
+	while(arg)
+	{
+		if(!emit_instr_for_node(exeb, arg, break_dest, error))
+			return 0;
+
+		arg = arg->next;
+	}
+
+	if(!emit_instr_for_node(exeb, expr->func, break_dest, error))
+		return 0;
+
+	Operand ops[2];
+	ops[0] = (Operand) { .type = OPTP_INT, .as_int = expr->argc };
+	ops[1] = (Operand) { .type = OPTP_INT, .as_int = returns };
+	return ExeBuilder_Append(exeb, error, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
+}
+
+static _Bool flatten_tuple_tree(ExprNode *root, ExprNode **tuple, int max, int *count, Error *error)
+{
+	if(root->kind == EXPR_PAIR)
+		return flatten_tuple_tree((ExprNode*) ((OperExprNode*) root)->head, tuple, max, count, error) && 
+				flatten_tuple_tree((ExprNode*) ((OperExprNode*) root)->head->next, tuple, max, count, error);
+
+	if(max == *count)
+	{
+		Error_Report(error, 0, "Static buffer is too small");
+		return 0;
+	}
+
+	tuple[(*count)++] = root;
+	return 1;
+}
+
 static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_dest, Error *error)
 {
 	assert(node != NULL);
@@ -86,6 +125,10 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 			ExprNode *expr = (ExprNode*) node;
 			switch(expr->kind)
 			{
+				case EXPR_PAIR:
+				Error_Report(error, 0, "Tuple outside of assignment or return statement");
+				return 0;
+
 				case EXPR_NOT:
 				case EXPR_POS:
 				case EXPR_NEG:
@@ -123,35 +166,75 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 					lop = oper->head;
 					rop = lop->next;
 
-					if(!emit_instr_for_node(exeb, rop, break_dest, error))
+					ExprNode *tuple[32];
+					int count = 0;
+
+					if(!flatten_tuple_tree((ExprNode*) lop, tuple, sizeof(tuple)/sizeof(tuple[0]), &count, error))
 						return 0;
 
-					if(((ExprNode*) lop)->kind == EXPR_IDENT)
+					assert(count > 0);
+
+					if(count == 1) /* No tuple. */
 					{
-						const char *name = ((IdentExprNode*) lop)->val;
-
-						Operand op = { .type = OPTP_STRING, .as_string = name };
-						if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1, node->offset, node->length))
-							return 0;
-					}
-					else if(((ExprNode*) lop)->kind == EXPR_SELECT)
-					{
-						Node *idx = ((IndexSelectionExprNode*) lop)->idx;
-						Node *set = ((IndexSelectionExprNode*) lop)->set;
-
-						if(!emit_instr_for_node(exeb, set, break_dest, error))
-							return 0;
-
-						if(!emit_instr_for_node(exeb, idx, break_dest, error))
-							return 0;
-
-						if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT2, NULL, 0, node->offset, node->length))
+						if(!emit_instr_for_node(exeb, rop, break_dest, error))
 							return 0;
 					}
 					else
 					{
-						Error_Report(error, 0, "Assignment left operand can't be assigned to");
-						return 0;
+						if(((ExprNode*) rop)->kind == EXPR_CALL)
+						{
+							if(!emit_instr_for_funccall(exeb, (CallExprNode*) rop, break_dest, count, error))
+								return 0;
+						}
+						else
+						{
+							Error_Report(error, 0, "Assigning to %d variables only 1 value", count);
+							return 0;
+						}
+					}
+					
+					for(int i = 0; i < count; i += 1)
+					{
+						ExprNode *tuple_item = tuple[count-i-1];
+						switch(tuple_item->kind)
+						{
+							case EXPR_IDENT:
+							{
+								const char *name = ((IdentExprNode*) tuple_item)->val;
+
+								Operand op = { .type = OPTP_STRING, .as_string = name };
+								if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1, tuple_item->base.offset, tuple_item->base.length))
+									return 0;
+								break;
+							}
+
+							case EXPR_SELECT:
+							{
+								Node *idx = ((IndexSelectionExprNode*) tuple_item)->idx;
+								Node *set = ((IndexSelectionExprNode*) tuple_item)->set;
+
+								if(!emit_instr_for_node(exeb, set, break_dest, error))
+									return 0;
+
+								if(!emit_instr_for_node(exeb, idx, break_dest, error))
+									return 0;
+
+								if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT2, NULL, 0, tuple_item->base.offset, tuple_item->base.length))
+									return 0;
+								break;
+							}
+
+							default:
+							Error_Report(error, 0, "Assigning to something that it can't be assigned to");
+							return 0;
+						}
+
+						if(i+1 < count)
+						{
+							Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+							if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, node->offset, 0))
+								return 0;
+						}
 					}
 
 					return 1;
@@ -253,25 +336,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 				}
 
 				case EXPR_CALL:
-				{
-					CallExprNode *p = (CallExprNode*) expr;
-
-					Node *arg = p->argv;
-
-					while(arg)
-					{
-						if(!emit_instr_for_node(exeb, arg, break_dest, error))
-							return 0;
-
-						arg = arg->next;
-					}
-
-					if(!emit_instr_for_node(exeb, p->func, break_dest, error))
-						return 0;
-
-					Operand op = { .type = OPTP_INT, .as_int = p->argc };
-					return ExeBuilder_Append(exeb, error, OPCODE_CALL, &op, 1, node->offset, node->length);
-				}
+				return emit_instr_for_funccall(exeb, (CallExprNode*) expr, break_dest, 1, error);
 
 				case EXPR_SELECT:
 				{
@@ -526,10 +591,18 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 		{
 			ReturnNode *ret = (ReturnNode*) node;
 
-			if(!emit_instr_for_node(exeb, ret->val, break_dest, error))
+			ExprNode *tuple[32];
+			int count = 0;
+
+			if(!flatten_tuple_tree((ExprNode*) ret->val, tuple, sizeof(tuple)/sizeof(tuple[0]), &count, error))
 				return 0;
 
-			if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, ret->base.offset, ret->base.length))
+			for(int i = 0; i < count; i += 1)
+				if(!emit_instr_for_node(exeb, (Node*) tuple[i], break_dest, error))
+					return 0;
+
+			Operand op = (Operand) { .type = OPTP_INT, .as_int = count };
+			if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, &op, 1, ret->base.offset, ret->base.length))
 				return 0;
 
 			return 1;
@@ -608,7 +681,8 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 
 				// Write a return instruction, just 
 				// in case it didn't already return.
-				if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, func->body->offset, 0))
+				Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
+				if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, &op, 1, func->body->offset, 0))
 					return 0;
 			}
 
@@ -672,7 +746,8 @@ Executable *compile(AST *ast, BPAlloc *alloc, Error *error)
 		if(!emit_instr_for_node(exeb, ast->root, NULL, error))
 			return 0;
 
-		if(ExeBuilder_Append(exeb, error, OPCODE_RETURN, NULL, 0, Source_GetSize(ast->src), 0))
+		Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
+		if(ExeBuilder_Append(exeb, error, OPCODE_RETURN, &op, 1, Source_GetSize(ast->src), 0))
 		{
 			exe = ExeBuilder_Finalize(exeb, error);
 					

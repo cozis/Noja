@@ -1,0 +1,8 @@
+
+fun hello()
+    return 1, "hello";
+
+a, b = hello();
+
+print('a = ', a, '\n');
+print('b = ', b, '\n');

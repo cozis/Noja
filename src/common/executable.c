@@ -90,7 +90,7 @@ static const InstrInfo instr_table[] = {
 
 	[OPCODE_ASS]  = {"ASS", 1, (OperandType[]) {OPTP_STRING}},
 	[OPCODE_POP]  = {"POP", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_CALL] = {"CALL", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_CALL] = {"CALL", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
 	[OPCODE_SELECT] = {"SELECT", 0, NULL},
 	[OPCODE_INSERT] = {"INSERT", 0, NULL},
 	[OPCODE_INSERT2] = {"INSERT2", 0, NULL},
@@ -105,7 +105,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHLST] = {"PUSHLST", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_PUSHMAP] = {"PUSHMAP", 1, (OperandType[]) {OPTP_INT}},
 
-	[OPCODE_RETURN] = {"RETURN", 0, NULL},
+	[OPCODE_RETURN] = {"RETURN", 1, (OperandType[]) {OPTP_INT}},
 
 	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_JUMPIFANDPOP] = {"JUMPIFANDPOP", 1, (OperandType[]) {OPTP_INT}},
@@ -299,7 +299,7 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 
 	if(exeb->promc > 0)
 	{
-		Error_Report(error, 0, "There are still %d unfulfilled promises", exeb->promc);
+		Error_Report(error, 1, "There are still %d unfulfilled promises", exeb->promc);
 		return 0;
 	}
 
@@ -371,7 +371,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 	if(opc != info->opcount)
 	{
 		// ERROR: Too many operands were provided.
-		Error_Report(error, 0, 
+		Error_Report(error, 1, 
 			"Instruction %s expects %d operands, but %d were provided", 
 			info->name, info->opcount, opc);
 		return 0;
@@ -409,13 +409,13 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 					if(expected_type == OPTP_STRING)
 					{
-						Error_Report(error, 0, "Promise values can't be provided as string operands");
+						Error_Report(error, 1, "Promise values can't be provided as string operands");
 						return 0;
 					}
 							
 					if(Promise_Size(opv[i].as_promise) != operand_type_sizes[expected_type])
 					{
-						Error_Report(error, 0, 
+						Error_Report(error, 1, 
 							"Provided promise has a value size of %d, "
 							"but since %s %s was expected, the promise "
 							"size must be %d",
@@ -429,7 +429,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 				else if(expected_type != provided_type)
 				{
 					// ERROR: Wrong operand type provided.
-					Error_Report(error, 0, 
+					Error_Report(error, 1, 
 						"Instruction %s expects %s %s as operand %d, but %s %s was provided instead", 
 						info->name, 
 						operand_type_arts[expected_type], 

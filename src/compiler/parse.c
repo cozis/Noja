@@ -83,6 +83,7 @@ typedef enum {
 	TLCBRK = '{',
 	TRCBRK = '}',
 	TDOT = '.',
+	TCOMMA = ',',
 
 	TDONE = 256,
 	TINT,
@@ -126,7 +127,7 @@ typedef struct {
 } Context;
 
 static Node *parse_statement(Context *ctx);
-static Node *parse_expression(Context *ctx);
+static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples);
 static Node *parse_expression_statement(Context *ctx);
 static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
@@ -141,7 +142,8 @@ static inline _Bool isoper(char c)
 	return 	c == '+' || c == '-' || 
 			c == '*' || c == '/' || 
 			c == '<' || c == '>' ||
-			c == '!' || c == '=';
+			c == '!' || c == '=' ||
+			c == ',';
 }
 
 /* Symbol: tokenize
@@ -311,17 +313,18 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 				int          size;
 				const char  *text;
 			} optable[] = {
-				{ TADD, 1, "+"  },
-				{ TSUB, 1, "-"  },
-				{ TMUL, 1, "*"  },
-				{ TDIV, 1, "/"  },
-				{ TEQL, 2, "==" },
-				{ TNQL, 2, "!=" },
-				{ TLSS, 1, "<"  },
-				{ TLEQ, 2, "<=" },
-				{ TGRT, 1, ">"  },
-				{ TGEQ, 2, ">=" },
-				{ TASS, 1, "="  },
+				{   TADD, 1, "+"  },
+				{   TSUB, 1, "-"  },
+				{   TMUL, 1, "*"  },
+				{   TDIV, 1, "/"  },
+				{   TEQL, 2, "==" },
+				{   TNQL, 2, "!=" },
+				{   TLSS, 1, "<"  },
+				{   TLEQ, 2, "<=" },
+				{   TGRT, 1, ">"  },
+				{   TGEQ, 2, ">=" },
+				{   TASS, 1, "="  },
+				{ TCOMMA, 1, ","  },
 			};
 
 			_Bool found = 0;
@@ -598,10 +601,18 @@ static Node *parse_statement(Context *ctx)
 
 			next(ctx); // Consume the "return" keyword.
 
-			Node *val = parse_expression_statement(ctx);
+			Node *val = parse_expression(ctx, 1);
 
 			if(val == NULL)
 				return NULL;
+
+			if(current(ctx) != ';')
+			{
+				Error_Report(ctx->error, 0, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
+				return NULL;
+			}
+
+			next(ctx); // Consume the ';'.
 
 			ReturnNode *node = BPAlloc_Malloc(ctx->alloc, sizeof(ReturnNode));
 				
@@ -638,7 +649,7 @@ static Node *parse_expression_statement(Context *ctx)
 {
 	assert(ctx != NULL);
 
-	Node *expr = parse_expression(ctx);
+	Node *expr = parse_expression(ctx, 1);
 	
 	if(expr == NULL) 
 		return NULL;
@@ -829,7 +840,7 @@ static Node *parse_list_primary_expression(Context *ctx)
 		while(1)
 		{
 			// Parse.
-			Node *item = parse_expression(ctx);
+			Node *item = parse_expression(ctx, 0);
 
 			if(item == NULL)
 				return NULL;
@@ -940,7 +951,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 			}
 			else
 			{
-				key = parse_expression(ctx);
+				key = parse_expression(ctx, 0);
 			}
 
 			if(key == NULL)
@@ -961,7 +972,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 			next(ctx);
 
 			// Parse.
-			Node *item = parse_expression(ctx);
+			Node *item = parse_expression(ctx, 0);
 
 			if(item == NULL)
 				return NULL;
@@ -1100,7 +1111,7 @@ static Node *parse_primary_expresion(Context *ctx)
 		{
 			next(ctx); // Consume the '('.
 				
-			Node *node = parse_expression(ctx);
+			Node *node = parse_expression(ctx, 1);
 				
 			if(node == NULL)
 				return NULL;
@@ -1419,7 +1430,7 @@ static Node *parse_postfix_expression(Context *ctx)
 					while(1)
 					{
 						// Parse.
-						Node *arg = parse_expression(ctx);
+						Node *arg = parse_expression(ctx, 0);
 
 						if(arg == NULL)
 							return NULL;
@@ -1552,7 +1563,7 @@ static inline _Bool isbinop(Token *tok)
 			tok->kind == TLEQ || tok->kind == TGEQ ||
 			tok->kind == TEQL || tok->kind == TNQL ||
 			tok->kind == TKWAND || tok->kind == TKWOR ||
-			tok->kind == '=';
+			tok->kind == '=' || tok->kind == ',';
 }
 
 static inline _Bool isrightassoc(Token *tok)
@@ -1592,6 +1603,9 @@ static inline int precedenceof(Token *tok)
 		case '*':
 		case '/':
 		return 5;
+
+		case ',':
+		return 6;
 		
 		default:
 		return -100000000;
@@ -1601,11 +1615,14 @@ static inline int precedenceof(Token *tok)
 	return -100000000;
 }
 
-static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
+static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bool allow_toplev_tuples)
 {
 	while(isbinop(ctx->token) && precedenceof(ctx->token) >= min_prec)
 	{
 		Token *op = ctx->token;
+
+		if(op->kind == ',' && allow_toplev_tuples == 0)
+			break;
 
 		next(ctx);
 
@@ -1616,7 +1633,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 
 		while(isbinop(ctx->token) && (precedenceof(ctx->token) > precedenceof(op) || (precedenceof(ctx->token) == precedenceof(op) && isrightassoc(ctx->token))))
 		{
-			right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1);
+			right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1, allow_toplev_tuples);
 			
 			if(right_expr == NULL)
 				return NULL;				
@@ -1652,6 +1669,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 				case TKWAND: temp->base.kind = EXPR_AND; break;
 				case TKWOR: temp->base.kind = EXPR_OR; break;
 				case '=': temp->base.kind = EXPR_ASS; break;
+				case ',': temp->base.kind = EXPR_PAIR; break;
 				
 				default:
 				UNREACHABLE;
@@ -1670,7 +1688,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec)
 	return left_expr;
 }
 
-static Node *parse_expression(Context *ctx)
+static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples)
 {
 	Node *left_expr = parse_prefix_expression(ctx);
 
@@ -1680,7 +1698,7 @@ static Node *parse_expression(Context *ctx)
 	if(done(ctx))
 		return left_expr;
 
-	return parse_expression_2(ctx, left_expr, -1000000000);
+	return parse_expression_2(ctx, left_expr, -1000000000, allow_toplev_tuples);
 }
 
 static Node *parse_ifelse_statement(Context *ctx)
@@ -1704,7 +1722,7 @@ static Node *parse_ifelse_statement(Context *ctx)
 
 	next(ctx); // Consume the "if" keyword.
 
-	Node *condition = parse_expression(ctx);
+	Node *condition = parse_expression(ctx, 1);
 	
 	if(condition == NULL) 
 		return NULL;
@@ -1987,7 +2005,7 @@ static Node *parse_while_statement(Context *ctx)
 
 	next(ctx); // Consume the "while" keyword.
 
-	Node *condition = parse_expression(ctx);
+	Node *condition = parse_expression(ctx, 1);
 	
 	if(condition == NULL) 
 		return NULL;
@@ -2073,7 +2091,7 @@ static Node *parse_dowhile_statement(Context *ctx)
 
 	next(ctx); // Consume the "while" keyword.
 
-	Node *condition = parse_expression(ctx);
+	Node *condition = parse_expression(ctx, 1);
 	
 	if(condition == NULL) 
 		return NULL;

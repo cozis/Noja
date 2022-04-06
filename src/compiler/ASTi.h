@@ -68,6 +68,7 @@ typedef enum {
 	EXPR_INT,
 	EXPR_MAP,
 	EXPR_CALL,
+	EXPR_PAIR,
 	EXPR_LIST,
 	EXPR_NONE,
 	EXPR_TRUE,

@@ -66,12 +66,12 @@ struct TypeObject {
 	unsigned int size;
 	AtomicType   atomic;
 
-	_Bool 		 (*init)(Object *self, Error *err);
-	_Bool 		 (*free)(Object *self, Error *err);
-	int 		 (*hash)(Object *self);
-	Object*		 (*copy)(Object *self, Heap *heap, Error *err);
-	Object* 	 (*call)(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *err);
-	void 		 (*print)(Object *self, FILE *fp);
+	_Bool 	(*init)(Object *self, Error *err);
+	_Bool 	(*free)(Object *self, Error *err);
+	int 	(*hash)(Object *self);
+	Object*	(*copy)(Object *self, Heap *heap, Error *err);
+	int     (*call)(Object *self, Object **argv, unsigned int argc, Object **rets, unsigned int maxrets, Heap *heap, Error *err);
+	void 	(*print)(Object *self, FILE *fp);
 	unsigned int (*deepsize)(const Object *self);
 
 	// Collections.
@@ -123,7 +123,7 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err);
 void        *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error);
 int 		 Object_Hash  (Object *obj);
 Object*		 Object_Copy  (Object *obj, Heap *heap, Error *err);
-Object*		 Object_Call  (Object *obj, Object **argv, unsigned int argc, Heap *heap, Error *err);
+int          Object_Call  (Object *obj, Object **argv, unsigned int argc, Object **rets, unsigned int maxrets, Heap *heap, Error *err);
 void 		 Object_Print (Object *obj, FILE *fp);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);

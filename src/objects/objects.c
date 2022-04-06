@@ -120,10 +120,9 @@ Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 	return type->copy(obj, heap, err);
 }
 
-Object *Object_Call(Object *obj, Object **argv, unsigned int argc, Heap *heap, Error *err)
+int Object_Call(Object *obj, Object **argv, unsigned int argc, Object **rets, unsigned int maxrets, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(obj);
+	assert(err != NULL && obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
 	assert(type);
@@ -131,10 +130,10 @@ Object *Object_Call(Object *obj, Object **argv, unsigned int argc, Heap *heap, E
 	if(type->call == NULL)
 	{
 		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
-		return NULL;
+		return -1;
 	}
 
-	return type->call(obj, argv, argc, heap, err);
+	return type->call(obj, argv, argc, rets, maxrets, heap, err);
 }
 
 void Object_Print(Object *obj, FILE *fp)

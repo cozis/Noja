@@ -37,24 +37,32 @@
 #include "math.h"
 #include "../utils/utf8.h"
 
-static Object *bin_print(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
+	(void) runtime;
+	(void) rets;
+	(void) maxretc;
+	(void) error;
+
 	for(int i = 0; i < (int) argc; i += 1)
 		Object_Print(argv[i], stdout);
-
-	return Object_NewNone(Runtime_GetHeap(runtime), error);
+	return 0;
 }
 
-static Object *bin_type(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	assert(argc == 1);
 	(void) runtime;
 	(void) error;
-	return (Object*) argv[0]->type;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = (Object*) argv[0]->type;
+	return 1;
 }
 
 
-static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	(void) runtime;
 	(void) error;
@@ -66,29 +74,37 @@ static Object *bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, E
 	if(!Object_IsString(argv[0]))
 	{
 		Error_Report(error, 0, "Argument #%d is not a string", 1);
-		return NULL;
+		return -1;
 	}
 
 	const char  *string;
 	int n;
 	string = Object_ToString(argv[0],&n,Runtime_GetHeap(runtime),error);
 	if (string == NULL)
-		return NULL;
+		return -1;
 		
 	if(n == 0)
 	{
 		Error_Report(error, 0, "Argument #%d is an empty string", 1);
-		return NULL;
+		return -1;
 	}
 
 
 	int k = utf8_sequence_to_utf32_codepoint(string,n,&ret);
 	assert(k >= 0);
-	
-	return Object_FromInt(ret,Runtime_GetHeap(runtime),error);
+
+	Object *temp = Object_FromInt(ret,Runtime_GetHeap(runtime),error);
+
+	if(temp == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = temp;
+	return 1;
 }
 
-static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 
 	assert(argc == 1);
@@ -97,7 +113,7 @@ static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error
 	if(!Object_IsInt(argv[0]))
 		{
 			Error_Report(error, 0, "Argument #%d is not an integer", 1);
-			return NULL;
+			return -1;
 		}
 
 
@@ -106,7 +122,7 @@ static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error
 	int value = Object_ToInt(argv[0],error);
 
 	if(error->occurred)
-		return NULL;
+		return -1;
 
 	
 	int k = utf8_sequence_from_utf32_codepoint(buff,sizeof(buff),value);
@@ -114,25 +130,41 @@ static Object *bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Error
 	if(k<0)
 	{
 		Error_Report(error, 0, "Argument #%d is not valid utf-32", 1);
-		return NULL;
+		return -1;
 	}
 	
-	return Object_FromString(buff,k,Runtime_GetHeap(runtime),error);
+	Object *temp = Object_FromString(buff,k,Runtime_GetHeap(runtime),error);
+
+	if(temp == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = temp;
+	return 1;
 }
 
-static Object *bin_count(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_count(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	assert(argc == 1);
 
 	int n = Object_Count(argv[0], error);
 
 	if(error->occurred)
-		return NULL;
+		return -1;
 
-	return Object_FromInt(n, Runtime_GetHeap(runtime), error);
+	Object *temp = Object_FromInt(n, Runtime_GetHeap(runtime), error);
+
+	if(temp == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = temp;
+	return 1;
 }
 
-static Object *bin_input(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	(void) argv;
 	
@@ -158,7 +190,7 @@ static Object *bin_input(Runtime *runtime, Object **argv, unsigned int argc, Err
 			{
 				if(str != maybe) free(str);
 				Error_Report(error, 1, "No memory");
-				return NULL;
+				return -1;
 			}
 
 			str = tmp;
@@ -175,23 +207,36 @@ static Object *bin_input(Runtime *runtime, Object **argv, unsigned int argc, Err
 	if(str != maybe) 
 		free(str);
 
-	return res;
+	if(res == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = res;
+	return 1;
 }
 
-static Object *bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
+	(void) runtime;
+	(void) rets;
+	(void) maxretc;
+
 	for(unsigned int i = 0; i < argc; i += 1)
 		if(!Object_ToBool(argv[i], error))
 		{
 			if(!error->occurred)
 				Error_Report(error, 0, "Assertion failed");
-			return NULL;
+			return -1;
 		}
-	return Object_NewNone(Runtime_GetHeap(runtime), error);
+	return 0;
 }
 
-static Object *bin_error(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
+	(void) rets;
+	(void) maxretc;
+
 	assert(argc == 1);
 
 	int         length;
@@ -200,13 +245,13 @@ static Object *bin_error(Runtime *runtime, Object **argv, unsigned int argc, Err
 	string = Object_ToString(argv[0], &length, Runtime_GetHeap(runtime), error);
 
 	if(string == NULL)
-		return NULL;
+		return -1;
 
 	Error_Report(error, 0, "%s", string);
-	return NULL;
+	return -1;
 }
 
-static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	unsigned int total_count = 0;
 
@@ -215,13 +260,13 @@ static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Er
 		if(!Object_IsString(argv[i]))
 		{
 			Error_Report(error, 0, "Argument #%d is not a string", i+1);
-			return NULL;
+			return -1;
 		}
 
 		total_count += Object_Count(argv[i], error);
 
 		if(error->occurred)
-			return NULL;
+			return -1;
 	}
 
 	char starting[128];
@@ -234,7 +279,7 @@ static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Er
 		if(buffer == NULL)
 		{
 			Error_Report(error, 1, "No memory");
-			return NULL;
+			return -1;
 		}
 	}
 
@@ -260,35 +305,58 @@ static Object *bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Er
 done:
 	if(starting != buffer)
 		free(buffer);
-	return result;
+
+	if(result == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = result;
+	return 1;
 }
 
-static Object *bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	assert(argc == 1);
 
 	long long int size = Object_ToInt(argv[0], error);
 
 	if(error->occurred == 1)
-		return NULL;
+		return -1;
 
-	return Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
+	Object *temp = Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
+
+	if(temp == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = temp;
+	return 1;
 }
 
-static Object *bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	assert(argc == 3);
 
 	long long int offset = Object_ToInt(argv[1], error);
-	if(error->occurred == 1) return NULL;
+	if(error->occurred == 1) return -1;
 
 	long long int length = Object_ToInt(argv[2], error);
-	if(error->occurred == 1) return NULL;
+	if(error->occurred == 1) return -1;
 
-	return Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
+	Object *temp = Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
+
+	if(temp == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = temp;
+	return 1;
 }
 
-static Object *bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	assert(argc == 1);
 
@@ -298,14 +366,22 @@ static Object *bin_bufferToString(Runtime *runtime, Object **argv, unsigned int 
 	buffaddr = Object_GetBufferAddrAndSize(argv[0], &buffsize, error);
 
 	if(error->occurred)
-		return NULL;
+		return -1;
 
-	return Object_FromString(buffaddr, buffsize, Runtime_GetHeap(runtime), error);
+	Object *temp =  Object_FromString(buffaddr, buffsize, Runtime_GetHeap(runtime), error);
+
+	if(temp == NULL)
+		return -1;
+
+	if(maxretc == 0)
+		return 0;
+	rets[0] = temp;
+	return 1;
 }
 
 const StaticMapSlot bins_basic[] = {
 	{ "math",  SM_SMAP, .as_smap = bins_math, },
-	{ "files", SM_SMAP, .as_smap = bins_files, },
+//	{ "files", SM_SMAP, .as_smap = bins_files, },
 //	{ "net",  SM_SMAP, .as_smap = bins_net, },
 
 	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },

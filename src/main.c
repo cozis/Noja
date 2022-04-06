@@ -159,12 +159,15 @@ static _Bool interpret(Source *src)
 
 	Runtime_SetBuiltins(runt, bins);
 
-	Object *o = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0);
+	Object *rets[8];
+	unsigned int maxretc = sizeof(rets)/sizeof(rets[0]);
+
+	int retc = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0, rets, maxretc);
 
 	// NOTE: The pointer to the builtins object is invalidated
 	//       now because it may be moved by the garbage collector.
 
-	if(o == NULL)
+	if(retc < 0)
 	{
 		print_error("Runtime", (Error*) &error);
 
@@ -179,7 +182,7 @@ static _Bool interpret(Source *src)
 	Runtime_Free(runt);
 	Executable_Free(exe);
 
-	return o != NULL;
+	return retc > -1;
 }
 
 static _Bool disassemble(Source *src)

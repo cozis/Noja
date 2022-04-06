@@ -33,7 +33,7 @@
 #include "math.h"
 
 #define WRAP_FUNC(name) \
-	static Object *bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Error *error) \
+	static int bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error) \
 	{																							\
 		assert(argc == 1);																		\
 																								\
@@ -42,45 +42,56 @@
 			double v = Object_ToFloat(argv[0], error);											\
 																								\
 			if(error->occurred) 																\
-				return NULL;																	\
+				return -1;																	\
 																								\
-			return Object_FromFloat(name(v), Runtime_GetHeap(runtime), error);					\
+			if(maxretc > 0)																		\
+			{																					\
+				rets[0] = Object_FromFloat(name(v), Runtime_GetHeap(runtime), error);			\
+				if(rets[0] == NULL)																\
+					return -1;																	\
+				return 1;																		\
+			}																					\
+			return 0;																			\
 		}																						\
 		else 																					\
 		{																						\
 			Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));\
-			return NULL;																		\
+			return -1;																			\
 		}																						\
 	}
 
 #define WRAP_FUNC_2(name) \
-	static Object *bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Error *error) \
+	static int bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error) \
 	{																							\
 		assert(argc == 2);																		\
 																								\
 		if(!Object_IsFloat(argv[0]))															\
 		{																						\
 			Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));\
-			return NULL;																		\
+			return -1;																			\
 		}																						\
 																								\
 		if(!Object_IsFloat(argv[1]))															\
 		{																						\
 			Error_Report(error, 0, "Expected second argument to be a float, but it's a %s", Object_GetName(argv[1]));\
-			return NULL;																		\
+			return -1;																			\
 		}																						\
 																								\
 		double v1 = Object_ToFloat(argv[0], error);												\
 																								\
 		if(error->occurred) 																	\
-			return NULL;																		\
+			return -1;																			\
 																								\
 		double v2 = Object_ToFloat(argv[1], error);												\
 																								\
 		if(error->occurred) 																	\
-			return NULL;																		\
+			return -1;																			\
 																								\
-		return Object_FromFloat(name(v1, v2), Runtime_GetHeap(runtime), error);					\
+		Object *res = Object_FromFloat(name(v1, v2), Runtime_GetHeap(runtime), error);			\
+		if(res == NULL) return -1;																\
+		if(maxretc == 0) return 0;																\
+		rets[0] = res;																			\
+		return 1;																				\
 	}
 
 WRAP_FUNC(ceil)

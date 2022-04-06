@@ -43,11 +43,11 @@
 typedef struct {
 	Object base;
 	Runtime *runtime;
-	Object *(*callback)(Runtime *runtime, Object **argv, unsigned int argc, Error *error);
+	int (*callback)(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error);
 	int argc;
 } NativeFunctionObject;
 
-static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error)
+static int call(Object *self, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc,  Heap *heap, Error *error)
 {
 	assert(self != NULL);
 	assert(heap != NULL);
@@ -87,7 +87,7 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 		if(argv2 == NULL)
 		{
 			Error_Report(error, 1, "No memory");
-			return NULL;
+			return -1;
 		}
 
 		// Copy the provided arguments.
@@ -102,27 +102,24 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 			if(argv2[i] == NULL)
 			{
 				free(argv2);
-				return NULL;
+				return -1;
 			}
 		}
 	}
 	else UNREACHABLE;
 
 	assert(func->callback != NULL);
-	Object *result = func->callback(func->runtime, argv2, argc2, error);
+	int retc = func->callback(func->runtime, argv2, argc2, rets, maxretc, error);
 
 	// NOTE: Since the callback may have executed some bytecode, a GC
 	//       cycle may have been triggered, therefore we must assume
 	//       every object reference that was locally saved is invalidated 
 	//       from here (the returned object is good tho).
 
-	if(result == NULL && error->occurred == 0)
-		Error_Report(error, 1, "Native callback returned NULL but didn't report errors");
-
 	if(argv2 != argv)
 		free(argv2);
 
-	return result;
+	return retc;
 }
 
 static TypeObject t_nfunc = {
@@ -156,7 +153,7 @@ static TypeObject t_nfunc = {
  *   The newly created object. If an error occurred, NULL is returned
  *   and information about the error is stored in the [error] argument.
  */
-Object *Object_FromNativeFunction(Runtime *runtime, Object *(*callback)(Runtime*, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error)
+Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error)
 {
 	assert(callback != NULL);
 

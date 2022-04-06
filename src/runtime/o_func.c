@@ -57,7 +57,7 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 	callback(&func->closure, userp);
 }
 
-static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, Error *error)
+static int call(Object *self, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Heap *heap, Error *error)
 {
 	assert(self != NULL && heap != NULL && error != NULL);
 	
@@ -88,7 +88,7 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 		if(argv2 == NULL)
 		{
 			Error_Report(error, 1, "No memory");
-			return NULL;
+			return -1;
 		}
 
 		// Copy the provided arguments.
@@ -101,21 +101,21 @@ static Object *call(Object *self, Object **argv, unsigned int argc, Heap *heap, 
 			argv2[i] = Object_NewNone(heap, error);
 
 			if(argv2[i] == NULL)
-				return 0;
+				return -1;
 		}
 	}
 	else
 		// The right amount of arguments was provided.
 		argv2 = argv;
 
-	Object *result = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc);
+	int retc = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc, rets, maxretc);
 
 	// NOTE: Every object reference is invalidated from here.
 
 	if(argv2 != argv)
 		free(argv2);
 
-	return result;
+	return retc;
 }
 
 static TypeObject t_func = {

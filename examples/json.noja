@@ -37,10 +37,8 @@ fun parse(str) {
 
     skip(ctx, isSpace);
 
-    if ended(ctx): {
-        print('Source only contains whitespace');
-        return none;
-    }
+    if ended(ctx):
+        return none, 'Source only contains whitespace';
 
     return parseAny(ctx);
 }
@@ -53,10 +51,8 @@ fun parseArray(ctx) {
 
     skip(ctx, isSpace);
 
-    if ended(ctx): {
-        error("Source ended inside an array");
-        return none;
-    }
+    if ended(ctx):
+        return none, "Source ended inside an array";
 
     arr = [];
 
@@ -76,27 +72,21 @@ fun parseArray(ctx) {
 
         skip(ctx, isSpace);
 
-        if ended(ctx): {
-            error("Source ended inside an array");
-            return none;
-        }
+        if ended(ctx):
+            return none, "Source ended inside an array";
 
         if current(ctx) == ']':
             break;
 
-        if current(ctx) != ',': {
-            error("Bad character inside array");
-            return none;
-        }
+        if current(ctx) != ',':
+            return none, "Bad character inside array";
 
         next(ctx); # Skip ','.
 
         skip(ctx, isSpace);
 
-        if ended(ctx): {
-            error("Source ended inside an array");
-            return none;
-        }
+        if ended(ctx):
+            return none, "Source ended inside an array";
     }
 
     next(ctx);
@@ -111,10 +101,8 @@ fun parseObject(ctx) {
 
     skip(ctx, isSpace);
 
-    if ended(ctx): {
-        error("Source ended inside an object");
-        return none;
-    }
+    if ended(ctx):
+        return none, "Source ended inside an object";
 
     obj = {};
 
@@ -125,10 +113,8 @@ fun parseObject(ctx) {
 
     while true: {
 
-        if current(ctx) != '"': {
-            error("Bad character where a string was expected");
-            return none;
-        }
+        if current(ctx) != '"':
+            return none, "Bad character where a string was expected";
 
         key = parseString(ctx);
 
@@ -137,10 +123,8 @@ fun parseObject(ctx) {
 
         skip(ctx, isSpace);
 
-        if current(ctx) != ':': {
-            error("Bad character where ':' was expected");
-            return none;
-        }
+        if current(ctx) != ':':
+            return none, "Bad character where ':' was expected";
 
         next(ctx); # Skip ':'.
 
@@ -155,27 +139,21 @@ fun parseObject(ctx) {
 
         skip(ctx, isSpace);
 
-        if ended(ctx): {
-            error("Source ended inside an arrays");
-            return none;
-        }
+        if ended(ctx):
+            return none, "Source ended inside an arrays";
 
         if current(ctx) == '}':
             break;
 
-        if current(ctx) != ',': {
-            error("Bad character inside array");
-            return none;
-        }
+        if current(ctx) != ',':
+            return none, "Bad character inside array";
 
         next(ctx); # Skip ','.
 
         skip(ctx, isSpace);
 
-        if ended(ctx): {
-            error("Source ended inside an array");
-            return none;
-        }
+        if ended(ctx):
+            return none, "Source ended inside an array";
     }
 
     next(ctx);
@@ -198,10 +176,8 @@ fun parseString(ctx) {
         next(ctx);
     }
 
-    if ended(ctx): {
-        error("Source ended inside a string");
-        return none;
-    }
+    if ended(ctx):
+        return none, "Source ended inside a string";
 
     next(ctx); # Skip the '"'.
     return buff;
@@ -228,15 +204,11 @@ fun parseNumber(ctx) {
 
         next(ctx);
 
-        if ended(ctx): {
-            error("Source string ended unexpectedly after dot");
-            return none;
-        }
+        if ended(ctx):
+            return none, "Source string ended unexpectedly after dot";
 
-        if not isDigit(current(ctx)): {
-            error("Got something other than a digit after dot");
-            return none;
-        }
+        if not isDigit(current(ctx)):
+            return none, "Got something other than a digit after dot";
 
         fact = 1;
         while not ended(ctx): {
@@ -252,8 +224,6 @@ fun parseNumber(ctx) {
 }
 
 fun parseAny(ctx) {
-
-    print('Parsing value\n');
 
     assert(not ended(ctx));
 

@@ -77,7 +77,7 @@ int Runtime_GetCurrentIndex(Runtime *runtime)
 Executable *Runtime_GetCurrentExecutable(Runtime *runtime)
 {
 	if(runtime->depth == 0)
-		return NULL;
+		return 	NULL;
 	else
 		return runtime->frame->exe;
 }
@@ -805,11 +805,13 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_CALL:
 		{
-			assert(opc == 1);
+			assert(opc == 2);
 			assert(ops[0].type == OPTP_INT);
+			assert(ops[1].type == OPTP_INT);
 
 			int argc = ops[0].as_int;
-			assert(argc >= 0);
+			int retc = ops[1].as_int;
+			assert(argc >= 0 && retc > 0);
 
 			if(runtime->frame->used < argc + 1)
 			{
@@ -839,19 +841,32 @@ static _Bool step(Runtime *runtime, Error *error)
 			(void) Runtime_Pop(runtime, error, argc+1);
 			assert(error->occurred == 0);
 
-			Object *obj = Object_Call(callable, argv, argc, runtime->heap, error);
-			// NOTE: Every local object reference is invalidated from here.
-				
-			if(obj == NULL)
-			{
-				assert(error->occurred != 0);
+			Object *rets[8];
+			unsigned int maxrets = sizeof(rets)/sizeof(rets[0]);
+
+			int num_rets = Object_Call(callable, argv, argc, rets, maxrets, runtime->heap, error);
+
+			if(num_rets < 0)
 				return 0;
-			}
+
+			// NOTE: Every local object reference is invalidated from here.
 
 			assert(error->occurred == 0);
 
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
+			for(int g = 0; g < MIN(num_rets, retc); g += 1)
+				if(!Runtime_Push(runtime, error, rets[g]))
+					return 0;
+
+			for(int g = 0; g < retc - num_rets; g += 1)
+			{
+				Object *temp = Object_NewNone(Runtime_GetHeap(runtime), error);
+
+				if(temp == NULL)
+					return NULL;
+
+				if(!Runtime_Push(runtime, error, temp))
+					return 0;
+			}
 			return 1;
 		}
 
@@ -1126,7 +1141,14 @@ static _Bool step(Runtime *runtime, Error *error)
 		}
 
 		case OPCODE_RETURN:
-		return 0;
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_INT);
+			int retc = ops[0].as_int;
+			assert(retc >= 0);
+			assert(retc == runtime->frame->used);
+			return 0;
+		}
 
 		case OPCODE_JUMP:
 		assert(opc == 1);
@@ -1233,7 +1255,7 @@ static _Bool collect(Runtime *runtime, Error *error)
 	return Heap_StopCollection(runtime->heap);
 }
 
-Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc)
+int run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc, Object **rets, int maxretc)
 {
 	assert(runtime != NULL);
 	assert(error != NULL);
@@ -1244,7 +1266,7 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	if(runtime->depth == MAX_FRAMES)
 	{
 		Error_Report(error, 1, "Maximum nested call limit of %d was reached", MAX_FRAMES);
-		return NULL;
+		return -1;
 	}
 
 	assert(runtime->depth < MAX_FRAMES);
@@ -1260,12 +1282,12 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 		frame.used  = 0;
 
 		if(frame.locals == NULL)
-			return NULL;
+			return -1;
 
 		if(frame.exe == NULL)
 		{
 			Error_Report(error, 1, "Failed to copy executable");
-			return NULL;
+			return -1;
 		}
 	
 		// Add the frame to the runtime.
@@ -1275,7 +1297,7 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	}
 
 	// This is what the function will return.
-	Object *result = NULL;
+	int retc = -1;
 
 	// Push the initial values of the frame.
 	for(int i = 0; i < argc; i += 1)
@@ -1317,19 +1339,12 @@ Object *run(Runtime *runtime, Error *error, Executable *exe, int index, Object *
 	// If an error occurred, we want to return NULL.
 	if(error->occurred == 0)
 	{
-		// If the step function left something
-		// on the stack, we return that. If it
-		// didn't, we return some other default
-		// value like "none".
-		if(frame.used == 0)
+		retc = MIN(frame.used, maxretc);
+
+		for(int i = 0; i < retc; i += 1)
 		{
-			// Nothing to return on the stack. Set to none.
-			result = Object_NewNone(runtime->heap, error);
-		}
-		else
-		{
-			result = Stack_Top(runtime->stack, 0);
-			assert(result != NULL);
+			rets[i] = Stack_Top(runtime->stack, i - retc + 1);
+			assert(rets[i] != NULL);
 		}
 	}
 
@@ -1348,5 +1363,5 @@ cleanup:
 		Executable_Free(frame.exe);
 	}
 
-	return result;
+	return retc;
 }

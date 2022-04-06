@@ -27,7 +27,8 @@
 ** | with The Noja Interpreter. If not, see <http://www.gnu.org/licenses/>.   |
 ** +--------------------------------------------------------------------------+ 
 */
-
+#warning "Commented out whole file"
+/*
 #include <assert.h>
 #include <errno.h>
 #include "files.h"
@@ -306,3 +307,4 @@ const StaticMapSlot bins_files[] = {
 	{ "write",       SM_FUNCT, .as_funct = bin_write,    .argc = 3, },
 	{ NULL, SM_END, {}, {} },
 };
+*/

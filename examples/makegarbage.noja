@@ -3,7 +3,7 @@
 print('Start\n');
 
 i = 0;
-n = 1000;
+n = 10000000;
 
 while i < n: {
 
