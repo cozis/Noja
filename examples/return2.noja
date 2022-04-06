@@ -1,0 +1,18 @@
+
+fun duplica_forse(a) {
+    if a >= 10:
+        return a*2;
+    return none, "Il numero è inferiore a 10!";
+}
+
+fun duplica_forse2(a) {
+    return all duplica_forse(a);
+}
+
+num = 5;
+num2, err = duplica_forse2(num);
+
+if num2 == none:
+    print('ERRORE!!! ', err, '\n');
+else
+    print(num2, '\n');

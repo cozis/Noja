@@ -40,7 +40,8 @@ fun parse(str) {
     if ended(ctx):
         return none, 'Source only contains whitespace';
 
-    return parseAny(ctx);
+    res, err = parseAny(ctx);
+    return res, err;
 }
 
 fun parseArray(ctx) {
@@ -228,43 +229,44 @@ fun parseAny(ctx) {
     assert(not ended(ctx));
 
     if current(ctx) == '[':
-        return parseArray(ctx);
-
-    if current(ctx) == '{':
-        return parseObject(ctx);
-
-    if current(ctx) == '"':
-        return parseString(ctx);
-
-    if isDigit(current(ctx)):
-        return parseNumber(ctx);
-
-    error("Not implemented yet");
+        res, err = parseArray(ctx);
+    else if current(ctx) == '{':
+        res, err = parseObject(ctx);
+    else if current(ctx) == '"':
+        res, err = parseString(ctx);
+    else if isDigit(current(ctx)):
+        res, err = parseNumber(ctx);
+    else
+        error("Not implemented yet");
+    return res, err;
 }
 
 
-#tests = ['', '1', '10', '1.10', '"jeje"', '[]', '[1,2,3]', '  [  ]  ', '  [  1  ,  2  ,  3  ]', '{}', '  {  }  ', '{"hoy":4}', '  {  "hoy"  :  4  }  '];
+tests = [
+    '', '1', '10', 
+    '1.@10', '1.10', '"jeje"', 
+    '[]', '[1,2,3]', '  [  ]  ', '  [  1  ,  2  ,  3  ]', '{}', '  {  }  ', '{"hoy":4}', '  {  "hoy"  :  4  }  '];
 
-#i = 0;
-#while i < count(tests): {
-#    r = parse(tests[i]);
-#    if r == none:
-#        print('\nTest ', i, ' failed\n');
-#    else
-#        print(tests[i], ' -> ', r, '\n');
-#    i = i + 1;
-#}
+i = 0;
+while i < count(tests): {
+    res, err = parse(tests[i]);
+    if res == none:
+        print('Test ', i, ' failed (', err, ')\n');
+    else
+        print('Test ', i, ' passed (', tests[i], ' -> ', res, ')\n');
+    i = i + 1;
+}
 
-file = files.openFile('examples/large-file.json', files.READ);
-if file == none:
-    error("Failed to open file");
-
-buff = newBuffer(30000000);
-if buff == none:
-    error("Failed to create buffer");
-
-n = files.read(file, buff);
-
-text = bufferToString(sliceBuffer(buff, 0, n));
-
-print(parse(text));
+#file = files.openFile('examples/large-file.json', #files.READ);
+#if file == none:
+#    error("Failed to open file");
+#
+#buff = newBuffer(30000000);
+#if buff == none:
+#    error("Failed to create buffer");
+#
+#n = files.read(file, buff);
+#
+#text = bufferToString(sliceBuffer(buff, 0, n));
+#
+#print(parse(text));
