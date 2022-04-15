@@ -91,13 +91,11 @@ struct Node {
 	Node 	*next;
 	int 	 offset, 
 			 length;
-	char 	 body[];
 };
 
 typedef struct {
 	Node 	 base;
 	ExprKind kind;
-	char 	 body[];
 } ExprNode;
 
 typedef struct {

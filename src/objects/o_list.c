@@ -99,11 +99,6 @@ static Object *copy(Object *self, Heap *heap, Error *err)
 	return (Object*) ls2;
 }
 
-static inline int calc_capacity(int mapper_size)
-{
-	return mapper_size * 2.0 / 3.0;
-}
-
 Object *Object_NewList(int capacity, Heap *heap, Error *error)
 {
 	// Handle default args.
