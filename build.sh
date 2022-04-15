@@ -1,61 +1,72 @@
-USING_VALGRIND=0
 
-FLAGS="-L3p/libs/ -I3p/include/ -Wall -Wextra -g -DUSING_VALGRIND=$USING_VALGRIND"
+CC=gcc
+FLAGS="-Wall -Wextra"
 
-# pass `--debug` to this script to enable debugging messages
-while test $# != 0
+for arg in "$@"
 do
-    case "$1" in
-    --debug) FLAGS="$FLAGS -DDEBUG" ;;
-    esac
-    shift
+	case $arg in
+		   --debug) FLAGS="$FLAGS -DDEBUG -g" 
+			  	    ;;
+		 --release) FLAGS="$FLAGS -DNDEBUG -O3" 
+			  	    ;;
+
+		--valgrind) FLAGS="$FLAGS -DUSING_VALGRIND=1"
+					;;
+
+		--coverage) CC=clang
+					FLAGS="$FLAGS -fprofile-instr-generate -fcoverage-mapping"
+					;;
+
+		 --fuzzing) CC=afl-clang-fast
+					;;
+	esac
 done
 
 mkdir temp
 
 mkdir temp/utils
-gcc -c src/utils/utf8.c       -o temp/utils/utf8.o       $FLAGS
-gcc -c src/utils/hash.c       -o temp/utils/hash.o       $FLAGS
-gcc -c src/utils/stack.c      -o temp/utils/stack.o      $FLAGS
-gcc -c src/utils/error.c      -o temp/utils/error.o      $FLAGS
-gcc -c src/utils/source.c     -o temp/utils/source.o     $FLAGS
-gcc -c src/utils/bpalloc.c    -o temp/utils/bpalloc.o    $FLAGS
-gcc -c src/utils/promise.c    -o temp/utils/promise.o    $FLAGS
-gcc -c src/utils/bucketlist.c -o temp/utils/bucketlist.o $FLAGS
+$CC -c src/utils/utf8.c       -o temp/utils/utf8.o       $FLAGS
+$CC -c src/utils/hash.c       -o temp/utils/hash.o       $FLAGS
+$CC -c src/utils/stack.c      -o temp/utils/stack.o      $FLAGS
+$CC -c src/utils/error.c      -o temp/utils/error.o      $FLAGS
+$CC -c src/utils/source.c     -o temp/utils/source.o     $FLAGS
+$CC -c src/utils/bpalloc.c    -o temp/utils/bpalloc.o    $FLAGS
+$CC -c src/utils/promise.c    -o temp/utils/promise.o    $FLAGS
+$CC -c src/utils/bucketlist.c -o temp/utils/bucketlist.o $FLAGS
 
 mkdir temp/objects
-gcc -c src/objects/heap.c      -o temp/objects/heap.o      $FLAGS
-gcc -c src/objects/o_int.c     -o temp/objects/o_int.o     $FLAGS
-gcc -c src/objects/o_map.c     -o temp/objects/o_map.o     $FLAGS
-gcc -c src/objects/o_list.c    -o temp/objects/o_list.o    $FLAGS
-gcc -c src/objects/o_none.c    -o temp/objects/o_none.o    $FLAGS
-gcc -c src/objects/o_bool.c    -o temp/objects/o_bool.o    $FLAGS
-gcc -c src/objects/o_file.c    -o temp/objects/o_file.o    $FLAGS
-gcc -c src/objects/o_dir.c     -o temp/objects/o_dir.o     $FLAGS
-gcc -c src/objects/o_float.c   -o temp/objects/o_float.o   $FLAGS
-gcc -c src/objects/o_string.c  -o temp/objects/o_string.o  $FLAGS
-gcc -c src/objects/o_buffer.c  -o temp/objects/o_buffer.o  $FLAGS
-gcc -c src/objects/o_closure.c -o temp/objects/o_closure.o $FLAGS
-gcc -c src/objects/objects.c   -o temp/objects/objects.o   $FLAGS
+$CC -c src/objects/heap.c      -o temp/objects/heap.o      $FLAGS
+$CC -c src/objects/o_int.c     -o temp/objects/o_int.o     $FLAGS
+$CC -c src/objects/o_map.c     -o temp/objects/o_map.o     $FLAGS
+$CC -c src/objects/o_list.c    -o temp/objects/o_list.o    $FLAGS
+$CC -c src/objects/o_none.c    -o temp/objects/o_none.o    $FLAGS
+$CC -c src/objects/o_bool.c    -o temp/objects/o_bool.o    $FLAGS
+$CC -c src/objects/o_file.c    -o temp/objects/o_file.o    $FLAGS
+$CC -c src/objects/o_dir.c     -o temp/objects/o_dir.o     $FLAGS
+$CC -c src/objects/o_float.c   -o temp/objects/o_float.o   $FLAGS
+$CC -c src/objects/o_string.c  -o temp/objects/o_string.o  $FLAGS
+$CC -c src/objects/o_buffer.c  -o temp/objects/o_buffer.o  $FLAGS
+$CC -c src/objects/o_closure.c -o temp/objects/o_closure.o $FLAGS
+$CC -c src/objects/objects.c   -o temp/objects/objects.o   $FLAGS
 
 mkdir temp/compiler
-gcc -c src/compiler/parse.c      -o temp/compiler/parse.o      $FLAGS
-gcc -c src/compiler/compile.c    -o temp/compiler/compile.o    $FLAGS
+$CC -c src/compiler/parse.c      -o temp/compiler/parse.o      $FLAGS
+$CC -c src/compiler/compile.c    -o temp/compiler/compile.o    $FLAGS
 
 mkdir temp/common
-gcc -c src/common/executable.c -o temp/common/executable.o $FLAGS
+$CC -c src/common/executable.c -o temp/common/executable.o $FLAGS
 
 mkdir temp/runtime
-gcc -c src/runtime/runtime_error.c -o temp/runtime/runtime_error.o $FLAGS
-gcc -c src/runtime/runtime.c 	   -o temp/runtime/runtime.o       $FLAGS
-gcc -c src/runtime/o_nfunc.c       -o temp/runtime/o_nfunc.o       $FLAGS
-gcc -c src/runtime/o_func.c        -o temp/runtime/o_func.o        $FLAGS
-gcc -c src/runtime/o_staticmap.c   -o temp/runtime/o_staticmap.o   $FLAGS
+$CC -c src/runtime/runtime_error.c -o temp/runtime/runtime_error.o $FLAGS
+$CC -c src/runtime/runtime.c 	   -o temp/runtime/runtime.o       $FLAGS
+$CC -c src/runtime/o_nfunc.c       -o temp/runtime/o_nfunc.o       $FLAGS
+$CC -c src/runtime/o_func.c        -o temp/runtime/o_func.o        $FLAGS
+$CC -c src/runtime/o_staticmap.c   -o temp/runtime/o_staticmap.o   $FLAGS
 
 mkdir temp/builtins
-gcc -c src/builtins/basic.c -o temp/builtins/basic.o $FLAGS
-gcc -c src/builtins/files.c -o temp/builtins/files.o $FLAGS
-gcc -c src/builtins/math.c  -o temp/builtins/math.o  $FLAGS
+$CC -c src/builtins/basic.c -o temp/builtins/basic.o $FLAGS
+$CC -c src/builtins/files.c -o temp/builtins/files.o $FLAGS
+$CC -c src/builtins/math.c  -o temp/builtins/math.o  $FLAGS
 
 rm -rf build
 mkdir build
@@ -81,7 +92,7 @@ ar rcs build/libnoja-runtime.a \
 	build/libnoja-compile.a \
 	build/libnoja-objects.a
 
-gcc src/main.c \
+$CC src/main.c \
 	temp/utils/utf8.o        \
 	temp/utils/hash.o        \
 	temp/utils/stack.o       \
