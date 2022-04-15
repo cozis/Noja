@@ -906,13 +906,16 @@ static Node *parse_map_primary_expression(Context *ctx)
 	
 	if(done(ctx))
 	{
-		Error_Report(ctx->error, 0, "Source ended where a map literal was expected");
+		Error_Report(ctx->error, 0, 
+			"Source ended where a map literal was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != '{')
 	{
-		Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		Error_Report(ctx->error, 0, 
+			"Got token \"%.*s\" where a map literal was expected", 
+			ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
 
@@ -922,7 +925,13 @@ static Node *parse_map_primary_expression(Context *ctx)
 	Node *items = NULL;
 	int   itemc = 0;
 		
-	next(ctx); // Skip the '['.
+	next(ctx); // Skip the '{'.
+
+	if(done(ctx))
+	{
+		Error_Report(ctx->error, 0, "Source ended where a map child item's key was expected");
+		return NULL;
+	}
 
 	if(current(ctx) != '}')
 	{
