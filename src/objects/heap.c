@@ -38,18 +38,20 @@
 ** | The collection algorithm is move-and-compact. The allocator is a         |
 ** | bump-pointer allocator. When the base pool of memory is filled up,       |
 ** | further allocations are forwarded to the stdlib's malloc, but are kept   |
-** | track of by putting them in a linked list. When the parent system decides|
-** | to free up some memory, a new heap is allocated and the live objects are |
-** | moved to it, then the old heap is freed. The references between live     |
-** | objects are updated when moving them.Some objects implement destructors  |
-** | that must be called when a new heap is allocated and they're not moved   |
-** | to it. An auxiliary list of allocated objects with destructors is stored |
-** | alongside the heap. When the live objects are moved and the ones to be   |
-** | destroyed are left in the old one, the list of objects with destructors  |
-** | is iterated over and the objects in it that weren't moved are destroied  |
-** | and removed from the list. This approach becomes linearly slower with    |
-** | the number of allocated objects with destructors, but it's assumed that  |
-** | not many of them implement them.                                         |
+** | track of by putting them in a linked list. When the language's runtime   |
+** | system decides to free up some memory, a new heap is allocated and the   |
+** | live objects are moved to it, then the old heap is freed. The references |
+** | between live objects are updated when moving them. Some objects implement|
+** | destructors that must be called when a new heap is allocated and they're |
+** | not moved to it. An auxiliary list of allocated objects with destructors |
+** | is stored alongside the heap. When the live objects are moved and the    |
+** | ones to be destroyed are left in the old one, the list of objects with   |
+** | destructors is iterated over and the objects in it that weren't moved are|
+** | destroied and removed from the list. This approach becomes linearly      |
+** | slower with the number of allocated objects with destructors, but it's   |
+** | assumed that not many of them implement them.                            |
+** | If during a collection the new memory pool is filled up, then an error is|
+** | thrown to the parent system.                                             |
 ** |                                                                          |
 ** |                       HOW ARE POINTERS UPDATED?                          |
 ** | Basically, when an object is moved from the old to the new heap, the     |
@@ -291,6 +293,12 @@ void *Heap_RawMalloc(Heap *heap, int size, Error *err)
 
 	if(heap->used + size > heap->size)
 	{
+		if(heap->collecting)
+		{
+			Error_Report(err, 1, "Out of heap");
+			return NULL;
+		}
+
 		OflowAlloc *oflow = malloc(sizeof(OflowAlloc) + size);
 
 		if(oflow == 0)
