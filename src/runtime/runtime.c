@@ -324,13 +324,20 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 	assert(lop != NULL);
 	assert(rop != NULL);
 
-	#define APPLY(x, y, z, id) 								\
-		switch(opcode)										\
+	#define APPLY(x, y, z, id) 							\
+		switch(opcode)									\
 		{												\
 			case OPCODE_ADD: (z) = (x) + (y); break;	\
 			case OPCODE_SUB: (z) = (x) - (y); break;	\
 			case OPCODE_MUL: (z) = (x) * (y); break;	\
-			case OPCODE_DIV: (z) = (x) / (y); break;	\
+			case OPCODE_DIV: 							\
+			if((y) == 0) 								\
+			{ 											\
+				Error_Report(error, 0, "Division by zero"); \
+				return NULL; 							\
+			} 											\
+			(z) = (x) / (y); 							\
+			break;										\
 			default: assert(0); break;					\
 		}
 
