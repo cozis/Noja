@@ -1185,7 +1185,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(!Object_IsBool(top))
 			{
-				Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
+				Error_Report(error, 0, "Not a boolean");
 				return 0;
 			}
 
@@ -1217,7 +1217,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(!Object_IsBool(top))
 			{
-				Error_Report(error, 1, "JUMPIFNOTANDPOP expected a boolean on the stack");
+				Error_Report(error, 0, "Not a boolean");
 				return 0;
 			}
 

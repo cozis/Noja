@@ -679,6 +679,13 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 				if(!emit_instr_for_node(exeb, func->body, NULL, error))
 					return 0;
 
+				if(func->body->kind == NODE_EXPR)
+				{
+					Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
+					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, func->body->offset + func->body->length, 0))
+						return 0;
+				}
+
 				// Write a return instruction, just 
 				// in case it didn't already return.
 				Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
