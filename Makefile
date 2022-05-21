@@ -30,9 +30,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 all: $(OBJS) build
 
 build:
-	@ mkdir -p build
-	
-	@ echo !==== LINKING EVERYTHING
+	@ echo !==== LINKING
+	@ mkdir -p $(BINDIR)
 	@ $(CC) -o $(BINDIR)/$(OUTFILE) $(OBJS) $(LFLAGS)
 
 clean:
