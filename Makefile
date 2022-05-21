@@ -38,7 +38,6 @@ fuzz:
 	afl-fuzz -i examples/ -o out -m none -d -- ./build/noja run @@
 
 # Link all object files
-.PHONY build: all
 build:
 	@ echo !==== LINKING
 	@ mkdir -p $(BINDIR)
