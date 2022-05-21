@@ -6,14 +6,14 @@ CXX = gcc
 CC  = $(CROSS_COMPILE)$(CXX)
 
 # Compiler flags
-CFLAGS  = -O3 -Wall -Wextra -g
-LFLAGS  = -lm
+CFLAGS = -O3 -Wall -Wextra -g
+LFLAGS = -lm
 
 # Files and directories
-SRCDIR     = src
-OBJDIR     = temp
-BINDIR     = build
-OUTFILE    = noja
+SRCDIR  = src
+OBJDIR  = temp
+BINDIR  = build
+OUTFILE = noja
 
 # Find all files
 SRC  = $(call rwildcard, $(SRCDIR), *.c)
