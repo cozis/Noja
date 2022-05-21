@@ -35,7 +35,7 @@ fuzz:
 	@ export AFL_SKIP_CPUFREQ=1
 	afl-fuzz -i examples/ -o out -m none -d -- ./build/noja run @@
 
-.PHONY: all
+.PHONY build: all
 build:
 	@ echo !==== LINKING
 	@ mkdir -p $(BINDIR)
