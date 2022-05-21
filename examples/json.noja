@@ -241,7 +241,6 @@ fun parseAny(ctx) {
     return res, err;
 }
 
-
 tests = [
     '', 
     '1', 
@@ -269,7 +268,7 @@ while i < count(tests): {
     i = i + 1;
 }
 
-#file = files.openFile('examples/large-file.json', #files.READ);
+#file = files.openFile('examples/large-file.json', files.READ);
 #if file == none:
 #    error("Failed to open file");
 #

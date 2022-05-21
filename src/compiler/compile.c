@@ -77,7 +77,9 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 	}
 }
 
-static _Bool emit_instr_for_funccall(ExeBuilder *exeb, CallExprNode *expr, Promise *break_dest, int returns, Error *error)
+static _Bool 
+emit_instr_for_funccall(ExeBuilder *exeb, CallExprNode *expr, 
+	                    Promise *break_dest, int returns, Error *error)
 {
 	Node *arg = expr->argv;
     

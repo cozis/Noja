@@ -61,7 +61,6 @@ static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object *
 	return 1;
 }
 
-
 static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	(void) runtime;
@@ -111,10 +110,10 @@ static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object **
 
 	
 	if(!Object_IsInt(argv[0]))
-		{
-			Error_Report(error, 0, "Argument #%d is not an integer", 1);
-			return -1;
-		}
+	{
+		Error_Report(error, 0, "Argument #%d is not an integer", 1);
+		return -1;
+	}
 
 
 	char buff[32];

@@ -968,13 +968,19 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 			if(done(ctx))
 			{
-				Error_Report(ctx->error, 0, "Source ended where a map key-value separator ':' was expected");
+				Error_Report(ctx->error, 0, 
+					"Source ended where a map key-value "
+					"separator ':' was expected");
 				return NULL;
 			}
 
 			if(current(ctx) != ':')
 			{
-				Error_Report(ctx->error, 0, "Got token \"%.*s\" where a map key-value separator ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
+				Error_Report(ctx->error, 0, 
+					"Got token \"%.*s\" where a map key-value "
+					"separator ':' was expected", 
+					ctx->token->length, 
+					ctx->src + ctx->token->offset);
 				return NULL;
 			}
 
@@ -1012,7 +1018,10 @@ static Node *parse_map_primary_expression(Context *ctx)
 				if(current(ctx) == TDONE)
 					Error_Report(ctx->error, 0, "Source ended inside a map literal");
 				else
-					Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside map literal, where ',' or '}' were expected", ctx->token->length, ctx->src + ctx->token->offset);
+					Error_Report(ctx->error, 0, 
+						"Got unexpected token \"%.*s\" inside "
+						"map literal, where ',' or '}' were expected", 
+						ctx->token->length, ctx->src + ctx->token->offset);
 				return NULL;
 			}
 

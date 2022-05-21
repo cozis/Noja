@@ -6,7 +6,8 @@ fun duplica_forse(a) {
 }
 
 fun duplica_forse2(a) {
-    return all duplica_forse(a);
+    res, err = duplica_forse(a);
+    return res, err;
 }
 
 num = 5;
@@ -16,3 +17,17 @@ if num2 == none:
     print('ERRORE!!! ', err, '\n');
 else
     print(num2, '\n');
+
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a,
+a, a, a = print();
