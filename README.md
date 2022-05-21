@@ -56,15 +56,9 @@ The interpreter is fully functional, but lots of built-in functions that one wou
 ## Build
 To build it, just run:
 ```sh
-$ ./build.sh
+$ make
 ```
 it will create a `build` folder where the interpreter's executable will be generated.
-
-You may need to give executable permissions to the script. You can do so with by running:
-
-```sh
-$ chmod +x build.sh
-```
 
 ## Usage
 You can run files by doing:
