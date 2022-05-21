@@ -1795,7 +1795,7 @@ static Node *parse_ifelse_statement(Context *ctx)
 
 static Node *parse_compound_statement(Context *ctx, TokenKind end)
 {
-	int end_offset;
+	int end_offset = 0;
 	Node *head, **tail;
 
 	tail = &head;
