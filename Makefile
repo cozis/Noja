@@ -13,19 +13,6 @@ OUTFILE    = noja
 rwildcard = $(foreach d, $(wildcard $(1:=/*)), $(call rwildcard ,$d, $2) $(filter $(subst *, %, $2), $d))
 
 SRC          = $(call rwildcard, $(SRCDIR), *.c)
-SRC_OBJECTS  = $(call rwildcard, $(SRCDIR)/objects, *.c)
-SRC_COMPILER = $(call rwildcard, $(SRCDIR)/compiler, *.c)
-SRC_COMMON   = $(call rwildcard, $(SRCDIR)/common, *.c)
-SRC_BUILTINS = $(call rwildcard, $(SRCDIR)/builtins, *.c)
-SRC_UTILS    = $(call rwildcard, $(SRCDIR)/utils, *.c)
-SRC_RUNTIME  = $(call rwildcard, $(SRCDIR)/runtime, *.c)
-
-OBJS_OBJECTS  = $(patsubst $(SRCDIR)/objects/%.c, $(OBJDIR)/objects/%.o, $(SRC_OBJECTS))
-OBJS_COMPILER = $(patsubst $(SRCDIR)/compiler/%.c, $(OBJDIR)/compiler/%.o, $(SRC_COMPILER))
-OBJS_COMMON   = $(patsubst $(SRCDIR)/common/%.c, $(OBJDIR)/common/%.o, $(SRC_COMMON))
-OBJS_BUILTINS = $(patsubst $(SRCDIR)/builtins/%.c, $(OBJDIR)/builtins/%.o, $(SRC_BUILTINS))
-OBJS_UTILS    = $(patsubst $(SRCDIR)/utils/%.c, $(OBJDIR)/utils/%.o, $(SRC_UTILS))
-OBJS_RUNTIME  = $(patsubst $(SRCDIR)/runtime/%.c, $(OBJDIR)/runtime/%.o, $(SRC_UTILS))
 OBJS          = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRC))
 
 
