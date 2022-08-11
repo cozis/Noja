@@ -27,6 +27,11 @@ CLI_SUBDIR = cli
 LIB_FNAME = libnoja.a
 CLI_FNAME = noja
 
+# Where the build programs will be moved when
+# installation occurres.
+CLI_INSTALLDIR = /bin
+LIB_INSTALLDIR = /usr/local
+
 # Default programs
 CC = gcc
 AR = ar
@@ -80,6 +85,10 @@ $(LIB): $(LIB_OFILES)
 
 $(CLI): $(CLI_OFILES) $(LIB)
 	$(CC) $^ -o $@ $(LFLAGS)
+
+install: $(LIB) $(CLI)
+	sudo cp $(LIB) $(LIB_INSTALLDIR)
+	sudo cp $(CLI) $(CLI_INSTALLDIR)
 
 clean:
 	rm -rf $(OBJDIR)

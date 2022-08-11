@@ -1,4 +1,4 @@
-build
-temp
+cache
 vgcore.*
-out
+libnoja.a
+noja
