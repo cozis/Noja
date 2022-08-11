@@ -4,6 +4,7 @@
 #include "utils/source.h"
 #include "compiler/parse.h"
 #include "compiler/compile.h"
+#include "assembler/assemble.h"
 #include "builtins/basic.h"
 #include "noja.h"
 
@@ -79,13 +80,8 @@ static Executable *build(Source *src)
     return exe;
 }
 
-static _Bool interpret(Source *src)
+static _Bool interpret(Executable *exe)
 {
-    Executable *exe = build(src);
-
-    if(exe == NULL)
-        return 0;
-
     Runtime *runt = Runtime_New(-1, 1024*1024, NULL, NULL);
 
     if(runt == NULL)
@@ -95,7 +91,6 @@ static _Bool interpret(Source *src)
         Error_Report(&error, 1, "Couldn't initialize runtime");
         print_error(NULL, &error);
         Error_Free(&error);
-        Executable_Free(exe);
         return 0;
     }
 
@@ -115,7 +110,6 @@ static _Bool interpret(Source *src)
         assert(error.base.occurred == 1);
         print_error(NULL, (Error*) &error);
         RuntimeError_Free(&error);
-        Executable_Free(exe);
         Runtime_Free(runt);
         return 0;
     }
@@ -143,8 +137,6 @@ static _Bool interpret(Source *src)
     }
 
     Runtime_Free(runt);
-    Executable_Free(exe);
-
     return retc > -1;
 }
 
@@ -174,8 +166,14 @@ static _Bool interpret_file(const char *file)
         return 0;
     }
 
-    _Bool r = interpret(src);
+    Executable *exe = build(src);
 
+    if(exe == NULL)
+        return 0;
+
+    _Bool r = interpret(exe);
+
+    Executable_Free(exe);
     Source_Free(src);
     return r;
 }
@@ -195,9 +193,77 @@ static _Bool interpret_code(const char *code)
         return 0;
     }
 
-    _Bool r = interpret(src);
+    Executable *exe = build(src);
 
+    if(exe == NULL)
+        return 0;
+
+    _Bool r = interpret(exe);
+
+    Executable_Free(exe);
     Source_Free(src);
+    return r;
+}
+
+static _Bool interpret_asm_file(const char *file)
+{
+    Error error;
+    Error_Init(&error);
+    
+    Source *src = Source_FromFile(file, &error);
+
+    if(src == NULL)
+    {
+        assert(error.occurred == 1);
+        print_error(NULL, &error);
+        Error_Free(&error);
+        return 0;
+    }
+
+    Executable *exe = assemble(src, &error);
+    if(exe == NULL) {
+        print_error("Assemblation", &error);
+        Source_Free(src);
+        Error_Free(&error);
+        return 0;
+    }
+
+    _Bool r = interpret(exe);
+
+    Executable_Free(exe);
+    Source_Free(src);
+    Error_Free(&error);
+    return r;
+}
+
+static _Bool interpret_asm_code(const char *code)
+{
+    Error error;
+    Error_Init(&error);
+    
+    Source *src = Source_FromString(NULL, code, -1, &error);
+
+    if(src == NULL)
+    {
+        assert(error.occurred);
+        print_error(NULL, &error);
+        Error_Free(&error);
+        return 0;
+    }
+
+    Executable *exe = assemble(src, &error);
+    if(exe == NULL) {
+        print_error("Assemblation", &error);
+        Source_Free(src);
+        Error_Free(&error);
+        return 0;
+    }
+
+    _Bool r = interpret(exe);
+
+    Executable_Free(exe);
+    Source_Free(src);
+    Error_Free(&error);
     return r;
 }
 
@@ -261,4 +327,14 @@ _Bool NOJA_dumpFileBytecode(const char *file)
 _Bool NOJA_dumpStringBytecode(const char *str)
 {
     return disassemble_code(str);
+}
+
+_Bool NOJA_runAssemblyFile(const char *file)
+{
+    return interpret_asm_file(file);
+}
+
+_Bool NOJA_runAssemblyString(const char *str)
+{
+    return interpret_asm_code(str);
 }

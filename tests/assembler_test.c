@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
-#include "../src/utils/bpalloc.h"
-#include "../src/assembler/assembler.h"
+#include "../src/noja/utils/bpalloc.h"
+#include "../src/noja/assembler/assembler.h"
 
 static void stopTesting_(const char *file, int line)
 {
@@ -243,6 +243,45 @@ int main()
                 },
             },
         },
+
+        // Instruction with the wrong number of arguments.
+        {
+            .line = __LINE__,
+            .text = "POS  1;",
+            .fail = true,
+        },
+
+        {
+            .line = __LINE__,
+            .text = "PUSHINT 1;"
+                    "PUSHINT 2;"
+                    "ADD;",
+            .fail = false,
+            .expected = (StaticExecutable) {
+                .instr_count = 3,
+                .instr_list = (StaticInstruction[]) {
+                    {
+                        .opcode = OPCODE_PUSHINT,
+                        .operands = (Operand[]) {
+                            { OPTP_INT, .as_int = 1, }
+                        },
+                        .operand_count = 1,
+                    },
+                    {
+                        .opcode = OPCODE_PUSHINT,
+                        .operands = (Operand[]) {
+                            { OPTP_INT, .as_int = 2, }
+                        },
+                        .operand_count = 1,
+                    },
+                    {
+                        .opcode = OPCODE_ADD,
+                        .operands = NULL,
+                        .operand_count = 0,
+                    },
+                },
+            },
+        },
     };
 
     Error error;
@@ -262,14 +301,17 @@ int main()
         stopTestingIf(src == NULL);
 
         Executable *got_exe = assemble(src, &error);
-        
+
         if(tests[i].fail == true) {
             testCase(tests[i].line, got_exe == NULL, "Managed to assemble an invalid source");
         } else {
             Executable *exp_exe = buildExpectedExecutable(alloc, &tests[i].expected);
 
+            if(got_exe == NULL)
+                fprintf(stderr, "Build error :: %s.\n", error.message);
+
             testCase(tests[i].line, got_exe != NULL, "Failed to assemble a valid source");
-/*
+/*          
             fprintf(stderr, "== Generated ==\n");
             Executable_Dump(got_exe);
             fprintf(stderr, "\n");

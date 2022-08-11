@@ -57,8 +57,8 @@ LFLAGS_DEBUG =
 CFLAGS_RELEASE = -DNDEBUG -O3
 LFLAGS_RELEASE =
 
-CFLAGS_COVERAGE_GCC = 
-LFLAGS_COVERAGE_GCC = --coverage
+CFLAGS_COVERAGE_GCC = -fprofile-arcs -ftest-coverage
+LFLAGS_COVERAGE_GCC = -lgcov
 CFLAGS_COVERAGE_CLANG = -fprofile-instr-generate -fcoverage-mapping
 LFLAGS_COVERAGE_CLANG =
 # NOTE: To support BUILD_MODE=COVERAGE for a new compiler,

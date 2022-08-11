@@ -1,0 +1,5 @@
+PUSHSTR "Hello, world!\n";
+PUSHVAR "print";
+CALL    1, 1;
+POP     1;
+RETURN  0;

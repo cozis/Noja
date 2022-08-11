@@ -2,3 +2,4 @@ cache
 vgcore.*
 libnoja.a
 noja
+*.gcov

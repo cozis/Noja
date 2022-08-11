@@ -1,0 +1,171 @@
+    PUSHFUN  copy, 1;
+    ASS      "copy";
+    POP      1;
+    JUMP     copy_end;
+
+copy:
+    ASS      "L";
+    POP      1;
+    PUSHLST  0;
+    ASS      "L2";
+    POP      1;
+    PUSHINT  0;
+    ASS     "i";
+    POP     1;
+    PUSHVAR "i";
+    PUSHVAR "L";
+    PUSHVAR "count";
+    CALL    1, 1;
+    LSS;
+    JUMPIFNOTANDPOP 31; 
+    PUSHVAR "L";
+    PUSHVAR "i";
+    SELECT;
+    PUSHVAR "L2";
+    PUSHVAR "i";
+    INSERT2;
+    POP     1;
+    PUSHVAR "i";
+    PUSHINT 1;
+    ADD;
+    ASS     "i";
+    POP     1;
+    JUMP    12;
+    PUSHVAR "L2";
+    RETURN  1;
+    RETURN  0;
+
+copy_end:
+    PUSHFUN bubble_sort, 2;
+    ASS     "bubble_sort";
+    POP     1;
+    JUMP    bubble_sort_end;
+
+bubble_sort:
+    ASS     "less";
+    POP     1;
+    ASS     "L";
+    POP     1;
+    PUSHVAR "less";
+    PUSHNNE;
+    EQL;
+    JUMPIFNOTANDPOP default_less_cb_end;
+    PUSHFUN 50, 2;
+    ASS     "less";
+    POP     1;
+    JUMP    default_less_cb_end;
+
+default_less_cb:
+    ASS     "b";
+    POP     1;
+    ASS     "a";
+    POP     1;
+    PUSHVAR "a"; 
+    PUSHVAR "b";
+    LSS;
+    RETURN  1;
+    RETURN  0;
+
+default_less_cb_end:
+    PUSHVAR "L";
+    PUSHVAR "copy"; 
+    CALL    1, 1;
+    ASS     "L"; 
+    POP     1;
+
+outer_loop_start:
+    PUSHFLS;
+    ASS     "swapped";
+    POP     1;
+    PUSHINT 0;
+    ASS     "i";
+    POP     1;
+
+inner_loop_start:
+    PUSHVAR "i";
+    PUSHVAR "L";
+    PUSHVAR "count";
+    CALL    1, 1;
+    PUSHINT 1;
+    SUB;
+    LSS;
+    PUSHVAR "swapped";
+    NOT;
+    AND;
+    JUMPIFNOTANDPOP outer_loop_end;
+    PUSHVAR "L";
+    PUSHVAR "i";
+    SELECT;
+    PUSHVAR "L";
+    PUSHVAR "i";
+    PUSHINT 1;
+    ADD;
+    SELECT;
+    PUSHVAR "less";
+    CALL 2, 1;
+    JUMPIFNOTANDPOP if_branch_end;
+    PUSHTRU;
+    ASS "swapped";
+    POP 1;
+    PUSHVAR "L";
+    PUSHVAR "i";
+    PUSHINT 1;
+    ADD;
+    SELECT;
+    ASS "tmp";
+    POP 1;
+    PUSHVAR "L";
+    PUSHVAR "i";
+    SELECT;
+    PUSHVAR "L";
+    PUSHVAR "i";
+    PUSHINT 1;
+    ADD;
+    INSERT2;
+    POP     1;
+    PUSHVAR "tmp";
+    PUSHVAR "L";
+    PUSHVAR "i";
+    INSERT2;
+    POP     1;
+
+if_branch_end:
+    PUSHVAR "i";
+    PUSHINT 1;
+    ADD;
+    ASS     "i";
+    POP     1;
+    JUMP    inner_loop_start;
+
+outer_loop_end:
+    PUSHVAR      "swapped";
+    JUMPIFANDPOP outer_loop_start;
+    PUSHVAR      "L";
+    RETURN       1;
+    RETURN       0;
+
+bubble_sort_end:
+    PUSHLST 5;
+    PUSHINT 0;
+    PUSHINT 3;
+    INSERT;
+    PUSHINT 1;
+    PUSHINT 2;
+    INSERT;
+    PUSHINT 2;
+    PUSHINT 1;
+    INSERT;
+    PUSHINT 3;
+    PUSHINT 6;
+    INSERT;
+    PUSHINT 4;
+    PUSHINT 0;
+    PUSHINT 2;
+    SUB;
+    INSERT;
+    PUSHVAR "bubble_sort";
+    CALL    1, 1;
+    PUSHVAR "print";
+    CALL    1, 1;
+    POP     1;
+    RETURN  0;

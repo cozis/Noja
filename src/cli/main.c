@@ -39,7 +39,9 @@ static const char usage[] =
 	"    $ noja run file.noja\n"
 	"    $ noja run inline \"print('some noja code');\"\n"
 	"    $ noja dis file.noja\n"
-	"    $ noja dis inline \"print('some noja code');\"\n";
+	"    $ noja dis inline \"print('some noja code');\"\n"
+	"    $ noja asm file.noja\n"
+	"    $ noja asm inline \"PUSHINT 5; PUSHFLT 1.0; ADD; POP 1;\"\n";
 
 int main(int argc, char **argv)
 {
@@ -74,6 +76,30 @@ int main(int argc, char **argv)
 		}
 		else
 			r = NOJA_runFile(argv[2]);
+		return r ? 0 : -1;
+	}
+
+	if(!strcmp(argv[1], "asm"))
+	{
+		if(argc == 2)
+		{
+			fprintf(stderr, "Error: Missing source file.\n");
+			return -1;
+		}
+
+		_Bool r;
+
+		if(!strcmp(argv[2], "inline"))
+		{
+			if(argc == 3)
+			{
+				fprintf(stderr, "Error: Missing source string.\n");
+				return -1;
+			}
+			r = NOJA_runAssemblyString(argv[3]);
+		}
+		else
+			r = NOJA_runAssemblyFile(argv[2]);
 		return r ? 0 : -1;
 	}
 	
