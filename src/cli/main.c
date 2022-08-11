@@ -32,7 +32,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "libnoja/noja.h"
+#include "../noja/noja.h"
 
 static const char usage[] = 
 	"Usage patterns:\n"
