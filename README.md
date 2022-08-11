@@ -54,11 +54,11 @@ I wrote it on a linux machine, but there should be very few places where a linux
 The interpreter is fully functional, but lots of built-in functions that one would expect still need to be implemented. Unfortunately, I feel like, at the moment, this requires much more work than what it's worth. At this time the priority is writing documentation and tests so that more people can try it, give feedback and move forward without breaking the world.
 
 ## Build
-To build it, just run:
+To build the interpreter, run:
 ```sh
 $ make
 ```
-it will create a `build` folder where the interpreter's executable will be generated.
+The `noja` executable will be generated, which is a CLI that runs Noja code.
 
 ## Usage
 You can run files by doing:
