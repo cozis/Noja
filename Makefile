@@ -27,6 +27,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@ $(CC) $(CFLAGS) -c $^ -o $@
 
 
+
 # Clean all artifacts and rebuild the whole thing
 all: clean $(OBJS) build
 

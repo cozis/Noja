@@ -28,6 +28,7 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -111,6 +112,31 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_JUMPIFANDPOP] = {"JUMPIFANDPOP", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_JUMP] = {"JUMP", 1, (OperandType[]) {OPTP_INT}},
 };
+
+_Bool Executable_GetOpcodeBinaryFromName(const char *name, size_t name_len, Opcode *opcode)
+{
+	// The input name is assumed not zero-terminated,
+	// so to simplify things we duplicate it to add
+	// an extra null byte.
+	char buff[128]; // No opcode should have a name this big.
+	assert(name_len < sizeof(buff)); // If this is triggered, [buff] should be made bigger.
+	
+	memcpy(buff, name, name_len);
+	buff[name_len] = '\0';
+
+	name = buff;
+
+	// Now name is zero terminated.
+	assert(name[name_len] == '\0');
+
+	for(size_t i = 0; i < sizeof(instr_table)/sizeof(instr_table[0]); i += 1) {
+		if(!strcmp(name, instr_table[i].name)) {
+			*opcode = i; // Is this safe?
+			return 1;
+		}
+	}
+	return 0;
+}
 
 const char *Executable_GetOpcodeName(Opcode opcode)
 {
@@ -273,6 +299,103 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 	}
 
 	return 1;
+}
+
+_Bool Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char *log_prefix)
+{
+	int idx = 0;
+	while(1) {
+		Operand exe1_opv[MAX_OPS];
+		Operand exe2_opv[MAX_OPS];
+		int exe1_opc = MAX_OPS;
+		int exe2_opc = MAX_OPS;
+		Opcode exe1_opcode;
+		Opcode exe2_opcode;
+		_Bool exe1_done = !Executable_Fetch(exe1, idx, &exe1_opcode, exe1_opv, &exe1_opc);
+		_Bool exe2_done = !Executable_Fetch(exe2, idx, &exe2_opcode, exe2_opv, &exe2_opc);
+		if(exe1_done != exe2_done) {
+			if(log != NULL)
+				fprintf(log, "%sExecutables have different sizes\n", log_prefix);
+			return false;
+		}
+
+		if(exe1_done == true)
+			break;
+
+		if(exe1_opcode != exe2_opcode) {
+			if(log != NULL)
+				fprintf(log, "%sInstructions at index %d have different opcodes (\"%s\" != \"%s\")\n", log_prefix, idx, 
+					Executable_GetOpcodeName(exe1_opcode), Executable_GetOpcodeName(exe2_opcode));
+			return false;
+		}
+
+		// Since the instruction opcode is the
+		// same, the number of operands must be
+		// the same too. (Their type must be
+		// the same too.)
+		assert(exe1_opc == exe2_opc);
+
+		for(int opno = 0; opno < exe1_opc; opno += 1) {
+
+			assert(exe1_opv[opno].type == exe2_opv[opno].type);
+
+			// Also, an executable can never have
+			// a promise operand. That's only used
+			// when building the executable.
+			assert(exe1_opv[opno].type != OPTP_PROMISE);
+
+			switch(exe1_opv[opno].type) {
+				
+				case OPTP_INT:
+				{
+					int v1 = exe1_opv[opno].as_int;
+					int v2 = exe2_opv[opno].as_int;
+					if(v1 != v2) {
+						if(log != NULL)
+							fprintf(log, "%s%s Instructions (at index %d) have different integer operands (at index %d) (%d != %d)\n", 
+								log_prefix, Executable_GetOpcodeName(exe1_opcode), idx, opno, v1, v2);
+						return false;
+					}
+				}
+				break;
+
+				case OPTP_FLOAT:
+				{
+					double v1 = exe1_opv[opno].as_float;
+					double v2 = exe2_opv[opno].as_float;
+					if(v1 != v2) {
+						if(log != NULL)
+							fprintf(log, "%s%s Instructions (at index %d) have different floating operands (at index %d) (%f != %f)\n", 
+								log_prefix, Executable_GetOpcodeName(exe1_opcode), idx, opno, v1, v2);
+						return false;
+					}
+				}
+				break;
+
+				case OPTP_STRING:
+				{
+					const char *v1 = exe1_opv[opno].as_string;
+					const char *v2 = exe2_opv[opno].as_string;
+					if(strcmp(v1, v2)) {
+						if(log != NULL)
+							// TODO: Escape the strings before printing them.
+							fprintf(log, "%s%s Instructions (at index %d) have different string operands (at index %d) (\"%s\" != \"%s\")\n", 
+								log_prefix, Executable_GetOpcodeName(exe1_opcode), idx, opno, v1, v2);
+						return false;
+					}
+				}
+				break;
+				
+				case OPTP_PROMISE:
+				/* Unreachable */
+				assert(0);
+				break;
+			}
+		}
+
+		idx += 1;
+	}
+	return true;
 }
 
 ExeBuilder *ExeBuilder_New(BPAlloc *alloc)

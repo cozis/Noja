@@ -30,6 +30,7 @@
 
 #ifndef EXECUTABLE_H
 #define EXECUTABLE_H
+#include <stdio.h>
 #include "../utils/source.h"
 #include "../utils/promise.h"
 
@@ -95,12 +96,14 @@ typedef struct xExeBuilder ExeBuilder;
 Executable *Executable_Copy(Executable *exe);
 void 		Executable_Free(Executable *exe);
 void 		Executable_Dump(Executable *exe);
+_Bool       Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char *log_prefix);
 _Bool		Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops, int *opc);
 _Bool 		Executable_SetSource(Executable *exe, Source *src);
 Source 	   *Executable_GetSource(Executable *exe);
 int 		Executable_GetInstrOffset(Executable *exe, int index);
 int 		Executable_GetInstrLength(Executable *exe, int index);
 const char *Executable_GetOpcodeName(Opcode opcode);
+_Bool       Executable_GetOpcodeBinaryFromName(const char *name, size_t name_len, Opcode *opcode);
 
 ExeBuilder *ExeBuilder_New(BPAlloc *alloc);
 _Bool 		ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *opv, int opc, int off, int len);
