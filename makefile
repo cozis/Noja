@@ -40,12 +40,58 @@ AR = ar
 CFLAGS = -Wall -Wextra
 LFLAGS = -lm
 
+# Build the library with valgrind support.
+# Can be one of: YES, NO
+USING_VALGRIND = NO
+
+# May be one of: COVERAGE, RELEASE, DEBUG
+BUILD_MODE = RELEASE
+
+# Changing the BUILD_MODE will add one of the
+# following set of flags to the CFLAGS and 
+# LFLAGS. If the BUILD_MODE is COVERAGE, then 
+# the flags are also determined based on the CC.
+CFLAGS_DEBUG = -DDEBUG -g
+LFLAGS_DEBUG =
+
+CFLAGS_RELEASE = -DNDEBUG -O3
+LFLAGS_RELEASE =
+
+CFLAGS_COVERAGE_GCC = 
+LFLAGS_COVERAGE_GCC = --coverage
+CFLAGS_COVERAGE_CLANG = -fprofile-instr-generate -fcoverage-mapping
+LFLAGS_COVERAGE_CLANG =
+# NOTE: To support BUILD_MODE=COVERAGE for a new compiler,
+#       just define CFLAGS_COVERAGE_xxx and LFLAGS_COVERAGE_xxx,
+#       where xxx is the uppercase version of the compiler
+#       name (the value of CC).
+
 # ===================== #
 # === Variables ======= #
 # ===================== #
 
 # Auxiliary function
 rwildcard = $(foreach d, $(wildcard $(1:=/*)), $(call rwildcard ,$d, $2) $(filter $(subst *, %, $2), $d))
+uppercase = $(shell echo '$1' | tr '[:lower:]' '[:upper:]')
+
+# Add the flags specific to the build mode.
+ifeq ($(BUILD_MODE),COVERAGE)
+	UPPERCASE_CC = $(call uppercase,$(CC))
+	CFLAGS += ${CFLAGS_COVERAGE_$(UPPERCASE_CC)}
+	LFLAGS += ${LFLAGS_COVERAGE_$(UPPERCASE_CC)}
+else
+	BRANCH=else
+	CFLAGS += ${CFLAGS_$(BUILD_MODE)}
+	LFLAGS += ${LFLAGS_$(BUILD_MODE)}
+endif
+
+# Add the valgrind flag if requested.
+ifeq ($(USING_VALGRIND),YES)
+	CFLAGS += -DUSING_VALGRIND=1
+endif
+
+$(info CFLAGS=$(CFLAGS))
+$(info LFLAGS=$(LFLAGS))
 
 # Absolute path of each program's source tree
 LIB_SRCDIR = $(SRCDIR)/$(LIB_SUBDIR)
