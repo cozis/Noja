@@ -80,7 +80,6 @@ ifeq ($(BUILD_MODE),COVERAGE)
 	CFLAGS += ${CFLAGS_COVERAGE_$(UPPERCASE_CC)}
 	LFLAGS += ${LFLAGS_COVERAGE_$(UPPERCASE_CC)}
 else
-	BRANCH=else
 	CFLAGS += ${CFLAGS_$(BUILD_MODE)}
 	LFLAGS += ${LFLAGS_$(BUILD_MODE)}
 endif
@@ -89,9 +88,6 @@ endif
 ifeq ($(USING_VALGRIND),YES)
 	CFLAGS += -DUSING_VALGRIND=1
 endif
-
-$(info CFLAGS=$(CFLAGS))
-$(info LFLAGS=$(LFLAGS))
 
 # Absolute path of each program's source tree
 LIB_SRCDIR = $(SRCDIR)/$(LIB_SUBDIR)
