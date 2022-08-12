@@ -33,7 +33,7 @@
 ** | `compile` function, that takes as input an `AST` and outputs an          |
 ** | `Executable`.                                                            |
 ** |                                                                          |
-** | The function that does the heavy lifting is `emit_instr_for_node` which  |
+** | The function that does the heavy lifting is `emitInstrForNode` which  |
 ** | walks the tree and writes instructions to the `ExeBuilder`.              |
 ** |                                                                          |
 ** | Some semantic errors are catched at this phase, in which case, they are  |
@@ -46,11 +46,119 @@
 #include <assert.h>
 #include <setjmp.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "../utils/defs.h"
 #include "compile.h"
 #include "ASTi.h"
 
-static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_dest, Error *error);
+
+typedef struct {
+	Error *error;
+	BPAlloc *alloc;
+	ExeBuilder *builder;
+	bool own_alloc;
+	jmp_buf env;
+} CodegenContext;
+
+static void okNowJump(CodegenContext *ctx)
+{
+	longjmp(ctx->env, 1);
+}
+
+static void reportErrorAndJump_(CodegenContext *ctx, const char *file, 
+	                            const char *func, int line, bool internal, 
+	                            const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	_Error_Report2(ctx->error, internal, file, func, line, format, args);
+	va_end(args);
+
+	okNowJump(ctx);
+}
+
+#define reportErrorAndJump(ctx, int, fmt, ...) \
+	reportErrorAndJump_(ctx, __FILE__, __func__, __LINE__, int, fmt, ## __VA_ARGS__) 
+
+static void freeCodegenContext(CodegenContext *ctx)
+{
+	if(ctx->own_alloc)
+		BPAlloc_Free(ctx->alloc);
+}
+
+static bool setOrcatchJump(CodegenContext *ctx)
+{
+	bool jumped = setjmp(ctx->env);
+	return jumped;
+}
+
+static bool initCodegenContext(CodegenContext *ctx, Error *error, BPAlloc *alloc)
+{
+	if(alloc == NULL) {
+		alloc = BPAlloc_Init(-1);
+		if(alloc == NULL) {
+			Error_Report(error, 1, "No memory");
+			return false;
+		}
+		ctx->own_alloc = true;
+	} else {
+		ctx->own_alloc = false;
+	}
+
+	ExeBuilder *builder = ExeBuilder_New(alloc);
+	if(builder == NULL) {
+		if(ctx->own_alloc)
+			BPAlloc_Free(alloc);
+		return false;
+	}
+
+	ctx->error = error;
+	ctx->alloc = alloc;
+	ctx->builder = builder;
+	return true;
+}
+
+static void emitInstr(CodegenContext *ctx, Opcode opcode, Operand *opv, int opc, int off, int len)
+{
+	if(!ExeBuilder_Append(ctx->builder, ctx->error, opcode, opv, opc, off, len))
+		okNowJump(ctx);
+}
+
+static void emitInstr_POP(CodegenContext *ctx, 
+	                      long long int op0,
+	                      int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_INT, .as_int = op0 }
+	};
+	emitInstr(ctx, OPCODE_POP, opv, 1, off, len);
+}
+
+static void emitInstr_POP1(CodegenContext *ctx, int off, int len)
+{
+	emitInstr_POP(ctx, 1, off, len);
+}
+
+static void emitInstr_ASS(CodegenContext *ctx, const char *name, int off, int len)
+{
+	Operand opv[] = {
+		{ .type = OPTP_STRING, .as_string = name },
+	};
+	emitInstr(ctx, OPCODE_ASS, &op, 1, off, len);
+}
+
+static Promise *newOffsetPromise(CodegenContext *ctx)
+{
+	Promise *promise = Promise_New(ctx->alloc, sizeof(long long int));
+	if(promise != NULL)
+		return promise;
+	
+	reportErrorAndJump(ctx, 1, "No memory");
+	UNREACHABLE;
+	return NULL; // For the compiler warning.
+}
+
+static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_dest);
 
 static Opcode exprkind_to_opcode(ExprKind kind)
 {
@@ -75,48 +183,214 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 		UNREACHABLE;
 		break;
 	}
+	UNREACHABLE;
+	return -1;
 }
 
-static _Bool 
-emit_instr_for_funccall(ExeBuilder *exeb, CallExprNode *expr, 
-	                    Promise *break_dest, int returns, Error *error)
+static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr, 
+	                                 Promise *break_dest, int returns)
 {
 	Node *arg = expr->argv;
     
 	while(arg)
 	{
-		if(!emit_instr_for_node(exeb, arg, break_dest, error))
-			return 0;
-
+		emitInstrForNode(ctx, arg, break_dest);
 		arg = arg->next;
 	}
 
-	if(!emit_instr_for_node(exeb, expr->func, break_dest, error))
-		return 0;
+	emitInstrForNode(ctx, expr->func, break_dest);
 
 	Operand ops[2];
 	ops[0] = (Operand) { .type = OPTP_INT, .as_int = expr->argc };
 	ops[1] = (Operand) { .type = OPTP_INT, .as_int = returns };
-	return ExeBuilder_Append(exeb, error, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
+	emitInstr(ctx, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
 }
 
-static _Bool flatten_tuple_tree(ExprNode *root, ExprNode **tuple, int max, int *count, Error *error)
+static void emitInstrForFuncNode(CodegenContext *ctx, FuncExprNode *func, Promise *break_dest)
 {
-	if(root->kind == EXPR_PAIR)
-		return flatten_tuple_tree((ExprNode*) ((OperExprNode*) root)->head, tuple, max, count, error) && 
-				flatten_tuple_tree((ExprNode*) ((OperExprNode*) root)->head->next, tuple, max, count, error);
+	Promise *func_index = newOffsetPromise(ctx);
+	Promise *jump_index = newOffsetPromise(ctx);
 
-	if(max == *count)
+	// Push function.
 	{
-		Error_Report(error, 0, "Static buffer is too small");
-		return 0;
+		Operand ops[2] = {
+			{ .type = OPTP_PROMISE, .as_promise = func_index },
+			{ .type = OPTP_INT,     .as_int     = func->argc },
+		};
+		emitInstr(ctx, OPCODE_PUSHFUN, ops, 2, func->base.offset, func->base.length);
+	}
+		
+	emitInstr_ASS(ctx, func->name, func->base.offset, func->base.length); // Assign variable
+	emitInstr_POP1(ctx, func->base.offset, func->base.length); // Pop function object
+
+	// Jump after the function code.
+	op = (Operand) { .type = OPTP_PROMISE, .as_promise = jump_index };
+	emitInstr(ctx, OPCODE_JUMP, &op, 1,  func->base.offset, func->base.length);
+
+	// This is the function code index.
+	long long int temp = ExeBuilder_InstrCount(ctx->builder);
+	Promise_Resolve(func_index, &temp, sizeof(temp));
+
+	// Compile the function body.
+	{
+		// Assign the arguments.
+		ArgumentNode *arg = (ArgumentNode*) func->argv;
+		while(arg)
+		{
+			emitInstr_ASS(ctx, arg->name, arg->base.offset, arg->base.length);
+			emitInstr_POP1(ctx, arg->base.offset, arg->base.length);
+			arg = (ArgumentNode*) arg->base.next;
+		}
+
+		emitInstrForNode(ctx, func->body, NULL);
+
+		if(func->body->kind == NODE_EXPR)
+			emitInstr_POP1(ctx, func->body->offset + func->body->length, 0);
+
+		// Write a return instruction, just 
+		// in case it didn't already return.
+		Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
+		emitInstr(ctx, OPCODE_RETURN, &op, 1, func->body->offset, 0);
 	}
 
-	tuple[(*count)++] = root;
-	return 1;
+	// This is the first index after the function code.
+	temp = ExeBuilder_InstrCount(ctx->builder);
+	Promise_Resolve(jump_index, &temp, sizeof(temp));
+
+	Promise_Free(func_index);
+	Promise_Free(jump_index);
 }
 
-static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_dest, Error *error)
+static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Promise *break_dest)
+{
+	emitInstrForNode(ctx, ifelse->condition, break_dest);
+
+	if(ifelse->false_branch)
+	{
+		Promise *else_offset = newOffsetPromise(ctx);
+		Promise *done_offset = newOffsetPromise(ctx);
+
+		Operand op = { .type = OPTP_PROMISE, .as_promise = else_offset };
+		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, node->offset, node->length);
+
+		emitInstrForNode(ctx, ifelse->true_branch, break_dest);
+
+		if(ifelse->true_branch->kind == NODE_EXPR)
+			emitInstr_POP(ctx, 1, ifelse->true_branch->offset, 0);
+				
+		op = (Operand) { .type = OPTP_PROMISE, .as_promise = done_offset };
+		emitInstr(ctx, OPCODE_JUMP, &op, 1, node->offset, node->length);
+
+		long long int temp = ExeBuilder_InstrCount(ctx->builder);
+		Promise_Resolve(else_offset, &temp, sizeof(temp));
+
+		emitInstrForNode(ctx, ifelse->false_branch, break_dest);
+
+		if(ifelse->false_branch->kind == NODE_EXPR)
+			emitInstr_POP1(ctx, ifelse->false_branch->offset, 0);
+
+		temp = ExeBuilder_InstrCount(ctx->builder);
+		Promise_Resolve(done_offset, &temp, sizeof(temp));
+
+		Promise_Free(else_offset);
+		Promise_Free(done_offset);
+	}
+	else
+	{
+		Promise *done_offset = newOffsetPromise(ctx);
+
+		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &(Operand) { .type = OPTP_PROMISE, .as_promise = done_offset }, 1, node->offset, node->length);
+
+		emitInstrForNode(ctx, ifelse->true_branch, break_dest);
+
+		if(ifelse->true_branch->kind == NODE_EXPR)
+			emitInstr_POP1(ctx, ifelse->true_branch->offset, 0);
+
+		long long int temp = ExeBuilder_InstrCount(ctx->builder);
+		Promise_Resolve(done_offset, &temp, sizeof(temp));
+
+		Promise_Free(done_offset);
+	}
+}
+
+static void emitInstrForAssignmentNode(CodegenContext *ctx, OperExprNode *asgn, Promise *break_dest)
+{
+	Node *lop, *rop;
+	lop = asgn->head;
+	rop = lop->next;
+
+	ExprNode *tuple[32];
+	int count = 0;
+
+	flattenTupleTree(ctx, (ExprNode*) lop, tuple, sizeof(tuple)/sizeof(tuple[0]), &count);
+
+	assert(count > 0);
+
+	if(count == 1) /* No tuple. */
+		emitInstrForNode(ctx, rop, break_dest);
+	else
+	{
+		if(((ExprNode*) rop)->kind == EXPR_CALL)
+			emitInstrForFuncCallNode(ctx, (CallExprNode*) rop, break_dest, count);
+		else {
+			reportErrorAndJump(ctx, 0, "Assigning to %d variables only 1 value", count);
+			UNREACHABLE;
+		}
+	}
+	
+	for(int i = 0; i < count; i += 1)
+	{
+		ExprNode *tuple_item = tuple[count-i-1];
+		switch(tuple_item->kind)
+		{
+			case EXPR_IDENT:
+			{
+				const char *name = ((IdentExprNode*) tuple_item)->val;
+				emitInstr_ASS(ctx, name, tuple_item->base.offset, tuple_item->base.length);
+				break;
+			}
+
+			case EXPR_SELECT:
+			{
+				Node *idx = ((IndexSelectionExprNode*) tuple_item)->idx;
+				Node *set = ((IndexSelectionExprNode*) tuple_item)->set;
+				emitInstrForNode(ctx, set, break_dest);
+				emitInstrForNode(ctx, idx, break_dest);
+				emitInstr(ctx, OPCODE_INSERT2, NULL, 0, tuple_item->base.offset, tuple_item->base.length);
+				break;
+			}
+
+			default:
+			reportErrorAndJump(ctx, 0, "Assigning to something that it can't be assigned to");
+			UNREACHABLE;
+		}
+
+		if(i+1 < count)
+			emitInstr_POP1(ctx, node->offset, 0);
+	}
+}
+
+static void flattenTupleTree(CodegenContext *ctx, ExprNode *root, ExprNode *tuple[], int max, int *count)
+{
+	if(root->kind == EXPR_PAIR)
+	{
+		flattenTupleTree(ctx, (ExprNode*) ((OperExprNode*) root)->head, tuple, max, count);
+		flattenTupleTree(ctx, (ExprNode*) ((OperExprNode*) root)->head->next, tuple, max, count);
+	} 
+	else 
+	{
+
+		if(max == *count)
+		{
+			reportErrorAndJump(ctx, 0, "Static buffer is too small");
+			UNREACHABLE;
+		}
+
+		tuple[(*count)++] = root;
+	}
+}
+
+static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_dest)
 {
 	assert(node != NULL);
 
@@ -128,8 +402,9 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 			switch(expr->kind)
 			{
 				case EXPR_PAIR:
-				Error_Report(error, 0, "Tuple outside of assignment or return statement");
-				return 0;
+				reportErrorAndJump(ctx, 0, "Tuple outside of assignment or return statement");
+				UNREACHABLE;
+				return; // For the compiler warning.
 
 				case EXPR_NOT:
 				case EXPR_POS:
@@ -148,126 +423,46 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 				case EXPR_OR:
 				{
 					OperExprNode *oper = (OperExprNode*) expr;
-
 					for(Node *operand = oper->head; operand; operand = operand->next)
-						if(!emit_instr_for_node(exeb, operand, break_dest, error))
-							return 0;
-
-					if(!ExeBuilder_Append(exeb, error,
-						exprkind_to_opcode(expr->kind), 
-						NULL, 0, node->offset, node->length))
-						return 0;
-					return 1;
+						emitInstrForNode(ctx, operand, break_dest);
+					emitInstr(ctx, exprkind_to_opcode(expr->kind), NULL, 0, node->offset, node->length);
+					return;
 				}
 
 				case EXPR_ASS:
-				{
-					OperExprNode *oper = (OperExprNode*) expr;
-
-					Node *lop, *rop;
-					lop = oper->head;
-					rop = lop->next;
-
-					ExprNode *tuple[32];
-					int count = 0;
-
-					if(!flatten_tuple_tree((ExprNode*) lop, tuple, sizeof(tuple)/sizeof(tuple[0]), &count, error))
-						return 0;
-
-					assert(count > 0);
-
-					if(count == 1) /* No tuple. */
-					{
-						if(!emit_instr_for_node(exeb, rop, break_dest, error))
-							return 0;
-					}
-					else
-					{
-						if(((ExprNode*) rop)->kind == EXPR_CALL)
-						{
-							if(!emit_instr_for_funccall(exeb, (CallExprNode*) rop, break_dest, count, error))
-								return 0;
-						}
-						else
-						{
-							Error_Report(error, 0, "Assigning to %d variables only 1 value", count);
-							return 0;
-						}
-					}
-					
-					for(int i = 0; i < count; i += 1)
-					{
-						ExprNode *tuple_item = tuple[count-i-1];
-						switch(tuple_item->kind)
-						{
-							case EXPR_IDENT:
-							{
-								const char *name = ((IdentExprNode*) tuple_item)->val;
-
-								Operand op = { .type = OPTP_STRING, .as_string = name };
-								if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1, tuple_item->base.offset, tuple_item->base.length))
-									return 0;
-								break;
-							}
-
-							case EXPR_SELECT:
-							{
-								Node *idx = ((IndexSelectionExprNode*) tuple_item)->idx;
-								Node *set = ((IndexSelectionExprNode*) tuple_item)->set;
-
-								if(!emit_instr_for_node(exeb, set, break_dest, error))
-									return 0;
-
-								if(!emit_instr_for_node(exeb, idx, break_dest, error))
-									return 0;
-
-								if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT2, NULL, 0, tuple_item->base.offset, tuple_item->base.length))
-									return 0;
-								break;
-							}
-
-							default:
-							Error_Report(error, 0, "Assigning to something that it can't be assigned to");
-							return 0;
-						}
-
-						if(i+1 < count)
-						{
-							Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-							if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, node->offset, 0))
-								return 0;
-						}
-					}
-
-					return 1;
-				}
+				emitInstrForAssignmentNode(ctx, (OperExprNode*) expr, break_dest);
+				return;
 
 				case EXPR_INT:
 				{
 					IntExprNode *p = (IntExprNode*) expr;
 					Operand op = { .type = OPTP_INT, .as_int = p->val };
-					return ExeBuilder_Append(exeb, error, OPCODE_PUSHINT, &op, 1, node->offset, node->length);
+					emitInstr(ctx, OPCODE_PUSHINT, &op, 1, node->offset, node->length);
+					return;
 				}
 
 				case EXPR_FLOAT:
 				{
 					FloatExprNode *p = (FloatExprNode*) expr;
 					Operand op = { .type = OPTP_FLOAT, .as_float = p->val };
-					return ExeBuilder_Append(exeb, error, OPCODE_PUSHFLT, &op, 1, node->offset, node->length);
+					emitInstr(ctx, OPCODE_PUSHFLT, &op, 1, node->offset, node->length);
+					return;
 				}
 
 				case EXPR_STRING:
 				{
 					StringExprNode *p = (StringExprNode*) expr;
 					Operand op = { .type = OPTP_STRING, .as_string = p->val };
-					return ExeBuilder_Append(exeb, error, OPCODE_PUSHSTR, &op, 1, node->offset, node->length);
+					emitInstr(ctx, OPCODE_PUSHSTR, &op, 1, node->offset, node->length);
+					return;
 				}
 
 				case EXPR_IDENT:
 				{
 					IdentExprNode *p = (IdentExprNode*) expr;
 					Operand op = { .type = OPTP_STRING, .as_string = p->val };
-					return ExeBuilder_Append(exeb, error, OPCODE_PUSHVAR, &op, 1, node->offset, node->length);
+					emitInstr(ctx, OPCODE_PUSHVAR, &op, 1, node->offset, node->length);
+					return;
 				}
 
 				case EXPR_LIST:
@@ -282,8 +477,7 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 					Operand op;
 
 					op = (Operand) { .type = OPTP_INT, .as_int = l->itemc };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHLST, &op, 1, node->offset, node->length))
-						return 0;
+					emitInstr(ctx, OPCODE_PUSHLST, &op, 1, node->offset, node->length);
 
 					Node *item = l->items;
 					int i = 0;
@@ -291,19 +485,13 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 					while(item)
 					{
 						op = (Operand) { .type = OPTP_INT, .as_int = i };
-						if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHINT, &op, 1, item->offset, item->length))
-							return 0;
-
-						if(!emit_instr_for_node(exeb, item, break_dest, error))
-							return 0;
-
-						if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT, NULL, 0, item->offset, item->length))
-							return 0;
-										
+						emitInstr(ctx, OPCODE_PUSHINT, &op, 1, item->offset, item->length);
+						emitInstrForNode(ctx, item, break_dest);
+						emitInstr(ctx, OPCODE_INSERT, NULL, 0, item->offset, item->length);
 						i += 1;
 						item = item->next;
 					}
-					return 1;
+					return;
 				}
 
 				case EXPR_MAP:
@@ -313,161 +501,66 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 					Operand op;
 
 					op = (Operand) { .type = OPTP_INT, .as_int = m->itemc };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHMAP, &op, 1, node->offset, node->length))
-						return 0;
+					emitInstr(ctx, OPCODE_PUSHMAP, &op, 1, node->offset, node->length);
 
 					Node *key  = m->keys;
 					Node *item = m->items;
 								
 					while(item)
 					{
-						if(!emit_instr_for_node(exeb, key, break_dest, error))
-							return 0;
-
-						if(!emit_instr_for_node(exeb, item, break_dest, error))
-							return 0;
-
-						if(!ExeBuilder_Append(exeb, error, OPCODE_INSERT, NULL, 0, item->offset, item->length))
-							return 0;
-									
+						emitInstrForNode(ctx, key, break_dest);
+						emitInstrForNode(ctx, item, break_dest);
+						emitInstr(ctx, OPCODE_INSERT, NULL, 0, item->offset, item->length);
 						key  =  key->next;
 						item = item->next;
 					}
-
-					return 1;
+					return;
 				}
 
 				case EXPR_CALL:
-				return emit_instr_for_funccall(exeb, (CallExprNode*) expr, break_dest, 1, error);
+				emitInstrForFuncCallNode(ctx, (CallExprNode*) expr, break_dest, 1);
+				return;
 
 				case EXPR_SELECT:
 				{
 					IndexSelectionExprNode *sel = (IndexSelectionExprNode*) expr;
-					
-					if(!emit_instr_for_node(exeb, sel->set, break_dest, error))
-						return 0;
-
-					if(!emit_instr_for_node(exeb, sel->idx, break_dest, error))
-						return 0;
-
-					return ExeBuilder_Append(exeb, error, OPCODE_SELECT, NULL, 0, node->offset, node->length);
+					emitInstrForNode(ctx, sel->set, break_dest);
+					emitInstrForNode(ctx, sel->idx, break_dest);
+					emitInstr(ctx, OPCODE_SELECT, NULL, 0, node->offset, node->length);
+					return;
 				}
 
 				case EXPR_NONE:
-				return ExeBuilder_Append(exeb, error, OPCODE_PUSHNNE, NULL, 0, node->offset, node->length);
+				emitInstr(ctx, OPCODE_PUSHNNE, NULL, 0, node->offset, node->length);
+				return;
 
 				case EXPR_TRUE:
-				return ExeBuilder_Append(exeb, error, OPCODE_PUSHTRU, NULL, 0, node->offset, node->length);
+				emitInstr(ctx, OPCODE_PUSHTRU, NULL, 0, node->offset, node->length);
+				return;
 
 				case EXPR_FALSE:
-				return ExeBuilder_Append(exeb, error, OPCODE_PUSHFLS, NULL, 0, node->offset, node->length);
+				emitInstr(ctx, OPCODE_PUSHFLS, NULL, 0, node->offset, node->length);
+				return;
 
 				default:
 				UNREACHABLE;
 				break;
 			}
-			break;
+			return;
 		}
 
 		case NODE_BREAK:
 		{
 			if(break_dest == NULL)
-			{
-				Error_Report(error, 0, "Break not inside a loop");
-				return 0;
-			}
+				reportErrorAndJump(ctx, 0, "Break not inside a loop");
 			Operand op = (Operand) { .type = OPTP_PROMISE, .as_promise = break_dest };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
-				return 0;
-			return 1;
+			emitInstr(ctx, OPCODE_JUMP, &op, 1, node->offset, node->length);
+			return;
 		}
 
 		case NODE_IFELSE:
-		{
-			IfElseNode *ifelse = (IfElseNode*) node;
-
-			if(!emit_instr_for_node(exeb, ifelse->condition, break_dest, error))
-				return 0;
-
-			if(ifelse->false_branch)
-			{
-				Promise *else_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-				Promise *done_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-
-				if(else_offset == NULL || done_offset == NULL)
-				{
-					Error_Report(error, 1, "No memory");
-					return 0;
-				}
-
-				Operand op = { .type = OPTP_PROMISE, .as_promise = else_offset };
-				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &op, 1, node->offset, node->length))
-					return 0;
-
-				if(!emit_instr_for_node(exeb, ifelse->true_branch, break_dest, error))
-					return 0;
-
-				if(ifelse->true_branch->kind == NODE_EXPR)
-				{
-					Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, ifelse->true_branch->offset, 0))
-						return 0;
-				}
-						
-				op = (Operand) { .type = OPTP_PROMISE, .as_promise = done_offset };
-				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
-					return 0;
-
-				long long int temp = ExeBuilder_InstrCount(exeb);
-				Promise_Resolve(else_offset, &temp, sizeof(temp));
-
-				if(!emit_instr_for_node(exeb, ifelse->false_branch, break_dest, error))
-					return 0;
-
-				if(ifelse->false_branch->kind == NODE_EXPR)
-				{
-					Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, ifelse->false_branch->offset, 0))
-						return 0;
-				}
-
-				temp = ExeBuilder_InstrCount(exeb);
-				Promise_Resolve(done_offset, &temp, sizeof(temp));
-
-				Promise_Free(else_offset);
-				Promise_Free(done_offset);
-			}
-			else
-			{
-				Promise *done_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-
-				if(done_offset == NULL)
-				{
-					Error_Report(error, 1, "No memory");
-					return 0;
-				}
-
-				if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &(Operand) { .type = OPTP_PROMISE, .as_promise = done_offset }, 1, node->offset, node->length))
-					return 0;
-
-				if(!emit_instr_for_node(exeb, ifelse->true_branch, break_dest, error))
-					return 0;
-
-				if(ifelse->true_branch->kind == NODE_EXPR)
-				{
-					Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, ifelse->true_branch->offset, 0))
-						return 0;
-				}
-
-				long long int temp = ExeBuilder_InstrCount(exeb);
-				Promise_Resolve(done_offset, &temp, sizeof(temp));
-
-				Promise_Free(done_offset);
-			}
-
-			return 1;
-		}
+		emitInstrForIfElseNode(ctx, (IfElseNode*) node, break_dest);
+		return;
 
 		case NODE_WHILE:
 		{
@@ -482,45 +575,31 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 			 * end:
 			 */
 
-			Promise *start_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-			Promise   *end_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
+			Promise *start_offset = newOffsetPromise(ctx);
+			Promise   *end_offset = newOffsetPromise(ctx);
 
-			if(start_offset == NULL || end_offset == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				return 0;
-			}
-
-			long long int temp = ExeBuilder_InstrCount(exeb);
+			long long int temp = ExeBuilder_InstrCount(ctx->builder);
 			Promise_Resolve(start_offset, &temp, sizeof(temp));
 
-			if(!emit_instr_for_node(exeb, whl->condition, break_dest, error))
-				return 0;
+			emitInstrForNode(ctx, whl->condition, break_dest);
 
 			Operand op = { .type = OPTP_PROMISE, .as_promise = end_offset };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFNOTANDPOP, &op, 1, whl->condition->offset, whl->condition->length))
-				return 0;
+			emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, whl->condition->offset, whl->condition->length);
 
-			if(!emit_instr_for_node(exeb, whl->body, end_offset, error))
-				return 0;
+			emitInstrForNode(ctx, whl->body, end_offset);
 
 			if(whl->body->kind == NODE_EXPR)
-			{
-				Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-				if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, whl->body->offset, 0))
-					return 0;
-			}
+				emitInstr_POP1(ctx, whl->body->offset, 0);
 				
 			op = (Operand) { .type = OPTP_PROMISE, .as_promise = start_offset };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1, node->offset, node->length))
-				return 0;
+			emitInstr(ctx, OPCODE_JUMP, &op, 1, node->offset, node->length);
 
-			temp = ExeBuilder_InstrCount(exeb);
+			temp = ExeBuilder_InstrCount(ctx->builder);
 			Promise_Resolve(end_offset, &temp, sizeof(temp));
 
 			Promise_Free(start_offset);
-			Promise_Free(  end_offset);
-			return 1;
+			Promise_Free(end_offset);
+			return;
 		}
 
 		case NODE_DOWHILE:
@@ -534,36 +613,24 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 			 *   JUMPIFANDPOP start
 			 */
 
-			Promise *end_offset = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-			if(end_offset == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				return 0;
-			}
+			Promise *end_offset = newOffsetPromise(ctx);
 
-			long long int start = ExeBuilder_InstrCount(exeb);
+			long long int start = ExeBuilder_InstrCount(ctx->builder);
 
-			if(!emit_instr_for_node(exeb, dowhl->body, end_offset, error))
-				return 0;
+			emitInstrForNode(ctx, dowhl->body, end_offset);
 
 			if(dowhl->body->kind == NODE_EXPR)
-			{
-				Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-				if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, dowhl->body->offset, 0))
-					return 0;
-			}
+				emitInstr_POP1(ctx, dowhl->body->offset, 0);
 
-			if(!emit_instr_for_node(exeb, dowhl->condition, break_dest, error))
-				return 0;
+			emitInstrForNode(ctx, dowhl->condition, break_dest);
 
 			Operand op = { .type = OPTP_INT, .as_int = start };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_JUMPIFANDPOP, &op, 1, dowhl->condition->offset, dowhl->condition->length))
-				return 0;
+			emitInstr(ctx, OPCODE_JUMPIFANDPOP, &op, 1, dowhl->condition->offset, dowhl->condition->length);
 
-			long long int temp = ExeBuilder_InstrCount(exeb);
+			long long int temp = ExeBuilder_InstrCount(ctx->builder);
 			Promise_Resolve(end_offset, &temp, sizeof(temp));
 			Promise_Free(end_offset);
-			return 1;
+			return;
 		}
 
 		case NODE_COMP:
@@ -574,19 +641,13 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 
 			while(stmt)
 			{
-				if(!emit_instr_for_node(exeb, stmt, break_dest, error))
-					return 0;
+				emitInstrForNode(ctx, stmt, break_dest);
 
 				if(stmt->kind == NODE_EXPR)
-				{
-					Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, stmt->offset, 0))
-						return 0;
-				}
+					emitInstr_POP1(ctx, stmt->offset, 0);
 				stmt = stmt->next;
 			}
-
-			return 1;
+			return;
 		}
 
 		case NODE_RETURN:
@@ -596,120 +657,35 @@ static _Bool emit_instr_for_node(ExeBuilder *exeb, Node *node, Promise *break_de
 			ExprNode *tuple[32];
 			int count = 0;
 
-			if(!flatten_tuple_tree((ExprNode*) ret->val, tuple, sizeof(tuple)/sizeof(tuple[0]), &count, error))
-				return 0;
+			flattenTupleTree(ctx, (ExprNode*) ret->val, tuple, sizeof(tuple)/sizeof(tuple[0]), &count);
 
 			for(int i = 0; i < count; i += 1)
-				if(!emit_instr_for_node(exeb, (Node*) tuple[i], break_dest, error))
-					return 0;
+				emitInstrForNode(ctx, (Node*) tuple[i], break_dest);
 
 			Operand op = (Operand) { .type = OPTP_INT, .as_int = count };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, &op, 1, ret->base.offset, ret->base.length))
-				return 0;
-
-			return 1;
+			emitInstr(ctx, OPCODE_RETURN, &op, 1, ret->base.offset, ret->base.length);
+			return;
 		}
 
 		case NODE_FUNC:
-		{
-			FunctionNode *func = (FunctionNode*) node;
-
-			Promise *func_index = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-			Promise *jump_index = Promise_New(ExeBuilder_GetAlloc(exeb), sizeof(long long int));
-
-			if(func_index == NULL || jump_index == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				return 0;
-			}
-
-			// Push function.
-			{
-				Operand ops[2] = {
-					{ .type = OPTP_PROMISE, .as_promise = func_index },
-					{ .type = OPTP_INT,     .as_int     = func->argc },
-				};
-
-				if(!ExeBuilder_Append(exeb, error, OPCODE_PUSHFUN, ops, 2, func->base.offset, func->base.length))
-					return 0;
-			}
-				
-			// Assign variable.
-			Operand op = (Operand) { .type = OPTP_STRING, .as_string = func->name };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1,  func->base.offset, func->base.length))
-				return 0;
-
-			// Pop function object.
-			op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1,  func->base.offset, func->base.length))
-				return 0;
-
-			// Jump after the function code.
-			op = (Operand) { .type = OPTP_PROMISE, .as_promise = jump_index };
-			if(!ExeBuilder_Append(exeb, error, OPCODE_JUMP, &op, 1,  func->base.offset, func->base.length))
-				return 0;
-
-			// This is the function code index.
-			long long int temp = ExeBuilder_InstrCount(exeb);
-			Promise_Resolve(func_index, &temp, sizeof(temp));
-
-			// Compile the function body.
-			{
-				// Assign the arguments.
-
-				if(func->argv)
-					{ assert(func->argv->kind == NODE_ARG); }
-
-				ArgumentNode *arg = (ArgumentNode*) func->argv;
-
-				while(arg)
-				{
-					op = (Operand) { .type = OPTP_STRING, .as_string = arg->name };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_ASS, &op, 1,  arg->base.offset, arg->base.length))
-						return 0;
-
-					op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1,  arg->base.offset, arg->base.length))
-						return 0;
-
-					if(arg->base.next)
-						{ assert(arg->base.next->kind == NODE_ARG); }
-
-					arg = (ArgumentNode*) arg->base.next;
-				}
-
-				if(!emit_instr_for_node(exeb, func->body, NULL, error))
-					return 0;
-
-				if(func->body->kind == NODE_EXPR)
-				{
-					Operand op = (Operand) { .type = OPTP_INT, .as_int = 1 };
-					if(!ExeBuilder_Append(exeb, error, OPCODE_POP, &op, 1, func->body->offset + func->body->length, 0))
-						return 0;
-				}
-
-				// Write a return instruction, just 
-				// in case it didn't already return.
-				Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
-				if(!ExeBuilder_Append(exeb, error, OPCODE_RETURN, &op, 1, func->body->offset, 0))
-					return 0;
-			}
-
-			// This is the first index after the function code.
-			temp = ExeBuilder_InstrCount(exeb);
-			Promise_Resolve(jump_index, &temp, sizeof(temp));
-
-			Promise_Free(func_index);
-			Promise_Free(jump_index);
-			return 1;
-		}
+		emitInstrForFuncNode(ctx, (FunctionNode*) node, break_dest);
+		return;
 
 		default:
 		UNREACHABLE;
-		return 0;
 	}
 	UNREACHABLE;
-	return 0;
+}
+
+static Executable *makeExecutableAndFreeCodegenContext(CodegenContext *ctx, Source *src)
+{
+	Executable *exe = ExeBuilder_Finalize(ctx->builder, ctx->error);
+	if(exe == NULL)
+		okNowJump(ctx);
+
+	Executable_SetSource(exe, src);
+	freeCodegenContext(ctx);
+	return exe;
 }
 
 /* Symbol: compile
@@ -737,35 +713,19 @@ Executable *compile(AST *ast, BPAlloc *alloc, Error *error)
 	assert(ast != NULL);
 	assert(error != NULL);
 
-	BPAlloc *alloc2 = alloc;
+	CodegenContext ctx;
+	if(!initCodegenContext(&ctx, error, alloc))
+		return NULL;
 
-	if(alloc2 == NULL)
-	{
-		alloc2 = BPAlloc_Init(-1);
-
-		if(alloc2 == NULL)
-			return NULL;
+	bool jumped = setOrcatchJump(&ctx);
+	if(jumped) {
+		freeCodegenContext(&ctx);
+		return NULL;
 	}
 
-	Executable *exe = NULL;
-	ExeBuilder *exeb = ExeBuilder_New(alloc2);
+	emitInstrForNode(&ctx, ast->root, NULL);
+	Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
+	emitInstr(&ctx, OPCODE_RETURN, &op, 1, Source_GetSize(ast->src), 0);
 
-	if(exeb != NULL)
-	{
-		if(!emit_instr_for_node(exeb, ast->root, NULL, error))
-			return 0;
-
-		Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
-		if(ExeBuilder_Append(exeb, error, OPCODE_RETURN, &op, 1, Source_GetSize(ast->src), 0))
-		{
-			exe = ExeBuilder_Finalize(exeb, error);
-					
-			if(exe != NULL)
-				Executable_SetSource(exe, ast->src);
-		}
-	}
-
-	if(alloc == NULL)
-		BPAlloc_Free(alloc2);
-	return exe;
+	return makeExecutableAndFreeCodegenContext(&ctx, ast->src);
 }

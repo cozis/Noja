@@ -110,4 +110,5 @@ _Bool 		ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand
 Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error);
 BPAlloc    *ExeBuilder_GetAlloc(ExeBuilder *exeb);
 int 		ExeBuilder_InstrCount(ExeBuilder *exeb);
+
 #endif
