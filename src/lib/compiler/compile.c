@@ -144,7 +144,7 @@ static void emitInstr_ASS(CodegenContext *ctx, const char *name, int off, int le
 	Operand opv[] = {
 		{ .type = OPTP_STRING, .as_string = name },
 	};
-	emitInstr(ctx, OPCODE_ASS, &op, 1, off, len);
+	emitInstr(ctx, OPCODE_ASS, opv, 1, off, len);
 }
 
 static Promise *newOffsetPromise(CodegenContext *ctx)
@@ -206,7 +206,7 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 	emitInstr(ctx, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
 }
 
-static void emitInstrForFuncNode(CodegenContext *ctx, FuncExprNode *func, Promise *break_dest)
+static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func, Promise *break_dest)
 {
 	Promise *func_index = newOffsetPromise(ctx);
 	Promise *jump_index = newOffsetPromise(ctx);
@@ -224,7 +224,7 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FuncExprNode *func, Promis
 	emitInstr_POP1(ctx, func->base.offset, func->base.length); // Pop function object
 
 	// Jump after the function code.
-	op = (Operand) { .type = OPTP_PROMISE, .as_promise = jump_index };
+	Operand op = { .type = OPTP_PROMISE, .as_promise = jump_index };
 	emitInstr(ctx, OPCODE_JUMP, &op, 1,  func->base.offset, func->base.length);
 
 	// This is the function code index.
@@ -271,7 +271,7 @@ static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Prom
 		Promise *done_offset = newOffsetPromise(ctx);
 
 		Operand op = { .type = OPTP_PROMISE, .as_promise = else_offset };
-		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, node->offset, node->length);
+		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, ifelse->base.offset, ifelse->base.length);
 
 		emitInstrForNode(ctx, ifelse->true_branch, break_dest);
 
@@ -279,7 +279,7 @@ static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Prom
 			emitInstr_POP(ctx, 1, ifelse->true_branch->offset, 0);
 				
 		op = (Operand) { .type = OPTP_PROMISE, .as_promise = done_offset };
-		emitInstr(ctx, OPCODE_JUMP, &op, 1, node->offset, node->length);
+		emitInstr(ctx, OPCODE_JUMP, &op, 1, ifelse->base.offset, ifelse->base.length);
 
 		long long int temp = ExeBuilder_InstrCount(ctx->builder);
 		Promise_Resolve(else_offset, &temp, sizeof(temp));
@@ -299,7 +299,8 @@ static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Prom
 	{
 		Promise *done_offset = newOffsetPromise(ctx);
 
-		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &(Operand) { .type = OPTP_PROMISE, .as_promise = done_offset }, 1, node->offset, node->length);
+		Operand op = { .type = OPTP_PROMISE, .as_promise = done_offset };
+		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, ifelse->base.offset, ifelse->base.length);
 
 		emitInstrForNode(ctx, ifelse->true_branch, break_dest);
 
@@ -310,6 +311,26 @@ static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Prom
 		Promise_Resolve(done_offset, &temp, sizeof(temp));
 
 		Promise_Free(done_offset);
+	}
+}
+
+static void flattenTupleTree(CodegenContext *ctx, ExprNode *root, ExprNode *tuple[], int max, int *count)
+{
+	if(root->kind == EXPR_PAIR)
+	{
+		flattenTupleTree(ctx, (ExprNode*) ((OperExprNode*) root)->head, tuple, max, count);
+		flattenTupleTree(ctx, (ExprNode*) ((OperExprNode*) root)->head->next, tuple, max, count);
+	} 
+	else 
+	{
+
+		if(max == *count)
+		{
+			reportErrorAndJump(ctx, 0, "Static buffer is too small");
+			UNREACHABLE;
+		}
+
+		tuple[(*count)++] = root;
 	}
 }
 
@@ -366,27 +387,7 @@ static void emitInstrForAssignmentNode(CodegenContext *ctx, OperExprNode *asgn, 
 		}
 
 		if(i+1 < count)
-			emitInstr_POP1(ctx, node->offset, 0);
-	}
-}
-
-static void flattenTupleTree(CodegenContext *ctx, ExprNode *root, ExprNode *tuple[], int max, int *count)
-{
-	if(root->kind == EXPR_PAIR)
-	{
-		flattenTupleTree(ctx, (ExprNode*) ((OperExprNode*) root)->head, tuple, max, count);
-		flattenTupleTree(ctx, (ExprNode*) ((OperExprNode*) root)->head->next, tuple, max, count);
-	} 
-	else 
-	{
-
-		if(max == *count)
-		{
-			reportErrorAndJump(ctx, 0, "Static buffer is too small");
-			UNREACHABLE;
-		}
-
-		tuple[(*count)++] = root;
+			emitInstr_POP1(ctx, asgn->base.base.offset, 0);
 	}
 }
 
