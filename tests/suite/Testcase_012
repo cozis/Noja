@@ -1,0 +1,12 @@
+
+#source
+    
+    1 * 7.0;
+
+#bytecode
+    
+    PUSHINT 1;
+    PUSHFLT 7.0;
+    MUL;
+    POP 1;
+    RETURN 0;

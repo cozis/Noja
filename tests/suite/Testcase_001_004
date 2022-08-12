@@ -1,0 +1,10 @@
+
+#source
+    
+    false;
+
+#bytecode
+    
+    PUSHFLS;
+    POP     1;
+    RETURN  0;

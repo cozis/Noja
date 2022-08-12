@@ -1,0 +1,10 @@
+
+#source
+    
+    6.7;
+
+#bytecode
+    
+    PUSHFLT 6.7;
+    POP     1;
+    RETURN  0;

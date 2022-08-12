@@ -1,0 +1,10 @@
+
+#source
+
+    [];
+
+#bytecode
+    
+    PUSHLST 0;
+    POP     1;
+    RETURN  0;

@@ -1,0 +1,10 @@
+
+#source
+    
+    1;
+
+#bytecode
+    
+    PUSHINT 1;
+    POP     1;
+    RETURN  0;
