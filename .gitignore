@@ -4,6 +4,9 @@ report/
 noja
 !noja/
 
+test
+!test/
+
 vgcore.*
 *.gcov
 lib*.a
