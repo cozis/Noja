@@ -1,0 +1,19 @@
+
+#source
+
+    [true, false];
+
+#bytecode
+    
+    PUSHLST 2;
+    
+    PUSHINT 0;
+    PUSHTRU;
+    INSERT;
+
+    PUSHINT 1;
+    PUSHFLS;
+    INSERT;
+
+    POP     1;
+    RETURN  0;

@@ -1,0 +1,17 @@
+
+#source
+
+    fun X() "Hello, world!";
+
+#bytecode
+    
+    PUSHFUN fun, 0;
+    ASS "X";
+    POP 1;
+    JUMP end;
+fun:
+    PUSHSTR "Hello, world!";
+    POP 1;
+    RETURN 0;
+end:
+    RETURN 0;

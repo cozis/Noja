@@ -1,0 +1,19 @@
+
+#source
+
+    ({'name': 'Francesco', 'age': 25});
+
+#bytecode
+    
+    PUSHMAP 2;
+    
+    PUSHSTR "name";
+    PUSHSTR "Francesco";
+    INSERT;
+
+    PUSHSTR "age";
+    PUSHINT 25;
+    INSERT;
+
+    POP     1;
+    RETURN  0;

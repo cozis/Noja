@@ -1,0 +1,16 @@
+
+#source
+
+    (1 + 2) * 3;
+
+#bytecode
+    
+    PUSHINT 1;
+    PUSHINT 2;
+    ADD;
+    PUSHINT 3;
+    MUL;
+
+    POP 1;
+
+    RETURN 0;

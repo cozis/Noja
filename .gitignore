@@ -1,5 +1,9 @@
-cache
-vgcore.*
-libnoja.a
+cache/
+report/
+
 noja
+!noja/
+
+vgcore.*
 *.gcov
+lib*.a

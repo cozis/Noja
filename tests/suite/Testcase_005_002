@@ -1,0 +1,17 @@
+
+#source
+
+    A, B = func();
+
+#bytecode
+    
+    PUSHVAR "func";
+    CALL 0, 2;
+
+    ASS "B";
+    POP 1;
+
+    ASS "A";
+
+    POP 1;
+    RETURN  0;

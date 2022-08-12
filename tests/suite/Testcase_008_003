@@ -1,0 +1,20 @@
+
+#source
+
+    if none:
+        true;
+    else
+        false;
+
+#bytecode
+    
+    PUSHNNE;
+    JUMPIFNOTANDPOP else;
+    PUSHTRU;
+    POP 1;
+    JUMP end; 
+else:
+    PUSHFLS;
+    POP 1;
+end:
+    RETURN 0;

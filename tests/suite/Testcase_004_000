@@ -1,0 +1,13 @@
+
+#source
+
+    ({'name': 'Francesco'});
+
+#bytecode
+    
+    PUSHMAP 1;
+    PUSHSTR "name";
+    PUSHSTR "Francesco";
+    INSERT;
+    POP     1;
+    RETURN  0;

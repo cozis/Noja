@@ -1,0 +1,18 @@
+
+#source
+    
+    do
+        true;
+    while none;
+    false;
+
+#bytecode
+    
+begin:
+    PUSHTRU;
+    POP 1;
+    PUSHNNE;
+    JUMPIFANDPOP begin;
+    PUSHFLS;
+    POP 1;
+    RETURN 0;

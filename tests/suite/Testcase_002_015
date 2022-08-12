@@ -1,0 +1,12 @@
+
+#source
+
+    1 == 2;
+
+#bytecode
+
+    PUSHINT 1;
+    PUSHINT 2;
+    EQL;
+    POP 1;
+    RETURN 0;

@@ -1,0 +1,13 @@
+
+#source
+
+    var.key = none;
+
+#bytecode
+    
+    PUSHNNE;
+    PUSHVAR "var";
+    PUSHSTR "key";
+    INSERT2;
+    POP     1;
+    RETURN  0;

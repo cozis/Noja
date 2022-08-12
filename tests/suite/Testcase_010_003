@@ -1,0 +1,24 @@
+
+#source
+    
+    do {
+        true;
+        "Hello, world!";
+        break;
+    } while none;
+    false;
+
+#bytecode
+    
+begin:
+    PUSHTRU;
+    POP 1;
+    PUSHSTR "Hello, world!";
+    POP 1;
+    JUMP end;
+    PUSHNNE;
+    JUMPIFANDPOP begin;
+end:
+    PUSHFLS;
+    POP 1;
+    RETURN 0;

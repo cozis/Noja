@@ -1,0 +1,10 @@
+
+#source
+    
+    return none;
+
+#bytecode
+
+    PUSHNNE;
+    RETURN 1;
+    RETURN 0;

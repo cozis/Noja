@@ -1,0 +1,13 @@
+
+#source
+    
+    do
+        {}
+    while none;
+
+#bytecode
+    
+begin:
+    PUSHNNE;
+    JUMPIFANDPOP begin;
+    RETURN 0;

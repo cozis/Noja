@@ -1,0 +1,17 @@
+
+#source
+
+    if true:
+        {}
+    else
+        {}
+
+#bytecode
+    
+    PUSHTRU;
+    JUMPIFNOTANDPOP end;
+
+    JUMP end; 
+    
+end:
+    RETURN 0;

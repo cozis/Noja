@@ -18,14 +18,22 @@ SRCDIR = src
 # when doing `make clean`.
 OBJDIR = cache
 
+# Temporary directory where execution coverage
+# reports are stored. If this directory doesn't
+# exist, it will be created. This folder is
+# deleted by `make clean`.
+REPORTDIR = report
+
 # Source directory for each program to be build
 # They are relative to the SRCDIR folder.
-LIB_SUBDIR = noja
+LIB_SUBDIR = lib
 CLI_SUBDIR = cli
+TST_SUBDIR = test
 
 # Resulting file names
 LIB_FNAME = libnoja.a
 CLI_FNAME = noja
+TST_FNAME = test
 
 # Where the build programs will be moved when
 # installation occurres.
@@ -92,12 +100,14 @@ endif
 # Absolute path of each program's source tree
 LIB_SRCDIR = $(SRCDIR)/$(LIB_SUBDIR)
 CLI_SRCDIR = $(SRCDIR)/$(CLI_SUBDIR)
+TST_SRCDIR = $(SRCDIR)/$(TST_SUBDIR)
 
 # Each program that is being build uses as object
 # cache a subfolder of OBJDIR called like the it's
 # source tree base folder in SRCDIR.
 LIB_OBJDIR = $(OBJDIR)/$(LIB_SUBDIR)
 CLI_OBJDIR = $(OBJDIR)/$(CLI_SUBDIR)
+TST_OBJDIR = $(OBJDIR)/$(TST_SUBDIR)
 
 LIB_CFILES = $(call rwildcard, $(LIB_SRCDIR), *.c)
 LIB_HFILES = $(call rwildcard, $(LIB_SRCDIR), *.h)
@@ -107,15 +117,24 @@ CLI_CFILES = $(call rwildcard, $(CLI_SRCDIR), *.c)
 CLI_HFILES = $(call rwildcard, $(CLI_SRCDIR), *.h)
 CLI_OFILES = $(patsubst $(CLI_SRCDIR)/%.c, $(CLI_OBJDIR)/%.o, $(CLI_CFILES))
 
+TST_CFILES = $(call rwildcard, $(TST_SRCDIR), *.c)
+TST_HFILES = $(call rwildcard, $(TST_SRCDIR), *.h)
+TST_OFILES = $(patsubst $(TST_SRCDIR)/%.c, $(TST_OBJDIR)/%.o, $(TST_CFILES))
+
+ALL_CFILES = $(call rwildcard, $(SRCDIR), *.c)
+
 # Useful abbreviations
 LIB = $(OUTDIR)/$(LIB_FNAME)
 CLI = $(OUTDIR)/$(CLI_FNAME)
+TST = $(OUTDIR)/$(TST_FNAME)
 
 # ===================== #
 # === Rules =========== #
 # ===================== #
 
-all: $(LIB) $(CLI)
+.PHONY: report install clean all
+
+all: $(LIB) $(CLI) $(TST)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@ mkdir -p $(@D)
@@ -128,11 +147,29 @@ $(LIB): $(LIB_OFILES)
 $(CLI): $(CLI_OFILES) $(LIB)
 	$(CC) $^ -o $@ $(LFLAGS)
 
+$(TST): $(TST_OFILES) $(LIB)
+	gcc $^ -o $@ $(LFLAGS)
+
+#$(REPORTDIR)/%.gcov: src/%.c
+#	@ mkdir -p $(@D)
+#	gcov --stdout $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.c, $^) > $@
+#
+#report: $(patsubst $(SRCDIR)/%.c, $(REPORTDIR)/%.gcov, $(ALL_CFILES))
+#	lcov --capture --directory $(OBJDIR) --output-file coverage.info
+#	genhtml coverage.info --output-directory .
+#
+
+report: 
+	lcov --capture --directory $(OBJDIR) --output-file $(OBJDIR)/coverage.info
+	@ mkdir -p report
+	genhtml $(OBJDIR)/coverage.info --output-directory report
+
 install: $(LIB) $(CLI)
 	sudo cp $(LIB) $(LIB_INSTALLDIR)
 	sudo cp $(CLI) $(CLI_INSTALLDIR)
 
 clean:
 	rm -rf $(OBJDIR)
+	rm -rf $(REPORTDIR)
 	rm  -f $(LIB)
 	rm  -f $(CLI)

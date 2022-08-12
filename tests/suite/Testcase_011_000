@@ -1,0 +1,15 @@
+
+#source
+
+    fun X() {}
+
+#bytecode
+    
+    PUSHFUN fun, 0;
+    ASS "X";
+    POP 1;
+    JUMP end;
+fun:
+    RETURN 0;
+end:
+    RETURN 0;

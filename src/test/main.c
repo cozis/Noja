@@ -4,11 +4,11 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "../src/noja/utils/source.h"
-#include "../src/noja/compiler/parse.h"
-#include "../src/noja/compiler/compile.h"
-#include "../src/noja/common/executable.h"
-#include "../src/noja/assembler/assemble.h"
+#include "../lib/utils/source.h"
+#include "../lib/compiler/parse.h"
+#include "../lib/compiler/compile.h"
+#include "../lib/common/executable.h"
+#include "../lib/assembler/assemble.h"
 
 //Regular text
 #define BLK "\e[0;30m"

@@ -1,0 +1,18 @@
+
+#source
+
+    while none: 
+        break;
+    false;
+
+#bytecode
+    
+begin:
+    PUSHNNE;
+    JUMPIFNOTANDPOP end;
+    JUMP end;
+    JUMP begin;
+end:
+    PUSHFLS;
+    POP 1;
+    RETURN 0;

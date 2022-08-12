@@ -12,12 +12,14 @@ copy:
     PUSHINT  0;
     ASS     "i";
     POP     1;
+
+loop_start:
     PUSHVAR "i";
     PUSHVAR "L";
     PUSHVAR "count";
     CALL    1, 1;
     LSS;
-    JUMPIFNOTANDPOP 31; 
+    JUMPIFNOTANDPOP loop_end; 
     PUSHVAR "L";
     PUSHVAR "i";
     SELECT;
@@ -30,7 +32,8 @@ copy:
     ADD;
     ASS     "i";
     POP     1;
-    JUMP    12;
+    JUMP    loop_start;
+loop_end:
     PUSHVAR "L2";
     RETURN  1;
     RETURN  0;
@@ -50,7 +53,7 @@ bubble_sort:
     PUSHNNE;
     EQL;
     JUMPIFNOTANDPOP default_less_cb_end;
-    PUSHFUN 50, 2;
+    PUSHFUN default_less_cb, 2;
     ASS     "less";
     POP     1;
     JUMP    default_less_cb_end;

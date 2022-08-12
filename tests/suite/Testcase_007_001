@@ -1,0 +1,25 @@
+#source
+    
+    set["dog", "cow", "cat"];
+
+#bytecode
+    
+    PUSHVAR "set";
+
+    PUSHLST 3;
+
+    PUSHINT 0;
+    PUSHSTR "dog";
+    INSERT;
+
+    PUSHINT 1;
+    PUSHSTR "cow";
+    INSERT;
+
+    PUSHINT 2;
+    PUSHSTR "cat";
+    INSERT;
+
+    SELECT;
+    POP 1;
+    RETURN 0;

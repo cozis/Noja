@@ -1,0 +1,17 @@
+
+#source
+    
+    A and B or C and D;
+
+#bytecode
+    
+    PUSHVAR "A";
+    PUSHVAR "B";
+    AND;
+    PUSHVAR "C";
+    PUSHVAR "D";
+    AND;
+    OR;
+    POP 1;
+
+    RETURN  0;
