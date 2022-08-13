@@ -51,7 +51,6 @@
 #include "compile.h"
 #include "ASTi.h"
 
-
 typedef struct {
 	Error *error;
 	BPAlloc *alloc;
@@ -59,6 +58,26 @@ typedef struct {
 	bool own_alloc;
 	jmp_buf env;
 } CodegenContext;
+
+typedef Promise Label;
+
+static void setLabel(Label *label, long long int value)
+{
+	Promise *promise = (Promise*) label;
+	Promise_Resolve(promise, &value, sizeof(value));
+}
+
+static void setLabelHere(Label *label, CodegenContext *ctx)
+{
+	long long int value = ExeBuilder_InstrCount(ctx->builder);
+	setLabel(label, value);
+}
+
+static void freeLabel(Label *label)
+{
+	Promise *promise = (Promise*) label;
+	Promise_Free(promise);
+}
 
 static void okNowJump(CodegenContext *ctx)
 {
@@ -147,7 +166,47 @@ static void emitInstr_ASS(CodegenContext *ctx, const char *name, int off, int le
 	emitInstr(ctx, OPCODE_ASS, opv, 1, off, len);
 }
 
-static Promise *newOffsetPromise(CodegenContext *ctx)
+static void emitInstr_RETURN(CodegenContext *ctx, 
+	                         long long int op0,
+	                         int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_INT, .as_int = op0 }
+	};
+	emitInstr(ctx, OPCODE_RETURN, opv, 1, off, len);
+}
+
+static void emitInstr_JUMP(CodegenContext *ctx, 
+	                         Promise *op0,
+	                         int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_PROMISE, .as_promise = op0 }
+	};
+	emitInstr(ctx, OPCODE_JUMP, opv, 1, off, len);
+}
+
+static void emitInstr_JUMPIFNOTANDPOP(CodegenContext *ctx, 
+	                                  Promise *op0,
+	                                  int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_PROMISE, .as_promise = op0 }
+	};
+	emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, opv, 1, off, len);
+}
+
+static void emitInstr_JUMPIFANDPOP(CodegenContext *ctx, 
+	                               long long int op0,
+	                               int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_INT, .as_int = op0 }
+	};
+	emitInstr(ctx, OPCODE_JUMPIFANDPOP, opv, 1, off, len);
+}
+
+static Label *newLabel(CodegenContext *ctx)
 {
 	Promise *promise = Promise_New(ctx->alloc, sizeof(long long int));
 	if(promise != NULL)
@@ -208,8 +267,8 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 
 static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func, Promise *break_dest)
 {
-	Promise *func_index = newOffsetPromise(ctx);
-	Promise *jump_index = newOffsetPromise(ctx);
+	Label *func_index = newLabel(ctx);
+	Label *jump_index = newLabel(ctx);
 
 	// Push function.
 	{
@@ -219,17 +278,10 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func, Promis
 		};
 		emitInstr(ctx, OPCODE_PUSHFUN, ops, 2, func->base.offset, func->base.length);
 	}
-		
 	emitInstr_ASS(ctx, func->name, func->base.offset, func->base.length); // Assign variable
 	emitInstr_POP1(ctx, func->base.offset, func->base.length); // Pop function object
-
-	// Jump after the function code.
-	Operand op = { .type = OPTP_PROMISE, .as_promise = jump_index };
-	emitInstr(ctx, OPCODE_JUMP, &op, 1,  func->base.offset, func->base.length);
-
-	// This is the function code index.
-	long long int temp = ExeBuilder_InstrCount(ctx->builder);
-	Promise_Resolve(func_index, &temp, sizeof(temp));
+	emitInstr_JUMP(ctx, jump_index, func->base.offset, func->base.length); // Jump after the function code
+	setLabelHere(func_index, ctx); // This is the function code index.
 
 	// Compile the function body.
 	{
@@ -249,68 +301,45 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func, Promis
 
 		// Write a return instruction, just 
 		// in case it didn't already return.
-		Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
-		emitInstr(ctx, OPCODE_RETURN, &op, 1, func->body->offset, 0);
+		emitInstr_RETURN(ctx, 0, func->body->offset, 0);
 	}
 
 	// This is the first index after the function code.
-	temp = ExeBuilder_InstrCount(ctx->builder);
-	Promise_Resolve(jump_index, &temp, sizeof(temp));
+	setLabelHere(jump_index, ctx);
 
-	Promise_Free(func_index);
-	Promise_Free(jump_index);
+	freeLabel(func_index);
+	freeLabel(jump_index);
 }
 
 static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Promise *break_dest)
 {
 	emitInstrForNode(ctx, ifelse->condition, break_dest);
-
 	if(ifelse->false_branch)
 	{
-		Promise *else_offset = newOffsetPromise(ctx);
-		Promise *done_offset = newOffsetPromise(ctx);
-
-		Operand op = { .type = OPTP_PROMISE, .as_promise = else_offset };
-		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, ifelse->base.offset, ifelse->base.length);
-
+		Label *else_offset = newLabel(ctx);
+		Label *done_offset = newLabel(ctx);
+		emitInstr_JUMPIFNOTANDPOP(ctx, else_offset, ifelse->base.offset, ifelse->base.length);
 		emitInstrForNode(ctx, ifelse->true_branch, break_dest);
-
 		if(ifelse->true_branch->kind == NODE_EXPR)
 			emitInstr_POP(ctx, 1, ifelse->true_branch->offset, 0);
-				
-		op = (Operand) { .type = OPTP_PROMISE, .as_promise = done_offset };
-		emitInstr(ctx, OPCODE_JUMP, &op, 1, ifelse->base.offset, ifelse->base.length);
-
-		long long int temp = ExeBuilder_InstrCount(ctx->builder);
-		Promise_Resolve(else_offset, &temp, sizeof(temp));
-
+		emitInstr_JUMP(ctx, done_offset, ifelse->base.offset, ifelse->base.length);
+		setLabelHere(else_offset, ctx);
 		emitInstrForNode(ctx, ifelse->false_branch, break_dest);
-
 		if(ifelse->false_branch->kind == NODE_EXPR)
 			emitInstr_POP1(ctx, ifelse->false_branch->offset, 0);
-
-		temp = ExeBuilder_InstrCount(ctx->builder);
-		Promise_Resolve(done_offset, &temp, sizeof(temp));
-
-		Promise_Free(else_offset);
-		Promise_Free(done_offset);
+		setLabelHere(done_offset, ctx);
+		freeLabel(else_offset);
+		freeLabel(done_offset);
 	}
 	else
 	{
-		Promise *done_offset = newOffsetPromise(ctx);
-
-		Operand op = { .type = OPTP_PROMISE, .as_promise = done_offset };
-		emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, ifelse->base.offset, ifelse->base.length);
-
+		Label *done_offset = newLabel(ctx);
+		emitInstr_JUMPIFNOTANDPOP(ctx, done_offset, ifelse->base.offset, ifelse->base.length);
 		emitInstrForNode(ctx, ifelse->true_branch, break_dest);
-
 		if(ifelse->true_branch->kind == NODE_EXPR)
 			emitInstr_POP1(ctx, ifelse->true_branch->offset, 0);
-
-		long long int temp = ExeBuilder_InstrCount(ctx->builder);
-		Promise_Resolve(done_offset, &temp, sizeof(temp));
-
-		Promise_Free(done_offset);
+		setLabelHere(done_offset, ctx);
+		freeLabel(done_offset);
 	}
 }
 
@@ -551,13 +580,10 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_des
 		}
 
 		case NODE_BREAK:
-		{
-			if(break_dest == NULL)
-				reportErrorAndJump(ctx, 0, "Break not inside a loop");
-			Operand op = (Operand) { .type = OPTP_PROMISE, .as_promise = break_dest };
-			emitInstr(ctx, OPCODE_JUMP, &op, 1, node->offset, node->length);
-			return;
-		}
+		if(break_dest == NULL)
+			reportErrorAndJump(ctx, 0, "Break not inside a loop");
+		emitInstr_JUMP(ctx, break_dest, node->offset, node->length);
+		return;
 
 		case NODE_IFELSE:
 		emitInstrForIfElseNode(ctx, (IfElseNode*) node, break_dest);
@@ -576,30 +602,18 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_des
 			 * end:
 			 */
 
-			Promise *start_offset = newOffsetPromise(ctx);
-			Promise   *end_offset = newOffsetPromise(ctx);
-
-			long long int temp = ExeBuilder_InstrCount(ctx->builder);
-			Promise_Resolve(start_offset, &temp, sizeof(temp));
-
+			Label *start_offset = newLabel(ctx);
+			Label *end_offset = newLabel(ctx);
+			setLabelHere(start_offset, ctx);
 			emitInstrForNode(ctx, whl->condition, break_dest);
-
-			Operand op = { .type = OPTP_PROMISE, .as_promise = end_offset };
-			emitInstr(ctx, OPCODE_JUMPIFNOTANDPOP, &op, 1, whl->condition->offset, whl->condition->length);
-
+			emitInstr_JUMPIFNOTANDPOP(ctx, end_offset, whl->condition->offset, whl->condition->length);
 			emitInstrForNode(ctx, whl->body, end_offset);
-
 			if(whl->body->kind == NODE_EXPR)
-				emitInstr_POP1(ctx, whl->body->offset, 0);
-				
-			op = (Operand) { .type = OPTP_PROMISE, .as_promise = start_offset };
-			emitInstr(ctx, OPCODE_JUMP, &op, 1, node->offset, node->length);
-
-			temp = ExeBuilder_InstrCount(ctx->builder);
-			Promise_Resolve(end_offset, &temp, sizeof(temp));
-
-			Promise_Free(start_offset);
-			Promise_Free(end_offset);
+				emitInstr_POP1(ctx, whl->body->offset, 0);			
+			emitInstr_JUMP(ctx, start_offset, node->offset, node->length);
+			setLabelHere(end_offset, ctx);
+			freeLabel(start_offset);
+			freeLabel(end_offset);
 			return;
 		}
 
@@ -614,23 +628,15 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_des
 			 *   JUMPIFANDPOP start
 			 */
 
-			Promise *end_offset = newOffsetPromise(ctx);
-
+			Label *end_offset = newLabel(ctx);
 			long long int start = ExeBuilder_InstrCount(ctx->builder);
-
 			emitInstrForNode(ctx, dowhl->body, end_offset);
-
 			if(dowhl->body->kind == NODE_EXPR)
 				emitInstr_POP1(ctx, dowhl->body->offset, 0);
-
 			emitInstrForNode(ctx, dowhl->condition, break_dest);
-
-			Operand op = { .type = OPTP_INT, .as_int = start };
-			emitInstr(ctx, OPCODE_JUMPIFANDPOP, &op, 1, dowhl->condition->offset, dowhl->condition->length);
-
-			long long int temp = ExeBuilder_InstrCount(ctx->builder);
-			Promise_Resolve(end_offset, &temp, sizeof(temp));
-			Promise_Free(end_offset);
+			emitInstr_JUMPIFANDPOP(ctx, start, dowhl->condition->offset, dowhl->condition->length);
+			setLabelHere(end_offset, ctx);
+			freeLabel(end_offset);
 			return;
 		}
 
@@ -643,7 +649,6 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_des
 			while(stmt)
 			{
 				emitInstrForNode(ctx, stmt, break_dest);
-
 				if(stmt->kind == NODE_EXPR)
 					emitInstr_POP1(ctx, stmt->offset, 0);
 				stmt = stmt->next;
@@ -662,9 +667,7 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Promise *break_des
 
 			for(int i = 0; i < count; i += 1)
 				emitInstrForNode(ctx, (Node*) tuple[i], break_dest);
-
-			Operand op = (Operand) { .type = OPTP_INT, .as_int = count };
-			emitInstr(ctx, OPCODE_RETURN, &op, 1, ret->base.offset, ret->base.length);
+			emitInstr_RETURN(ctx, count, ret->base.offset, ret->base.length);
 			return;
 		}
 
@@ -725,8 +728,6 @@ Executable *compile(AST *ast, BPAlloc *alloc, Error *error)
 	}
 
 	emitInstrForNode(&ctx, ast->root, NULL);
-	Operand op = (Operand) { .type = OPTP_INT, .as_int = 0 };
-	emitInstr(&ctx, OPCODE_RETURN, &op, 1, Source_GetSize(ast->src), 0);
-
+	emitInstr_RETURN(&ctx, 0, Source_GetSize(ast->src), 0);
 	return makeExecutableAndFreeCodegenContext(&ctx, ast->src);
 }
