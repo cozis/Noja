@@ -7,5 +7,6 @@ fun makeAdder(n) {
 
 add10 = makeAdder(10);
 add20 = makeAdder(20);
-print(add10(1), '\n'); # 11
-print(add20(1), '\n'); # 21
+
+assert(add10(1) == 11);
+assert(add20(1) == 21);

@@ -440,7 +440,7 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, Label *lab
 			ListExprNode *l = (ListExprNode*) expr;
 
 			Operand op;
-
+			
 			op = (Operand) { .type = OPTP_INT, .as_int = l->itemc };
 			CodegenContext_EmitInstr(ctx, OPCODE_PUSHLST, &op, 1, expr->base.offset, expr->base.length);
 
@@ -495,21 +495,10 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, Label *lab
 			return;
 		}
 
-		case EXPR_NONE:
-		CodegenContext_EmitInstr(ctx, OPCODE_PUSHNNE, NULL, 0, expr->base.offset, expr->base.length);
-		return;
-
-		case EXPR_TRUE:
-		CodegenContext_EmitInstr(ctx, OPCODE_PUSHTRU, NULL, 0, expr->base.offset, expr->base.length);
-		return;
-
-		case EXPR_FALSE:
-		CodegenContext_EmitInstr(ctx, OPCODE_PUSHFLS, NULL, 0, expr->base.offset, expr->base.length);
-		return;
-
-		default:
-		UNREACHABLE;
-		break;
+		case EXPR_NONE:  CodegenContext_EmitInstr(ctx, OPCODE_PUSHNNE, NULL, 0, expr->base.offset, expr->base.length); return;
+		case EXPR_TRUE:	 CodegenContext_EmitInstr(ctx, OPCODE_PUSHTRU, NULL, 0, expr->base.offset, expr->base.length); return;
+		case EXPR_FALSE: CodegenContext_EmitInstr(ctx, OPCODE_PUSHFLS, NULL, 0, expr->base.offset, expr->base.length); return;
+		default: UNREACHABLE; break;
 	}
 }
 
