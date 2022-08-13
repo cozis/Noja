@@ -114,6 +114,26 @@ static void emitInstr_JUMPIFANDPOP(CodegenContext *ctx,
 	CodegenContext_EmitInstr(ctx, OPCODE_JUMPIFANDPOP, opv, 1, off, len);
 }
 
+static void emitInstr_JUMPIFANDPOP_2(CodegenContext *ctx, 
+	                                 Label *op0,
+	                                 int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_PROMISE, .as_promise = Label_ToPromise(op0) }
+	};
+	CodegenContext_EmitInstr(ctx, OPCODE_JUMPIFANDPOP, opv, 1, off, len);
+}
+
+static void emitInstr_PUSHTRU(CodegenContext *ctx, int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTRU, NULL, 0, off, len);
+}
+
+static void emitInstr_PUSHFLS(CodegenContext *ctx, int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_PUSHFLS, NULL, 0, off, len);
+}
+
 static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break);
 
 static Opcode exprkind_to_opcode(ExprKind kind)
@@ -208,37 +228,6 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func)
 	Label_Free(label_jump);
 }
 
-static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Label *label_break)
-{
-	emitInstrForNode(ctx, ifelse->condition, label_break);
-	if(ifelse->false_branch)
-	{
-		Label *label_else = Label_New(ctx);
-		Label *label_done = Label_New(ctx);
-		emitInstr_JUMPIFNOTANDPOP(ctx, label_else, ifelse->base.offset, ifelse->base.length);
-		emitInstrForNode(ctx, ifelse->true_branch, label_break);
-		if(ifelse->true_branch->kind == NODE_EXPR)
-			emitInstr_POP(ctx, 1, ifelse->true_branch->offset, 0);
-		emitInstr_JUMP(ctx, label_done, ifelse->base.offset, ifelse->base.length);
-		Label_SetHere(label_else, ctx);
-		emitInstrForNode(ctx, ifelse->false_branch, label_break);
-		if(ifelse->false_branch->kind == NODE_EXPR)
-			emitInstr_POP1(ctx, ifelse->false_branch->offset, 0);
-		Label_SetHere(label_done, ctx);
-		Label_Free(label_else);
-		Label_Free(label_done);
-	}
-	else
-	{
-		Label *label_done = Label_New(ctx);
-		emitInstr_JUMPIFNOTANDPOP(ctx, label_done, ifelse->base.offset, ifelse->base.length);
-		emitInstrForNode(ctx, ifelse->true_branch, label_break);
-		if(ifelse->true_branch->kind == NODE_EXPR)
-			emitInstr_POP1(ctx, ifelse->true_branch->offset, 0);
-		Label_SetHere(label_done, ctx);
-		Label_Free(label_done);
-	}
-}
 
 static void flattenTupleTree(CodegenContext *ctx, ExprNode *root, ExprNode *tuple[], int max, int *count)
 {
@@ -317,52 +306,8 @@ static void emitInstrForAssignmentNode(CodegenContext *ctx, OperExprNode *asgn, 
 	}
 }
 
-static void emitInstrForWhileLoopNode(CodegenContext *ctx, WhileNode *loop, Label *label_break)
-{
-	/* 
-	 * start:
-	 *   <condition>
-	 * 	 JUMPIFNOTANDPOP end
-	 *   <body>
-	 *   JUMP start
-	 * end:
-	 */
-
-	Label *label_start = Label_New(ctx);
-	Label *label_end = Label_New(ctx);
-	Label_SetHere(label_start, ctx);
-	emitInstrForNode(ctx, loop->condition, label_break);
-	emitInstr_JUMPIFNOTANDPOP(ctx, label_end, loop->condition->offset, loop->condition->length);
-	emitInstrForNode(ctx, loop->body, label_end);
-	if(loop->body->kind == NODE_EXPR)
-		emitInstr_POP1(ctx, loop->body->offset, 0);			
-	emitInstr_JUMP(ctx, label_start, loop->base.offset, loop->base.length);
-	Label_SetHere(label_end, ctx);
-	Label_Free(label_start);
-	Label_Free(label_end);
-}
-
-static void emitInstrForDoWhileLoopNode(CodegenContext *ctx, DoWhileNode *loop, Label *label_break)
-{
-	/*
-	 * start:
-	 *   <body>
-	 *   <condition>
-	 *   JUMPIFANDPOP start
-	 */
-
-	Label *label_end = Label_New(ctx);
-	long long int start = CodegenContext_InstrCount(ctx);
-	emitInstrForNode(ctx, loop->body, label_end);
-	if(loop->body->kind == NODE_EXPR)
-		emitInstr_POP1(ctx, loop->body->offset, 0);
-	emitInstrForNode(ctx, loop->condition, label_break);
-	emitInstr_JUMPIFANDPOP(ctx, start, loop->condition->offset, loop->condition->length);
-	Label_SetHere(label_end, ctx);
-	Label_Free(label_end);
-}
-
-static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, Label *label_break)
+static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, 
+	                             Label *label_break)
 {
 	switch(expr->kind)
 	{
@@ -372,25 +317,80 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, Label *lab
 		return; // For the compiler warning.
 
 		case EXPR_NOT:
-		case EXPR_POS:
-		case EXPR_NEG:
-		case EXPR_ADD:
-		case EXPR_SUB:
-		case EXPR_MUL:
-		case EXPR_DIV:
-		case EXPR_EQL:
-		case EXPR_NQL:
-		case EXPR_LSS:
-		case EXPR_LEQ:
-		case EXPR_GRT:
-		case EXPR_GEQ:
-		case EXPR_AND:
-		case EXPR_OR:
+		case EXPR_POS: case EXPR_NEG:
+		case EXPR_ADD: case EXPR_SUB:
+		case EXPR_MUL: case EXPR_DIV:
+		case EXPR_EQL: case EXPR_NQL:
+		case EXPR_LSS: case EXPR_LEQ:
+		case EXPR_GRT: case EXPR_GEQ:
 		{
 			OperExprNode *oper = (OperExprNode*) expr;
 			for(Node *operand = oper->head; operand; operand = operand->next)
 				emitInstrForNode(ctx, operand, label_break);
 			CodegenContext_EmitInstr(ctx, exprkind_to_opcode(expr->kind), NULL, 0, expr->base.offset, expr->base.length);
+			return;
+		}
+
+		case EXPR_AND:
+		{
+			OperExprNode *oper = (OperExprNode*) expr;
+			
+			/*
+			 *   <left_oper>
+			 *   JUMPIFNOTANDPOP false;
+			 *   <right_oper>
+			 *   JUMPIFNOTANDPOP false;
+			 *   PUSHTRU;
+			 *   JUMP end;
+			 * false:
+			 *   PUSHFLS;
+			 * end:
+			 *
+			 */
+
+			Label *label_end   = Label_New(ctx);
+			Label *label_false = Label_New(ctx);
+			for(Node *operand = oper->head; operand; operand = operand->next) {
+				emitInstrForNode(ctx, operand, label_break);
+				emitInstr_JUMPIFNOTANDPOP(ctx, label_false, expr->base.offset, expr->base.length);
+			}
+			emitInstr_PUSHTRU(ctx, expr->base.offset, expr->base.length);
+			emitInstr_JUMP(ctx, label_end, expr->base.offset, expr->base.length);
+			Label_SetHere(label_false, ctx);
+			emitInstr_PUSHFLS(ctx, expr->base.offset, expr->base.length);
+			Label_SetHere(label_end, ctx);
+			return;
+		}
+
+		case EXPR_OR:
+		{
+			OperExprNode *oper = (OperExprNode*) expr;
+			
+			/*
+			 *   <left_oper>
+			 *   JUMPIFANDPOP true;
+			 *   <right_oper>
+			 *   JUMPIFANDPOP true;
+			 *   PUSHFLS;
+			 *   JUMP end;
+			 * true:
+			 *   PUSHTRU;
+			 *   JUMP end;
+			 * end:
+			 *
+			 */
+
+			Label *label_end  = Label_New(ctx);
+			Label *label_true = Label_New(ctx);
+			for(Node *operand = oper->head; operand; operand = operand->next) {
+				emitInstrForNode(ctx, operand, label_break);
+				emitInstr_JUMPIFANDPOP_2(ctx, label_true, expr->base.offset, expr->base.length);
+			}
+			emitInstr_PUSHFLS(ctx, expr->base.offset, expr->base.length);
+			emitInstr_JUMP(ctx, label_end, expr->base.offset, expr->base.length);
+			Label_SetHere(label_true, ctx);
+			emitInstr_PUSHTRU(ctx, expr->base.offset, expr->base.length);
+			Label_SetHere(label_end, ctx);
 			return;
 		}
 
@@ -500,6 +500,83 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, Label *lab
 		case EXPR_FALSE: CodegenContext_EmitInstr(ctx, OPCODE_PUSHFLS, NULL, 0, expr->base.offset, expr->base.length); return;
 		default: UNREACHABLE; break;
 	}
+}
+
+static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Label *label_break)
+{
+	emitInstrForExprNode(ctx, ifelse->condition, label_break);
+	if(ifelse->false_branch)
+	{
+		Label *label_else = Label_New(ctx);
+		Label *label_done = Label_New(ctx);
+		emitInstr_JUMPIFNOTANDPOP(ctx, label_else, ifelse->condition->offset, ifelse->condition->length);
+		emitInstrForNode(ctx, ifelse->true_branch, label_break);
+		if(ifelse->true_branch->kind == NODE_EXPR)
+			emitInstr_POP(ctx, 1, ifelse->true_branch->offset, 0);
+		emitInstr_JUMP(ctx, label_done, ifelse->base.offset, ifelse->base.length);
+		Label_SetHere(label_else, ctx);
+		emitInstrForNode(ctx, ifelse->false_branch, label_break);
+		if(ifelse->false_branch->kind == NODE_EXPR)
+			emitInstr_POP1(ctx, ifelse->false_branch->offset, 0);
+		Label_SetHere(label_done, ctx);
+		Label_Free(label_else);
+		Label_Free(label_done);
+	}
+	else
+	{
+		Label *label_done = Label_New(ctx);
+		emitInstr_JUMPIFNOTANDPOP(ctx, label_done, ifelse->condition->offset, ifelse->condition->length);
+		emitInstrForNode(ctx, ifelse->true_branch, label_break);
+		if(ifelse->true_branch->kind == NODE_EXPR)
+			emitInstr_POP1(ctx, ifelse->true_branch->offset, 0);
+		Label_SetHere(label_done, ctx);
+		Label_Free(label_done);
+	}
+}
+
+static void emitInstrForWhileLoopNode(CodegenContext *ctx, WhileNode *loop, Label *label_break)
+{
+	/* 
+	 * start:
+	 *   <condition>
+	 * 	 JUMPIFNOTANDPOP end
+	 *   <body>
+	 *   JUMP start
+	 * end:
+	 */
+
+	Label *label_start = Label_New(ctx);
+	Label *label_end = Label_New(ctx);
+	Label_SetHere(label_start, ctx);
+	emitInstrForNode(ctx, loop->condition, label_break);
+	emitInstr_JUMPIFNOTANDPOP(ctx, label_end, loop->condition->offset, loop->condition->length);
+	emitInstrForNode(ctx, loop->body, label_end);
+	if(loop->body->kind == NODE_EXPR)
+		emitInstr_POP1(ctx, loop->body->offset, 0);			
+	emitInstr_JUMP(ctx, label_start, loop->base.offset, loop->base.length);
+	Label_SetHere(label_end, ctx);
+	Label_Free(label_start);
+	Label_Free(label_end);
+}
+
+static void emitInstrForDoWhileLoopNode(CodegenContext *ctx, DoWhileNode *loop, Label *label_break)
+{
+	/*
+	 * start:
+	 *   <body>
+	 *   <condition>
+	 *   JUMPIFANDPOP start
+	 */
+
+	Label *label_end = Label_New(ctx);
+	long long int start = CodegenContext_InstrCount(ctx);
+	emitInstrForNode(ctx, loop->body, label_end);
+	if(loop->body->kind == NODE_EXPR)
+		emitInstr_POP1(ctx, loop->body->offset, 0);
+	emitInstrForNode(ctx, loop->condition, label_break);
+	emitInstr_JUMPIFANDPOP(ctx, start, loop->condition->offset, loop->condition->length);
+	Label_SetHere(label_end, ctx);
+	Label_Free(label_end);
 }
 
 static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break)

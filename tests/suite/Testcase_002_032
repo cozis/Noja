@@ -6,12 +6,29 @@
 #bytecode
     
     PUSHVAR "A";
+    JUMPIFNOTANDPOP false_0;
     PUSHVAR "B";
-    AND;
+    JUMPIFNOTANDPOP false_0;
+    PUSHTRU;
+    JUMP end_0;
+false_0:
+    PUSHFLS;
+end_0:
+    JUMPIFANDPOP true_2;
     PUSHVAR "C";
+    JUMPIFNOTANDPOP false_1;
     PUSHVAR "D";
-    AND;
-    OR;
+    JUMPIFNOTANDPOP false_1;
+    PUSHTRU;
+    JUMP end_1;
+false_1:
+    PUSHFLS;
+end_1:
+    JUMPIFANDPOP true_2;
+    PUSHFLS;
+    JUMP end_2;
+true_2:
+    PUSHTRU;
+end_2:
     POP 1;
-
-    RETURN  0;
+    RETURN 0;

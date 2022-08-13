@@ -6,7 +6,13 @@
 #bytecode
 
     PUSHINT 1;
+    JUMPIFANDPOP true;
     PUSHINT 2;
-    OR;
+    JUMPIFANDPOP true;
+    PUSHFLS;
+    JUMP end;
+true:
+    PUSHTRU;
+end:
     POP 1;
     RETURN 0;

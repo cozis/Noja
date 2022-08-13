@@ -120,6 +120,7 @@ static _Bool disassemble(Source *src)
     Executable *exe = compile_source_and_print_error_on_failure(src);
     if(exe == NULL) return 0;
     Executable_Dump(exe);
+    Executable_Free(exe);
     return 1;
 }
 

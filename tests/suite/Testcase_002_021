@@ -4,9 +4,15 @@
     1 and 2;
 
 #bytecode
-
+    
     PUSHINT 1;
+    JUMPIFNOTANDPOP false;
     PUSHINT 2;
-    AND;
+    JUMPIFNOTANDPOP false;
+    PUSHTRU;
+    JUMP end;
+false:
+    PUSHFLS;
+end:
     POP 1;
     RETURN 0;

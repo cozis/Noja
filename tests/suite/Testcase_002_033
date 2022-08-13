@@ -4,14 +4,31 @@
     X or Y and Z or W;
 
 #bytecode
-    
-    PUSHVAR "X";
-    PUSHVAR "Y";
-    PUSHVAR "Z";
-    AND;
-    OR;
-    PUSHVAR "W";
-    OR;
-    POP 1;
 
-    RETURN  0;
+    PUSHVAR "X";
+    JUMPIFANDPOP true_0;
+    PUSHVAR "Y";
+    JUMPIFNOTANDPOP false_1;
+    PUSHVAR "Z";
+    JUMPIFNOTANDPOP false_1;
+    PUSHTRU;
+    JUMP end_1;
+false_1:
+    PUSHFLS;
+end_1:
+    JUMPIFANDPOP true_0;
+    PUSHFLS;
+    JUMP end_0;
+true_0:
+    PUSHTRU;
+end_0:
+    JUMPIFANDPOP true_2;
+    PUSHVAR "W";
+    JUMPIFANDPOP true_2;
+    PUSHFLS;
+    JUMP end_2;
+true_2:
+    PUSHTRU;
+end_2:
+    POP 1;
+    RETURN 0;

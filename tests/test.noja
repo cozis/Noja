@@ -69,6 +69,13 @@
 	assert((false or false) == false);
 }
 
+# Test short-circuitness of the logical operators
+{
+	# The assertions shouldn't trigger. 
+	true or assert(false);
+	false and assert(false);
+}
+
 # Test lists.
 {
 	[1]; [1.0]; ['x']; [1, 1]; [1.0, 1.0]; ['x', 'x'];
