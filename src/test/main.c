@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "../lib/utils/source.h"
-#include "../lib/compiler/parse.h"
 #include "../lib/compiler/compile.h"
 #include "../lib/common/executable.h"
 #include "../lib/assembler/assemble.h"
@@ -328,49 +327,24 @@ static bool parseTestCaseSource(Source *source, TestCase *testcase)
     return true;
 }
 
-static Executable *build(Source *src)
+static Executable *compile_source_and_print_error_on_failure(Source *src)
 {
-    Executable *exe;
-    
-    // Create a bump-pointer allocator to hold the AST.
-    BPAlloc *alloc = BPAlloc_Init(-1);
-
-    if(alloc == NULL)
-    {
-        fprintf(stderr, RED "Internal Error" CRESET " :: Couldn't allocate bump-pointer allocator to hold the AST.\n");
-        return 0;
-    }
-
     Error error;
     Error_Init(&error);
-
-    // NOTE: The AST is stored in the BPAlloc. It's
-    //       lifetime is the same as the pool.
-    AST *ast = parse(src, alloc, &error);
-
-    if(ast == NULL)
-    {
-        assert(error.occurred);
-        print_error("Parsing", &error);
+    CompilationErrorType errtyp;
+    Executable *exe = compile(src, &error, &errtyp);
+    if(exe == NULL) {
+        const char *errname;
+        switch(errtyp) {
+            default:
+            case CompilationErrorType_INTERNAL: errname = NULL; break;
+            case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
+            case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
+        }
+        print_error(errname, &error);
         Error_Free(&error);
-        BPAlloc_Free(alloc);
-        return 0;
+        return NULL;
     }
-    
-    exe = compile(ast, alloc, &error);
-
-    // We're done with the AST, independently from
-    // the compilation result.
-    BPAlloc_Free(alloc);
-
-    if(exe == NULL)
-    {
-        assert(error.occurred);
-        print_error("Compilation", &error);
-        Error_Free(&error);
-        return 0;
-    }
-
     Error_Free(&error);
     return exe;
 }
@@ -407,7 +381,7 @@ static TestResult runTest(const char *file)
 
     Source_Free(source);
 
-    Executable *exe1 = build(testcase.source);
+    Executable *exe1 = compile_source_and_print_error_on_failure(testcase.source);
     if(exe1 == NULL) {
         Source_Free(testcase.source);
         Source_Free(testcase.bytecode);
@@ -536,6 +510,7 @@ static void runTestSuite(const char *folder)
     fprintf(stdout, "| Passed  : %-3ld   |\n", passed_tests);
     fprintf(stdout, "| Failed  : %-3ld   |\n", failed_tests);
     fprintf(stdout, "| Aborted : %-3ld   |\n", aborted_tests);
+    fprintf(stdout, "| Skipped : %-3ld   |\n", skipped_files);
     fprintf(stdout, "@-----------------@\n");
 
     closedir(handle);

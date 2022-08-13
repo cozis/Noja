@@ -34,52 +34,6 @@ static void print_error(const char *type, Error *error)
     fprintf(stderr, "\n");
 }
 
-static Executable *build(Source *src)
-{
-    Executable *exe;
-    
-    // Create a bump-pointer allocator to hold the AST.
-    BPAlloc *alloc = BPAlloc_Init(-1);
-
-    if(alloc == NULL)
-    {
-        fprintf(stderr, "Internal Error: Couldn't allocate bump-pointer allocator to hold the AST.\n");
-        return 0;
-    }
-
-    Error error;
-    Error_Init(&error);
-
-    // NOTE: The AST is stored in the BPAlloc. It's
-    //       lifetime is the same as the pool.
-    AST *ast = parse(src, alloc, &error);
-
-    if(ast == NULL)
-    {
-        assert(error.occurred);
-        print_error("Parsing", &error);
-        Error_Free(&error);
-        BPAlloc_Free(alloc);
-        return 0;
-    }
-    
-    exe = compile(ast, alloc, &error);
-
-    // We're done with the AST, independently from
-    // the compilation result.
-    BPAlloc_Free(alloc);
-
-    if(exe == NULL)
-    {
-        assert(error.occurred);
-        print_error("Compilation", &error);
-        Error_Free(&error);
-        return 0;
-    }
-
-    return exe;
-}
-
 static _Bool interpret(Executable *exe)
 {
     Runtime *runt = Runtime_New(-1, 1024*1024, NULL, NULL);
@@ -140,13 +94,32 @@ static _Bool interpret(Executable *exe)
     return retc > -1;
 }
 
+static Executable *compile_source_and_print_error_on_failure(Source *src)
+{
+    Error error;
+    Error_Init(&error);
+    CompilationErrorType errtyp;
+    Executable *exe = compile(src, &error, &errtyp);
+    if(exe == NULL) {
+        const char *errname;
+        switch(errtyp) {
+            default:
+            case CompilationErrorType_INTERNAL: errname = NULL; break;
+            case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
+            case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
+        }
+        print_error(errname, &error);
+        Error_Free(&error);
+        return NULL;
+    }
+    Error_Free(&error);
+    return exe;
+}
+
 static _Bool disassemble(Source *src)
 {
-    Executable *exe = build(src);
-
-    if(exe == NULL)
-        return 0;
-
+    Executable *exe = compile_source_and_print_error_on_failure(src);
+    if(exe == NULL) return 0;
     Executable_Dump(exe);
     return 1;
 }
@@ -157,7 +130,6 @@ static _Bool interpret_file(const char *file)
     Error_Init(&error);
     
     Source *src = Source_FromFile(file, &error);
-
     if(src == NULL)
     {
         assert(error.occurred == 1);
@@ -166,10 +138,8 @@ static _Bool interpret_file(const char *file)
         return 0;
     }
 
-    Executable *exe = build(src);
-
-    if(exe == NULL)
-        return 0;
+    Executable *exe = compile_source_and_print_error_on_failure(src);
+    if(exe == NULL) return 0;
 
     _Bool r = interpret(exe);
 
@@ -193,10 +163,8 @@ static _Bool interpret_code(const char *code)
         return 0;
     }
 
-    Executable *exe = build(src);
-
-    if(exe == NULL)
-        return 0;
+    Executable *exe = compile_source_and_print_error_on_failure(src);
+    if(exe == NULL) return 0;
 
     _Bool r = interpret(exe);
 
