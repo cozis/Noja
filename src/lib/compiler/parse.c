@@ -445,7 +445,7 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 	if(root == NULL)
 		return NULL;
 
-	ast->src = src; // Not copying! Be sure to not free the source before the AST!
+	ast->src = src; // Not copying! Be sure not to free the source before the AST!
 	ast->root = root;
 
 	if(ast->src == NULL)

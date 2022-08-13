@@ -32,10 +32,10 @@ Executable *compile(Source *src, Error *error, CompilationErrorType *errtyp)
         return NULL;
     }
     
+    // Transform the AST into bytecode.
     Executable *exe = codegen(ast, alloc, error);
 
-    // We're done with the AST, independently from
-    // the compilation result.
+    // We're done with the AST.
     BPAlloc_Free(alloc);
 
     if(exe == NULL)

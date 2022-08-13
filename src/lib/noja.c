@@ -2,7 +2,6 @@
 #include <assert.h>
 #include "utils/error.h"
 #include "utils/source.h"
-#include "compiler/parse.h"
 #include "compiler/compile.h"
 #include "assembler/assemble.h"
 #include "builtins/basic.h"
