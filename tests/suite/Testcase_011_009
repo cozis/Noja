@@ -1,0 +1,69 @@
+
+#source
+
+    fun add(a: int | float, b: bool | Map) {
+        return a + b;
+    }
+
+#bytecode
+    
+    PUSHFUN fun, 2;
+    ASS "add";
+    POP 1;
+    JUMP end;
+fun:
+    PUSHTYP;
+    PUSHVAR "bool";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP arg1_annot0_bad;
+    EQL;
+    JUMPIFANDPOP arg1_ok;
+    PUSHTYP;
+    PUSHVAR "Map";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP arg1_annot1_bad;
+    EQL;
+    JUMPIFANDPOP arg1_ok;
+    ERROR "Bad type for argument 1";
+arg1_annot0_bad:
+    ERROR "Argument 1 type annotation 0 is not a type";
+arg1_annot1_bad:
+    ERROR "Argument 1 type annotation 1 is not a type";
+arg1_ok:
+    ASS "b";
+    POP 1;
+    PUSHTYP;
+    PUSHVAR "int";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP arg0_annot0_bad;
+    EQL;
+    JUMPIFANDPOP arg0_ok;
+    PUSHTYP;
+    PUSHVAR "float";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP arg0_annot1_bad;
+    EQL;
+    JUMPIFANDPOP arg0_ok;
+    ERROR "Bad type for argument 0";
+arg0_annot0_bad:
+    ERROR "Argument 0 type annotation 0 is not a type";
+arg0_annot1_bad:
+    ERROR "Argument 0 type annotation 1 is not a type";
+arg0_ok:
+    ASS "a";
+    POP 1;
+    PUSHVAR "a";
+    PUSHVAR "b";
+    ADD;
+    RETURN 1;
+    RETURN 0;
+end:
+    RETURN 0;

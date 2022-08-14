@@ -1,11 +1,12 @@
 #ifndef CODEGENCTX_H
 #define CODEGENCTX_H
+#include <setjmp.h>
 #include "../common/executable.h"
 
 typedef struct CodegenContext CodegenContext;
 CodegenContext *CodegenContext_New(Error *error, BPAlloc *alloc);
 void            CodegenContext_EmitInstr(CodegenContext *ctx, Opcode opcode, Operand *opv, int opc, int off, int len);
-_Bool           CodegenContext_SetOrCatchJump(CodegenContext *ctx);
+void            CodegenContext_SetJumpDest(CodegenContext *ctx, jmp_buf *env);
 void            CodegenContext_Free(CodegenContext *ctx);
 Executable     *CodegenContext_MakeExecutableAndFree(CodegenContext *ctx, Source *src);
 void            CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, const char *func, int line, bool internal, const char *format, ...);

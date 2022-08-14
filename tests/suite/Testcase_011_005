@@ -1,0 +1,33 @@
+
+#source
+
+    fun nop(a: None) {
+        return a;
+    }
+
+#bytecode
+    
+    PUSHFUN fun, 1;
+    ASS "nop";
+    POP 1;
+    JUMP end;
+fun:
+    PUSHTYP;
+    PUSHVAR "None";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP arg_annot_not_type;
+    EQL;
+    JUMPIFANDPOP arg_ok;
+    ERROR "Bad type for argument 0";
+arg_annot_not_type:
+    ERROR "Argument 0 type annotation 0 is not a type";
+arg_ok:
+    ASS "a";
+    POP 1;
+    PUSHVAR "a";
+    RETURN 1;
+    RETURN 0;
+end:
+    RETURN 0;

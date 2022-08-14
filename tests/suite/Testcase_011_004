@@ -1,20 +1,24 @@
 
 #source
 
-    fun nop(a) {
-        return a;
+    fun add(a, b) {
+        return a + b;
     }
 
 #bytecode
     
-    PUSHFUN fun, 1;
-    ASS "nop";
+    PUSHFUN fun, 2;
+    ASS "add";
     POP 1;
     JUMP end;
 fun:
+    ASS "b";
+    POP 1;
     ASS "a";
     POP 1;
     PUSHVAR "a";
+    PUSHVAR "b";
+    ADD;
     RETURN 1;
     RETURN 0;
 end:

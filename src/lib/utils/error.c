@@ -71,6 +71,12 @@ void _Error_Report2(Error *err, _Bool internal,
 	assert(func);
 	assert(line > 0);
 	assert(fmt);
+
+#ifdef DEBUG
+	if(err->occurred != 0) {
+		fprintf(stderr, "Error previously reported at %s:%d (in %s) :: %s\n", err->file, err->line, err->func, err->message);
+	}
+#endif
 	assert(err->occurred == 0);
 
 	err->occurred = 1;

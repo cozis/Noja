@@ -1,4 +1,3 @@
-#include <setjmp.h>
 #include <stdbool.h>
 #include "../utils/defs.h"
 #include "codegenctx.h"
@@ -8,7 +7,8 @@ struct CodegenContext {
     BPAlloc *alloc;
     ExeBuilder *builder;
     bool own_alloc;
-    jmp_buf env;
+    bool env_set;
+    jmp_buf *env;
 };
 
 Label *Label_New(CodegenContext *ctx)
@@ -48,7 +48,9 @@ Promise *Label_ToPromise(Label *label)
 
 static void okNowJump(CodegenContext *ctx)
 {
-    longjmp(ctx->env, 1);
+    assert(ctx->env_set == true);
+    longjmp(*ctx->env, 1);
+    UNREACHABLE;
 }
 
 void CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, 
@@ -61,12 +63,14 @@ void CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file,
     va_end(args);
 
     okNowJump(ctx);
+    UNREACHABLE;
 }
 
-_Bool CodegenContext_SetOrCatchJump(CodegenContext *ctx)
+void CodegenContext_SetJumpDest(CodegenContext *ctx, jmp_buf *env)
 {
-    bool jumped = setjmp(ctx->env);
-    return jumped;
+    assert(ctx->env_set == false);
+    ctx->env = env;
+    ctx->env_set = true;
 }
 
 CodegenContext *CodegenContext_New(Error *error, BPAlloc *alloc)
@@ -101,6 +105,7 @@ CodegenContext *CodegenContext_New(Error *error, BPAlloc *alloc)
     ctx->error = error;
     ctx->alloc = alloc;
     ctx->builder = builder;
+    ctx->env_set = false;
     ctx->own_alloc = own_alloc;
     return ctx;
 }
@@ -120,8 +125,10 @@ void CodegenContext_Free(CodegenContext *ctx)
 Executable *CodegenContext_MakeExecutableAndFree(CodegenContext *ctx, Source *src)
 {
     Executable *exe = ExeBuilder_Finalize(ctx->builder, ctx->error);
-    if(exe == NULL)
+    if(exe == NULL) {
         okNowJump(ctx);
+        UNREACHABLE;
+    }
 
     if(src != NULL)
         Executable_SetSource(exe, src);
@@ -132,6 +139,8 @@ Executable *CodegenContext_MakeExecutableAndFree(CodegenContext *ctx, Source *sr
 
 void CodegenContext_EmitInstr(CodegenContext *ctx, Opcode opcode, Operand *opv, int opc, int off, int len)
 {
-    if(!ExeBuilder_Append(ctx->builder, ctx->error, opcode, opv, opc, off, len))
+    if(!ExeBuilder_Append(ctx->builder, ctx->error, opcode, opv, opc, off, len)) {
         okNowJump(ctx);
+        UNREACHABLE;
+    }
 }

@@ -1,0 +1,37 @@
+
+#source
+
+    fun add(a, b: int) {
+        return a + b;
+    }
+
+#bytecode
+    
+    PUSHFUN fun, 2;
+    ASS "add";
+    POP 1;
+    JUMP end;
+fun:
+    PUSHTYP;
+    PUSHVAR "int";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP annot_bad;
+    EQL;
+    JUMPIFANDPOP arg_ok;
+    ERROR "Bad type for argument 1";
+annot_bad:
+    ERROR "Argument 1 type annotation 0 is not a type";
+arg_ok:
+    ASS "b";
+    POP 1;
+    ASS "a";
+    POP 1;
+    PUSHVAR "a";
+    PUSHVAR "b";
+    ADD;
+    RETURN 1;
+    RETURN 0;
+end:
+    RETURN 0;

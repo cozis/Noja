@@ -1147,6 +1147,39 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 		}
 
+		case OPCODE_PUSHTYPTYP:
+		{
+			assert(opc == 0);
+
+			Object *obj = (Object*) Object_GetTypeType();
+			assert(obj != NULL);
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_PUSHTYP:
+		{
+			assert(opc == 0);
+
+			if(runtime->frame->used < 1)
+			{
+				Error_Report(error, 1, "Frame has not enough values on the stack to run PUSHTYP instruction");
+				return 0;
+			}
+
+			Object *top = Stack_Top(runtime->stack, 0);
+			assert(top != NULL);
+
+			Object *typ = (Object*) Object_GetType(top);
+			assert(typ != NULL);
+			
+			if(!Runtime_Push(runtime, error, typ))
+				return 0;
+			return 1;
+		}
+
 		case OPCODE_RETURN:
 		{
 			assert(opc == 1);
@@ -1154,6 +1187,15 @@ static _Bool step(Runtime *runtime, Error *error)
 			int retc = ops[0].as_int;
 			assert(retc >= 0);
 			assert(retc == runtime->frame->used);
+			return 0;
+		}
+
+		case OPCODE_ERROR:
+		{
+			assert(opc == 1);
+			assert(ops[0].type == OPTP_STRING);
+			const char *msg = ops[0].as_string;
+			Error_Report(error, 0, "%s", msg);
 			return 0;
 		}
 

@@ -124,6 +124,19 @@ static void emitInstr_JUMPIFANDPOP_2(CodegenContext *ctx,
 	CodegenContext_EmitInstr(ctx, OPCODE_JUMPIFANDPOP, opv, 1, off, len);
 }
 
+static void emitInstr_EQL(CodegenContext *ctx, int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_EQL, NULL, 0, off, len);
+}
+
+static void emitInstr_ERROR(CodegenContext *ctx, const char *msg, int off, int len)
+{
+	Operand opv[1] = {
+		{ .type = OPTP_STRING, .as_string = msg },
+	};
+	CodegenContext_EmitInstr(ctx, OPCODE_ERROR, opv, 1, off, len);
+}
+
 static void emitInstr_PUSHTRU(CodegenContext *ctx, int off, int len)
 {
 	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTRU, NULL, 0, off, len);
@@ -132,6 +145,16 @@ static void emitInstr_PUSHTRU(CodegenContext *ctx, int off, int len)
 static void emitInstr_PUSHFLS(CodegenContext *ctx, int off, int len)
 {
 	CodegenContext_EmitInstr(ctx, OPCODE_PUSHFLS, NULL, 0, off, len);
+}
+
+static void emitInstr_PUSHTYP(CodegenContext *ctx, int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTYP, NULL, 0, off, len);
+}
+
+static void emitInstr_PUSHTYPTYP(CodegenContext *ctx, int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTYPTYP, NULL, 0, off, len);
 }
 
 static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break);
@@ -182,6 +205,103 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 	CodegenContext_EmitInstr(ctx, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
 }
 
+static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int argidx)
+{
+	/*
+	 *   PUSHTYP;
+	 *   <arg-type-0> // What if this isn't a type?
+	 *   PUSHTYP;
+	 *   PUSHTYPTYP;
+	 *   EQL;
+	 *   JUMPIFANDPOP argument_annotation_0_not_type;
+	 *   EQL;
+	 *   JUMPIFANDPOP argument_type_ok;
+	 *
+	 *   PUSHTYP;
+	 *   <arg-type-1>
+	 *   PUSHTYP;
+	 *   PUSHTYPTYP;
+	 *   EQL;
+	 *   JUMPIFANDPOP argument_annotation_1_not_type;
+	 *   EQL;
+	 *   JUMPIFANDPOP argument_type_ok;
+	 *
+	 *   PUSHTYP;
+	 *   <arg-type-2>
+	 *   PUSHTYP;
+	 *   PUSHTYPTYP;
+	 *   EQL;
+	 *   JUMPIFANDPOP argument_annotation_2_not_type;
+	 *   EQL;
+	 *   JUMPIFANDPOP argument_type_ok;
+	 *
+	 *   ERROR "Bad type of argument N";
+	 * argument_annotation_0_not_a_type:
+	 *   ERROR "Argument N annotation M isn't a type";
+	 * argument_type_ok:
+	 *   ASS <arg-name>;
+	 *   POP 1;
+	 */
+
+	if(arg->typev != NULL) {
+
+		/* Emit checks for the argument type */
+
+		Node *typev = arg->typev;
+		int   typec = arg->typec;
+		assert(typec > 0);
+
+		Label *maybe[8];
+		Label **label_annotation_not_a_type;
+		if((size_t) typec > sizeof(maybe)/sizeof(maybe[0])) {
+			label_annotation_not_a_type = malloc(typec * sizeof(Label*));
+			if(label_annotation_not_a_type == NULL)
+				CodegenContext_ReportErrorAndJump(ctx, 1, "No memory");
+		} else
+			label_annotation_not_a_type = maybe;
+
+		for(int i = 0; i < typec; i += 1)
+			label_annotation_not_a_type[i] = Label_New(ctx);
+
+		Label *label_argument_type_ok = Label_New(ctx);
+
+		Node *type = typev;
+		for(int i = 0; i < typec; i += 1) {
+			assert(type != NULL);
+			emitInstr_PUSHTYP(ctx, arg->base.offset, arg->base.length); // The source slice should refer only to the name label, not the whole operand
+			emitInstrForNode(ctx, type, NULL);
+			{
+				emitInstr_PUSHTYP(ctx, type->offset, type->length);
+				emitInstr_PUSHTYPTYP(ctx, type->offset, type->length);
+				emitInstr_EQL(ctx, type->offset, type->length);
+				emitInstr_JUMPIFNOTANDPOP(ctx, label_annotation_not_a_type[i], type->offset, type->length);
+			}
+			emitInstr_EQL(ctx, type->offset, type->length);
+			emitInstr_JUMPIFANDPOP_2(ctx, label_argument_type_ok, type->offset, type->length);
+			type = type->next;
+		}
+
+		char msg[256];
+		snprintf(msg, sizeof(msg), "Bad type for argument %d", argidx);
+		emitInstr_ERROR(ctx, msg, arg->base.offset, arg->base.length);
+		for(int i = 0; i < typec; i += 1) {
+			Label_SetHere(label_annotation_not_a_type[i], ctx);
+			snprintf(msg, sizeof(msg), "Argument %d type annotation %d is not a type", argidx, i);
+			emitInstr_ERROR(ctx, msg, arg->base.offset, arg->base.length);
+		}
+
+		Label_SetHere(label_argument_type_ok, ctx);
+		
+		Label_Free(label_argument_type_ok);
+		for(int i = 0; i < typec; i += 1)
+			Label_Free(label_annotation_not_a_type[i]);
+		if(label_annotation_not_a_type != maybe)
+			free(label_annotation_not_a_type);
+	}
+	emitInstr_ASS(ctx, arg->name, arg->base.offset, arg->base.length);
+	emitInstr_POP1(ctx, arg->base.offset, arg->base.length);
+}
+
 static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func)
 {
 	Label *label_func = Label_New(ctx);
@@ -204,11 +324,12 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func)
 	{
 		// Assign the arguments.
 		ArgumentNode *arg = (ArgumentNode*) func->argv;
+		int argidx = func->argc-1;
 		while(arg)
 		{
-			emitInstr_ASS(ctx, arg->name, arg->base.offset, arg->base.length);
-			emitInstr_POP1(ctx, arg->base.offset, arg->base.length);
+			emitInstrForArgumentNode(ctx, arg, argidx);
 			arg = (ArgumentNode*) arg->base.next;
+			argidx -= 1;
 		}
 
 		emitInstrForNode(ctx, func->body, NULL);
@@ -539,7 +660,7 @@ static void emitInstrForWhileLoopNode(CodegenContext *ctx, WhileNode *loop, Labe
 	/* 
 	 * start:
 	 *   <condition>
-	 * 	 JUMPIFNOTANDPOP end
+	 *   JUMPIFNOTANDPOP end
 	 *   <body>
 	 *   JUMP start
 	 * end:
@@ -673,19 +794,26 @@ Executable *codegen(AST *ast, BPAlloc *alloc, Error *error)
 	assert(ast != NULL);
 	assert(error != NULL);
 
+	jmp_buf env;
+
 	CodegenContext *ctx = CodegenContext_New(error, alloc);
 	if(ctx == NULL) {
 		Error_Report(error, 1, "No memory");
 		return NULL;
 	}
 
-	bool jumped = CodegenContext_SetOrCatchJump(ctx);
-	if(jumped) {
+	if(setjmp(env)) {
+		assert(error->occurred == true);
 		CodegenContext_Free(ctx);
 		return NULL;
 	}
 
+	assert(error->occurred == false);
+	CodegenContext_SetJumpDest(ctx, &env);
+
 	emitInstrForNode(ctx, ast->root, NULL);
 	emitInstr_RETURN(ctx, 0, Source_GetSize(ast->src), 0);
+	assert(error->occurred == false);
+
 	return CodegenContext_MakeExecutableAndFree(ctx, ast->src);
 }

@@ -383,12 +383,13 @@ void bins_basic_init(StaticMapSlot slots[])
 	slots[0].as_type = Object_GetTypeType();
 	slots[1].as_type = Object_GetNoneType();
 	slots[2].as_type = Object_GetIntType();
-	slots[3].as_type = Object_GetFloatType();
-	slots[4].as_type = Object_GetStringType();
-	slots[5].as_type = Object_GetListType();
-	slots[6].as_type = Object_GetMapType();
-	slots[7].as_type = Object_GetFileType();
-	slots[8].as_type = Object_GetDirType();
+	slots[3].as_type = Object_GetBoolType();
+	slots[4].as_type = Object_GetFloatType();
+	slots[5].as_type = Object_GetStringType();
+	slots[6].as_type = Object_GetListType();
+	slots[7].as_type = Object_GetMapType();
+	slots[8].as_type = Object_GetFileType();
+	slots[9].as_type = Object_GetDirType();
 }
 
 StaticMapSlot bins_basic[] = {
@@ -396,6 +397,7 @@ StaticMapSlot bins_basic[] = {
 	{ "Type",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "None",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "int",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "bool",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "float",  SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "String", SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "List",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },

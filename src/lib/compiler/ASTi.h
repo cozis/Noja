@@ -192,5 +192,7 @@ typedef struct {
 typedef struct {
 	Node  base;
 	char *name;
+	int   typec;
+	Node *typev;
 } ArgumentNode;
 #endif

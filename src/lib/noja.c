@@ -139,7 +139,10 @@ static _Bool interpret_file(const char *file)
     }
 
     Executable *exe = compile_source_and_print_error_on_failure(src);
-    if(exe == NULL) return 0;
+    if(exe == NULL) {
+        Source_Free(src);
+        return 0;
+    }
 
     _Bool r = interpret(exe);
 
@@ -164,7 +167,10 @@ static _Bool interpret_code(const char *code)
     }
 
     Executable *exe = compile_source_and_print_error_on_failure(src);
-    if(exe == NULL) return 0;
+    if(exe == NULL) {
+        Source_Free(src);
+        return 0;
+    }
 
     _Bool r = interpret(exe);
 

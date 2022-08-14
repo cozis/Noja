@@ -469,7 +469,6 @@ static inline TokenKind current(Context *ctx)
 
 // Compile with -DDEBUG to get debugging messages printed to stderr.
 #ifdef DEBUG
-
 #include <stdio.h>
 
 static inline TokenKind next(Context *ctx, const char *file, int line)
@@ -500,6 +499,22 @@ static inline TokenKind prev(Context *ctx)
 }
 
 #define next(ctx) next(ctx, __FILE__, __LINE__)
+
+static void Error_Report_(Error *error, const char *file, const char *func, int line, _Bool internal, const char *fmt, ...)
+{
+	fprintf(stderr, "Reporting error at %s:%d (in %s)\n", file, line, func);
+	
+	va_list args;
+	va_start(args, fmt);
+	_Error_Report2(error, internal, file, func, line, fmt, args);
+	va_end(args);
+}
+
+#ifdef Error_Report
+#undef Error_Report
+#endif
+
+#define Error_Report(error, internal, fmt, ...) Error_Report_(error, __FILE__, __func__, __LINE__, internal, fmt, ## __VA_ARGS__)
 
 #else
 
@@ -1850,40 +1865,9 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 	return (Node*) node;
 }
 
-static Node *parse_function_definition(Context *ctx)
+static Node *parse_function_arguments(Context *ctx, int *argc_)
 {
-	assert(ctx != NULL);
-
-	if(done(ctx))
-	{
-		Error_Report(ctx->error, 0, "Source ended where a function definition was expected");
-		return NULL;
-	}
-
-	if(current(ctx) != TKWFUN)
-	{
-		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function definition was expected", ctx->token->length, ctx->src + ctx->token->offset);
-		return NULL;
-	}
-
-	int offset = current_token(ctx)->offset;
-
-	if(next(ctx) != TIDENT)
-	{
-		if(done(ctx))
-			Error_Report(ctx->error, 0, "Source ended where an identifier was expected as function name");
-		else
-			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an identifier was expected as function name", ctx->token->length, ctx->src + ctx->token->offset);
-		return NULL;
-	}
-
-	char *name = copy_token_text(ctx);
-
-	if(name == NULL)
-	{
-		Error_Report(ctx->error, 1, "No memory");
-		return NULL;
-	}
+#warning "What if the source ends here?"
 
 	if(next(ctx) != '(')
 	{
@@ -1923,6 +1907,30 @@ static Node *parse_function_definition(Context *ctx)
 				return NULL;
 			}
 
+			int   typec;
+			Node *typev = NULL;
+
+			if(next(ctx) == ':') {
+				next(ctx); // Skip the ':'.
+
+				Node *type = parse_expression(ctx, 0);
+				if(type == NULL)
+					return NULL;
+				typev = type;
+				typec = 1;
+				Node *tail = type;
+				while(current(ctx) == '|') {
+					next(ctx);
+					type = parse_expression(ctx, 0);
+					if(type == NULL)
+						return NULL;
+					tail->next = type;
+					tail = type;
+					typec += 1;
+				}
+			} else
+				typec = 0;
+
 			ArgumentNode *arg;
 			{
 				// Make argument node.
@@ -1939,6 +1947,8 @@ static Node *parse_function_definition(Context *ctx)
 				arg->base.offset = current_token(ctx)->offset;
 				arg->base.length = current_token(ctx)->length;
 				arg->name = arg_name;
+				arg->typev = typev;
+				arg->typec = typec;
 			}
 
 			// Add it to the list.
@@ -1946,16 +1956,16 @@ static Node *parse_function_definition(Context *ctx)
 			arg->base.next = argv;
 			argv = (Node*) arg;
 
-			// Get either ',' or ')'.
-
-			if(next(ctx) == ')')
-				break;
+			// Expect either ',' or ')'.
 
 			if(done(ctx))
 			{
 				Error_Report(ctx->error, 0, "Source ended inside a function argument list");
 				return NULL;
 			}
+
+			if(current(ctx) == ')')
+				break;
 
 			if(current(ctx) != ',')
 			{
@@ -1969,6 +1979,50 @@ static Node *parse_function_definition(Context *ctx)
 	}
 
 	next(ctx); // Consume the ')'.
+
+	if(argc_ != NULL)
+		*argc_ = argc;
+
+	return argv;
+}
+
+static Node *parse_function_definition(Context *ctx)
+{
+	assert(ctx != NULL);
+
+	if(done(ctx))
+	{
+		Error_Report(ctx->error, 0, "Source ended where a function definition was expected");
+		return NULL;
+	}
+
+	if(current(ctx) != TKWFUN)
+	{
+		Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function definition was expected", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
+
+	int offset = current_token(ctx)->offset;
+
+	if(next(ctx) != TIDENT)
+	{
+		if(done(ctx))
+			Error_Report(ctx->error, 0, "Source ended where an identifier was expected as function name");
+		else
+			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where an identifier was expected as function name", ctx->token->length, ctx->src + ctx->token->offset);
+		return NULL;
+	}
+
+	char *name = copy_token_text(ctx);
+
+	if(name == NULL)
+	{
+		Error_Report(ctx->error, 1, "No memory");
+		return NULL;
+	}
+
+	int   argc = 0; // Initialization for the warning.
+	Node *argv = parse_function_arguments(ctx, &argc);
 
 	if(done(ctx))
 	{
