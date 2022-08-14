@@ -108,6 +108,11 @@ static int hash(Object *self)
 	return h;
 }
 
+TypeObject *Object_GetMapType()
+{
+	return &t_map;
+}
+
 Object *Object_NewMap(int num, Heap *heap, Error *error)
 {
 	// Handle default args.

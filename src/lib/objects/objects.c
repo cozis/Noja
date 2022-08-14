@@ -41,6 +41,11 @@ TypeObject t_type = {
 	.op_eql = op_eql,
 };
 
+TypeObject *Object_GetTypeType()
+{
+	return &t_type;
+}
+
 static _Bool op_eql(Object *self, Object *other)
 {
 	return self == other;

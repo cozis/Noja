@@ -134,6 +134,11 @@ static char *to_string(Object *self, int *size, Heap *heap, Error *err)
 	return s->body;
 }
 
+TypeObject *Object_GetStringType()
+{
+	return &t_string;
+}
+
 Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 {
 	assert(str != NULL);

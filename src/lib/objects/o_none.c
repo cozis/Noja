@@ -52,6 +52,11 @@ static Object the_none_object = {
 	.flags = Object_STATIC,
 };
 
+TypeObject *Object_GetNoneType()
+{
+	return &t_none;
+}
+
 _Bool Object_IsNone(Object *obj)
 {
 	return obj == &the_none_object;

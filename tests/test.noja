@@ -116,4 +116,14 @@
 	assert(r);
 }
 
+# Test type variables
+{
+	assert(type(none) == None);
+	assert(type(1)    == int);
+	assert(type(10.4) == float);
+	assert(type("Hello, world!") == String);
+	assert(type([])   == List);
+	assert(type({})   == Map);
+}
+
 print('No assertion failed.\n');

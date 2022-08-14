@@ -149,6 +149,18 @@ Object*		 Object_FromString(const char *str, int len, Heap *heap, Error *error);
 Object*		 Object_FromStream(FILE *fp, Heap *heap, Error *error);
 Object* 	 Object_FromDIR(DIR *handle, Heap *heap, Error *error);
 
+TypeObject *Object_GetTypeType();
+TypeObject *Object_GetNoneType();
+TypeObject *Object_GetIntType();
+TypeObject *Object_GetBoolType();
+TypeObject *Object_GetFloatType();
+TypeObject *Object_GetStringType();
+TypeObject *Object_GetListType();
+TypeObject *Object_GetMapType();
+TypeObject *Object_GetBufferType();
+TypeObject *Object_GetFileType();
+TypeObject *Object_GetDirType();
+
 _Bool Object_IsNone(Object *obj);
 _Bool Object_IsInt(Object *obj);
 _Bool Object_IsBool(Object *obj);

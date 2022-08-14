@@ -98,6 +98,11 @@ static double to_float(Object *obj, Error *err)
 	return ((FloatObject*) obj)->val;
 }
 
+TypeObject *Object_GetFloatType()
+{
+	return &t_float;
+}
+
 Object *Object_FromFloat(double val, Heap *heap, Error *error)
 {
 	FloatObject *obj = (FloatObject*) Heap_Malloc(heap, &t_float, error);

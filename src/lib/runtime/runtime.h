@@ -74,18 +74,18 @@ struct StaticMapSlot {
     const char       *name;
     StaticMapSlotKind kind; 
     union {
-        const StaticMapSlot *as_smap;
-        const char          *as_string;
-        _Bool                as_bool;
-        long long int        as_int;
-        double               as_float;
-        int                (*as_funct)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*);
-        TypeObject          *as_type;
+        StaticMapSlot *as_smap;
+        const char    *as_string;
+        _Bool          as_bool;
+        long long int  as_int;
+        double         as_float;
+        int          (*as_funct)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*);
+        TypeObject    *as_type;
     };
     union { int argc; int length; };
 };
 
-Object *Object_NewStaticMap(const StaticMapSlot *slots, Runtime *runt, Error *error);
+Object *Object_NewStaticMap(StaticMapSlot slots[], void (*initfn)(StaticMapSlot[]), Runtime *runt, Error *error);
 Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error);
 Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error);
 typedef struct {

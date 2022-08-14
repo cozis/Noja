@@ -44,6 +44,11 @@ static TypeObject t_file = {
 	.free = file_free,
 };
 
+TypeObject *Object_GetFileType()
+{
+	return &t_file;
+}
+
 _Bool Object_IsFile(Object *obj)
 {
 	return obj->type == &t_file;

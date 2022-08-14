@@ -56,7 +56,7 @@ static _Bool interpret(Executable *exe)
     RuntimeError error;
     RuntimeError_Init(&error, runt); // Here we specify the runtime to snapshot in case of failure.
     
-    Object *bins = Object_NewStaticMap(bins_basic, runt, (Error*) &error);
+    Object *bins = Object_NewStaticMap(bins_basic, bins_basic_init, runt, (Error*) &error);
 
     if(bins == NULL)
     {

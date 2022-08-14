@@ -296,7 +296,7 @@ static Object *bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int arg
 	return Object_FromString(ent->d_name, -1, heap, error);
 }
 
-const StaticMapSlot bins_files[] = {
+StaticMapSlot bins_files[] = {
 	{ "READ",        SM_INT, .as_int = MD_READ, },
 	{ "WRITE",       SM_INT, .as_int = MD_WRITE, },
 	{ "APPEND",      SM_INT, .as_int = MD_APPEND, },

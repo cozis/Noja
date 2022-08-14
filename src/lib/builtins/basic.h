@@ -29,4 +29,5 @@
 */
 
 #include "../runtime/runtime.h"
-extern const StaticMapSlot bins_basic[];
+void bins_basic_init(StaticMapSlot slots[]);
+extern StaticMapSlot bins_basic[];

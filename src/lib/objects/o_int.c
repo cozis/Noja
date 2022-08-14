@@ -84,6 +84,11 @@ static long long int to_int(Object *obj, Error *err)
 	return ((IntObject*) obj)->val;
 }
 
+TypeObject *Object_GetIntType()
+{
+	return &t_int;
+}
+
 Object *Object_FromInt(long long int val, Heap *heap, Error *error)
 {
 	assert(heap != NULL);

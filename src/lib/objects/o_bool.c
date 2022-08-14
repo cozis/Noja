@@ -97,6 +97,11 @@ static _Bool to_bool(Object *obj, Error *err)
 	return obj == &the_true_object;
 }
 
+TypeObject *Object_GetBoolType()
+{
+	return &t_bool;
+}
+
 Object *Object_FromBool(_Bool val, Heap *heap, Error *error)
 {
 	(void) heap;

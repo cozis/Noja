@@ -29,4 +29,4 @@
 */
 
 #include "../runtime/runtime.h"
-extern const StaticMapSlot bins_files[];
+extern StaticMapSlot bins_files[];

@@ -32,11 +32,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "math.h"
 #include "basic.h"
 #include "files.h"
-#include "math.h"
 #include "../utils/utf8.h"
-
+#include "../objects/objects.h"
 static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	(void) runtime;
@@ -378,7 +378,31 @@ static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc
 	return 1;
 }
 
-const StaticMapSlot bins_basic[] = {
+void bins_basic_init(StaticMapSlot slots[])
+{
+	slots[0].as_type = Object_GetTypeType();
+	slots[1].as_type = Object_GetNoneType();
+	slots[2].as_type = Object_GetIntType();
+	slots[3].as_type = Object_GetFloatType();
+	slots[4].as_type = Object_GetStringType();
+	slots[5].as_type = Object_GetListType();
+	slots[6].as_type = Object_GetMapType();
+	slots[7].as_type = Object_GetFileType();
+	slots[8].as_type = Object_GetDirType();
+}
+
+StaticMapSlot bins_basic[] = {
+
+	{ "Type",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "None",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "int",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "float",  SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "String", SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "List",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "Map",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "File",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ "Dir",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+
 	{ "math",  SM_SMAP, .as_smap = bins_math, },
 //	{ "files", SM_SMAP, .as_smap = bins_files, },
 //	{ "net",  SM_SMAP, .as_smap = bins_net, },

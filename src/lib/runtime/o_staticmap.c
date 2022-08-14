@@ -83,7 +83,7 @@ static int hash(Object *self)
 	return 0;
 }
 
-Object *Object_NewStaticMap(const StaticMapSlot *slots, Runtime *runt, Error *error)
+Object *Object_NewStaticMap(StaticMapSlot slots[], void (*initfn)(StaticMapSlot[]), Runtime *runt, Error *error)
 {
 	Heap *heap = Runtime_GetHeap(runt);
 
@@ -96,6 +96,9 @@ Object *Object_NewStaticMap(const StaticMapSlot *slots, Runtime *runt, Error *er
 		obj->runt = runt;
 		obj->slots = slots;
 	}
+
+	if(initfn != NULL)
+		initfn(slots);
 
 	return (Object*) obj;
 }
@@ -130,7 +133,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 				case SM_FLOAT: return Object_FromFloat(slot.as_float, heap, error);
 				case SM_FUNCT: return Object_FromNativeFunction(map->runt, slot.as_funct, slot.argc, heap, error);
 				case SM_STRING: return Object_FromString(slot.as_string, slot.length, heap, error);
-				case SM_SMAP: return Object_NewStaticMap(slot.as_smap, map->runt, error);
+				case SM_SMAP: return Object_NewStaticMap(slot.as_smap, NULL, map->runt, error);
 				case SM_NONE: return Object_NewNone(heap, error);
 				case SM_TYPE: return (Object*) slot.as_type;
 				default: assert(0); break;

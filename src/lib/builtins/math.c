@@ -109,7 +109,7 @@ WRAP_FUNC(sqrt)
 WRAP_FUNC_2(atan2)
 WRAP_FUNC_2(pow)
 
-const StaticMapSlot bins_math[] = {
+StaticMapSlot bins_math[] = {
 	{ "PI", SM_FLOAT, .as_float = M_PI },
 	{ "E",  SM_FLOAT, .as_float = M_E },
 

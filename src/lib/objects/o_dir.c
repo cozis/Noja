@@ -44,6 +44,11 @@ static TypeObject t_dir = {
 	.free = dir_free,
 };
 
+TypeObject *Object_GetDirType()
+{
+	return &t_dir;
+}
+
 _Bool Object_IsDir(Object *obj)
 {
 	return obj->type == &t_dir;

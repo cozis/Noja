@@ -9,11 +9,8 @@ fun isDigit(c)
        and unicode(c) >= unicode('0');
 
 fun skip(ctx, test)
-    while not ended(ctx): {
-        if not test(current(ctx)):
-            break;
+    while not ended(ctx) and test(current(ctx)):
         next(ctx);
-    }
 
 fun ended(ctx)
     return ctx.i == count(ctx.str);
@@ -167,13 +164,8 @@ fun parseString(ctx) {
         
     buff = '';
 
-    while not ended(ctx): {
-        
-        if current(ctx) == '"':
-            break;
-        
+    while not ended(ctx) and current(ctx) != '"': {
         buff = strcat(buff, current(ctx));
-
         next(ctx);
     }
 
@@ -191,9 +183,7 @@ fun parseNumber(ctx) {
     # Number (int or float)
 
     parsed = 0;
-    while not ended(ctx): {
-        if not isDigit(current(ctx)):
-            break;
+    while not ended(ctx) and isDigit(current(ctx)): {
         parsed = parsed * 10 + unicode(current(ctx)) - unicode('0');
         next(ctx);
     }
@@ -212,9 +202,7 @@ fun parseNumber(ctx) {
             return none, "Got something other than a digit after dot";
 
         fact = 1;
-        while not ended(ctx): {
-            if not isDigit(current(ctx)):
-                break;
+        while not ended(ctx) and isDigit(current(ctx)): {
             fact = fact / 10.0;
             parsed = parsed + fact * (unicode(current(ctx)) - unicode('0'));
             next(ctx);

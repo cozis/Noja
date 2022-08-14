@@ -504,7 +504,7 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 
 static void emitInstrForIfElseNode(CodegenContext *ctx, IfElseNode *ifelse, Label *label_break)
 {
-	emitInstrForExprNode(ctx, ifelse->condition, label_break);
+	emitInstrForNode(ctx, ifelse->condition, label_break);
 	if(ifelse->false_branch)
 	{
 		Label *label_else = Label_New(ctx);

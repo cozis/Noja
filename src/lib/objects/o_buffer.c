@@ -82,6 +82,11 @@ static TypeObject t_buffer_slice = {
 
 #define THRESHOLD 128
 
+TypeObject *Object_GetBufferType()
+{
+	return &t_buffer;
+}
+
 _Bool Object_IsBuffer(Object *obj)
 {
 	return obj->type == &t_buffer_slice || obj->type == &t_buffer;

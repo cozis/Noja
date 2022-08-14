@@ -99,6 +99,11 @@ static Object *copy(Object *self, Heap *heap, Error *err)
 	return (Object*) ls2;
 }
 
+TypeObject *Object_GetListType()
+{
+	return &t_list;
+}
+
 Object *Object_NewList(int capacity, Heap *heap, Error *error)
 {
 	// Handle default args.
