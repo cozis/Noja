@@ -35,6 +35,7 @@
 #include "../utils/promise.h"
 
 typedef enum {
+	OPTP_IDX,
 	OPTP_INT,
 	OPTP_FLOAT,
 	OPTP_STRING,

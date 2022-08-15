@@ -37,6 +37,9 @@
 #include "files.h"
 #include "../utils/utf8.h"
 #include "../objects/objects.h"
+
+
+
 static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	(void) runtime;

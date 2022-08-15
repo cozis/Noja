@@ -109,7 +109,7 @@ static void emitInstr_JUMPIFANDPOP(CodegenContext *ctx,
 	                               int off, int len)
 {
 	Operand opv[1] = {
-		{ .type = OPTP_INT, .as_int = op0 }
+		{ .type = OPTP_IDX, .as_int = op0 }
 	};
 	CodegenContext_EmitInstr(ctx, OPCODE_JUMPIFANDPOP, opv, 1, off, len);
 }

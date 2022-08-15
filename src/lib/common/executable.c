@@ -68,32 +68,27 @@ typedef struct {
 } InstrInfo;
 
 static const InstrInfo instr_table[] = {
-
-	[OPCODE_NOPE] = {"NOPE", 0, NULL},
-
-	[OPCODE_POS]  = {"POS", 0, NULL},
-	[OPCODE_NEG]  = {"NEG", 0, NULL},
-	[OPCODE_NOT]  = {"NOT", 0, NULL},
-
-	[OPCODE_ADD]  = {"ADD", 0, NULL},
-	[OPCODE_SUB]  = {"SUB", 0, NULL},
-	[OPCODE_MUL]  = {"MUL", 0, NULL},
-	[OPCODE_DIV]  = {"DIV", 0, NULL},
-
-	[OPCODE_EQL] = {"EQL", 0, NULL},
-	[OPCODE_NQL] = {"NQL", 0, NULL},
-	[OPCODE_LSS] = {"LSS", 0, NULL},
-	[OPCODE_GRT] = {"GRT", 0, NULL},
-	[OPCODE_LEQ] = {"LEQ", 0, NULL},
-	[OPCODE_GEQ] = {"GEQ", 0, NULL},
-	[OPCODE_AND] = {"AND", 0, NULL},
-	[OPCODE_OR]  = {"OR",  0, NULL},
-
-	[OPCODE_ASS]  = {"ASS", 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_POP]  = {"POP", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_CALL] = {"CALL", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
-	[OPCODE_SELECT] = {"SELECT", 0, NULL},
-	[OPCODE_INSERT] = {"INSERT", 0, NULL},
+	[OPCODE_NOPE]    = {"NOPE", 0, NULL},
+	[OPCODE_POS]     = {"POS",  0, NULL},
+	[OPCODE_NEG]     = {"NEG",  0, NULL},
+	[OPCODE_NOT]     = {"NOT",  0, NULL},
+	[OPCODE_ADD]     = {"ADD",  0, NULL},
+	[OPCODE_SUB]     = {"SUB",  0, NULL},
+	[OPCODE_MUL]     = {"MUL",  0, NULL},
+	[OPCODE_DIV]     = {"DIV",  0, NULL},
+	[OPCODE_EQL]     = {"EQL",  0, NULL},
+	[OPCODE_NQL]     = {"NQL",  0, NULL},
+	[OPCODE_LSS]     = {"LSS",  0, NULL},
+	[OPCODE_GRT]     = {"GRT",  0, NULL},
+	[OPCODE_LEQ]     = {"LEQ",  0, NULL},
+	[OPCODE_GEQ]     = {"GEQ",  0, NULL},
+	[OPCODE_AND]     = {"AND",  0, NULL},
+	[OPCODE_OR]      = {"OR",   0, NULL},
+	[OPCODE_ASS]     = {"ASS",  1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_POP]     = {"POP",  1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_CALL]    = {"CALL", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
+	[OPCODE_SELECT]  = {"SELECT",  0, NULL},
+	[OPCODE_INSERT]  = {"INSERT",  0, NULL},
 	[OPCODE_INSERT2] = {"INSERT2", 0, NULL},
 	[OPCODE_PUSHINT] = {"PUSHINT", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_PUSHFLT] = {"PUSHFLT", 1, (OperandType[]) {OPTP_FLOAT}},
@@ -102,19 +97,16 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHTRU] = {"PUSHTRU", 0, NULL},
 	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, NULL},
 	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, NULL},
-	[OPCODE_PUSHFUN] = {"PUSHFUN", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
+	[OPCODE_PUSHFUN] = {"PUSHFUN", 2, (OperandType[]) {OPTP_IDX, OPTP_INT}},
 	[OPCODE_PUSHLST] = {"PUSHLST", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_PUSHMAP] = {"PUSHMAP", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_PUSHTYP] = {"PUSHTYP", 0, NULL},
 	[OPCODE_PUSHTYPTYP] = {"PUSHTYPTYP", 0, NULL},
-
 	[OPCODE_RETURN] = {"RETURN", 1, (OperandType[]) {OPTP_INT}},
-
-	[OPCODE_ERROR] = {"ERROR", 1, (OperandType[]) {OPTP_STRING}},
-
-	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_JUMPIFANDPOP] = {"JUMPIFANDPOP", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_JUMP] = {"JUMP", 1, (OperandType[]) {OPTP_INT}},
+	[OPCODE_ERROR]  = {"ERROR",  1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_IDX}},
+	[OPCODE_JUMPIFANDPOP]    = {"JUMPIFANDPOP",    1, (OperandType[]) {OPTP_IDX}},
+	[OPCODE_JUMP]            = {"JUMP",            1, (OperandType[]) {OPTP_IDX}},
 };
 
 _Bool Executable_GetOpcodeBinaryFromName(const char *name, size_t name_len, Opcode *opcode)
@@ -186,6 +178,7 @@ void Executable_Dump(Executable *exe)
 		{
 			switch(ops[j].type)
 			{
+				case OPTP_IDX:
 				case OPTP_INT:
 				fprintf(stderr, "%lld ", ops[j].as_int);
 				break;
@@ -283,6 +276,11 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 					break;
 				}
 						
+				case OPTP_IDX:
+				ops[i].type = OPTP_IDX;
+				ops[i].as_int = instr->operands[i].as_int;
+				break;
+
 				case OPTP_INT:
 				ops[i].type = OPTP_INT;
 				ops[i].as_int = instr->operands[i].as_int;
@@ -350,6 +348,7 @@ _Bool Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char
 
 			switch(exe1_opv[opno].type) {
 				
+				case OPTP_IDX:
 				case OPTP_INT:
 				{
 					int v1 = exe1_opv[opno].as_int;
@@ -476,20 +475,23 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 	assert(opc >= 0);
 
 	static const char *operand_type_names[] = {
+		[OPTP_IDX] = "index",
 		[OPTP_INT] = "int",
-		[OPTP_FLOAT] = "float",
+		[OPTP_FLOAT]  = "float",
 		[OPTP_STRING] = "string",
 	};
 
 	static const char *operand_type_arts[] = {
+		[OPTP_IDX] = "an",
 		[OPTP_INT] = "an",
-		[OPTP_FLOAT] = "a",
+		[OPTP_FLOAT]  = "a",
 		[OPTP_STRING] = "a",
 	};
 
 	static const unsigned int operand_type_sizes[] = {
+		[OPTP_IDX] = membersizeof(Operand, as_int),
 		[OPTP_INT] = membersizeof(Operand, as_int),
-		[OPTP_FLOAT] = membersizeof(Operand, as_float),
+		[OPTP_FLOAT]  = membersizeof(Operand, as_float),
 		[OPTP_STRING] = membersizeof(Operand, as_string),
 	};
 
@@ -597,6 +599,10 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 					Error_Report(error, 1, "No memory");
 					return 0;
 				}
+				break;
+
+				case OPTP_IDX:
+				instr->operands[i].as_int = opv[i].as_int;
 				break;
 
 				case OPTP_INT:
