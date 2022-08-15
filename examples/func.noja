@@ -1,0 +1,9 @@
+
+fun add(a: int | float = 1, b = 8)
+    return a + b;
+
+c = add(3, 4);
+
+assert(c == 7);
+
+print(c);

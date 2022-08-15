@@ -2023,7 +2023,9 @@ static Node *parse_function_definition(Context *ctx)
 
 	int   argc = 0; // Initialization for the warning.
 	Node *argv = parse_function_arguments(ctx, &argc);
-
+	if(argv == NULL)
+		return NULL;
+	
 	if(done(ctx))
 	{
 		Error_Report(ctx->error, 0, "Source ended before function body");
