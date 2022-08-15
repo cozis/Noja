@@ -1099,7 +1099,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		case OPCODE_PUSHFUN:
 		{
 			assert(opc == 2);
-			assert(ops[0].type == OPTP_INT);
+			assert(ops[0].type == OPTP_IDX);
 			assert(ops[1].type == OPTP_INT);
 
 			Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
@@ -1159,6 +1159,18 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 		}
 
+		case OPCODE_PUSHNNETYP:
+		{
+			assert(opc == 0);
+
+			Object *obj = (Object*) Object_GetNoneType();
+			assert(obj != NULL);
+
+			if(!Runtime_Push(runtime, error, obj))
+				return 0;
+			return 1;
+		}
+
 		case OPCODE_PUSHTYP:
 		{
 			assert(opc == 0);
@@ -1201,14 +1213,14 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_JUMP:
 		assert(opc == 1);
-		assert(ops[0].type == OPTP_INT);
+		assert(ops[0].type == OPTP_IDX);
 		runtime->frame->index = ops[0].as_int;
 		return 1;
 
 		case OPCODE_JUMPIFANDPOP:
 		{
 			assert(opc == 1);
-			assert(ops[0].type == OPTP_INT);
+			assert(ops[0].type == OPTP_IDX);
 				
 			long long int target = ops[0].as_int;
 
@@ -1240,7 +1252,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		case OPCODE_JUMPIFNOTANDPOP:
 		{
 			assert(opc == 1);
-			assert(ops[0].type == OPTP_INT);
+			assert(ops[0].type == OPTP_IDX);
 				
 			long long int target = ops[0].as_int;
 

@@ -102,6 +102,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHMAP] = {"PUSHMAP", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_PUSHTYP] = {"PUSHTYP", 0, NULL},
 	[OPCODE_PUSHTYPTYP] = {"PUSHTYPTYP", 0, NULL},
+	[OPCODE_PUSHNNETYP] = {"PUSHNNETYP", 0, NULL},
 	[OPCODE_RETURN] = {"RETURN", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_ERROR]  = {"ERROR",  1, (OperandType[]) {OPTP_STRING}},
 	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_IDX}},

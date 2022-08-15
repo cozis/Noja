@@ -157,6 +157,11 @@ static void emitInstr_PUSHTYPTYP(CodegenContext *ctx, int off, int len)
 	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTYPTYP, NULL, 0, off, len);
 }
 
+static void emitInstr_PUSHNNETYP(CodegenContext *ctx, int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_PUSHNNETYP, NULL, 0, off, len);
+}
+
 static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break);
 
 static Opcode exprkind_to_opcode(ExprKind kind)
@@ -208,6 +213,14 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int argidx)
 {
 	/*
+	 *   // If a default value for the argument was specified
+	 *   PUSHTYP;
+	 *   PUSHNNETYP;
+	 *   EQL;
+	 *   JUMPIFNOTANDPOP default_handled;
+	 *   POP 1;
+	 *   <default-value>
+	 * default_handled:
 	 *   // Push the type of the argument
 	 *   PUSHTYP;
 	 *   
@@ -254,6 +267,19 @@ static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int
 	 *   ASS <arg-name>;
 	 *   POP 1;
 	 */
+
+	if(arg->value != NULL) {
+		/* Emit bytecode for the default argument */
+		Label *label_default_handled = Label_New(ctx);
+		emitInstr_PUSHTYP(ctx, arg->value->offset, arg->value->length);
+		emitInstr_PUSHNNETYP(ctx, arg->value->offset, arg->value->length);
+		emitInstr_EQL(ctx, arg->value->offset, arg->value->length);
+		emitInstr_JUMPIFNOTANDPOP(ctx, label_default_handled, arg->value->offset, arg->value->length);
+		emitInstr_POP1(ctx, arg->value->offset, arg->value->length);
+		emitInstrForNode(ctx, arg->value, NULL);
+		Label_SetHere(label_default_handled, ctx);
+		Label_Free(label_default_handled);
+	}
 
 	if(arg->typev != NULL) {
 

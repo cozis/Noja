@@ -127,7 +127,7 @@ typedef struct {
 } Context;
 
 static Node *parse_statement(Context *ctx);
-static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples);
+static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples, _Bool allow_assignments);
 static Node *parse_expression_statement(Context *ctx);
 static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
@@ -616,7 +616,7 @@ static Node *parse_statement(Context *ctx)
 
 			next(ctx); // Consume the "return" keyword.
 
-			Node *val = parse_expression(ctx, 1);
+			Node *val = parse_expression(ctx, 1, 1);
 
 			if(val == NULL)
 				return NULL;
@@ -664,7 +664,7 @@ static Node *parse_expression_statement(Context *ctx)
 {
 	assert(ctx != NULL);
 
-	Node *expr = parse_expression(ctx, 1);
+	Node *expr = parse_expression(ctx, 1, 1);
 	
 	if(expr == NULL) 
 		return NULL;
@@ -855,7 +855,7 @@ static Node *parse_list_primary_expression(Context *ctx)
 		while(1)
 		{
 			// Parse.
-			Node *item = parse_expression(ctx, 0);
+			Node *item = parse_expression(ctx, 0, 1);
 
 			if(item == NULL)
 				return NULL;
@@ -975,7 +975,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 			}
 			else
 			{
-				key = parse_expression(ctx, 0);
+				key = parse_expression(ctx, 0, 1);
 			}
 
 			if(key == NULL)
@@ -1002,7 +1002,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 			next(ctx);
 
 			// Parse.
-			Node *item = parse_expression(ctx, 0);
+			Node *item = parse_expression(ctx, 0, 1);
 
 			if(item == NULL)
 				return NULL;
@@ -1144,7 +1144,7 @@ static Node *parse_primary_expresion(Context *ctx)
 		{
 			next(ctx); // Consume the '('.
 				
-			Node *node = parse_expression(ctx, 1);
+			Node *node = parse_expression(ctx, 1, 1);
 				
 			if(node == NULL)
 				return NULL;
@@ -1463,7 +1463,7 @@ static Node *parse_postfix_expression(Context *ctx)
 					while(1)
 					{
 						// Parse.
-						Node *arg = parse_expression(ctx, 0);
+						Node *arg = parse_expression(ctx, 0, 1);
 
 						if(arg == NULL)
 							return NULL;
@@ -1648,13 +1648,13 @@ static inline int precedenceof(Token *tok)
 	return -100000000;
 }
 
-static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bool allow_toplev_tuples)
+static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bool allow_toplev_tuples, _Bool allow_assignments)
 {
 	while(isbinop(ctx->token) && precedenceof(ctx->token) >= min_prec)
 	{
 		Token *op = ctx->token;
 
-		if(op->kind == ',' && allow_toplev_tuples == 0)
+		if((op->kind == ',' && allow_toplev_tuples == 0) || (op->kind == '=' && allow_assignments == 0))
 			break;
 
 		next(ctx);
@@ -1666,7 +1666,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 
 		while(isbinop(ctx->token) && (precedenceof(ctx->token) > precedenceof(op) || (precedenceof(ctx->token) == precedenceof(op) && isrightassoc(ctx->token))))
 		{
-			right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1, allow_toplev_tuples);
+			right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1, allow_toplev_tuples, allow_assignments);
 			
 			if(right_expr == NULL)
 				return NULL;				
@@ -1724,7 +1724,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 	return left_expr;
 }
 
-static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples)
+static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples, _Bool allow_assignments)
 {
 	Node *left_expr = parse_prefix_expression(ctx);
 
@@ -1734,7 +1734,7 @@ static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples)
 	if(done(ctx))
 		return left_expr;
 
-	return parse_expression_2(ctx, left_expr, -1000000000, allow_toplev_tuples);
+	return parse_expression_2(ctx, left_expr, -1000000000, allow_toplev_tuples, allow_assignments);
 }
 
 static Node *parse_ifelse_statement(Context *ctx)
@@ -1758,7 +1758,7 @@ static Node *parse_ifelse_statement(Context *ctx)
 
 	next(ctx); // Consume the "if" keyword.
 
-	Node *condition = parse_expression(ctx, 1);
+	Node *condition = parse_expression(ctx, 1, 1);
 	
 	if(condition == NULL) 
 		return NULL;
@@ -1865,7 +1865,7 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 	return (Node*) node;
 }
 
-static Node *parse_function_arguments(Context *ctx, int *argc_)
+static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 {
 #warning "What if the source ends here?"
 
@@ -1875,7 +1875,7 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 			Error_Report(ctx->error, 0, "Source ended where a function argument list was expected");
 		else
 			Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument list was expected", ctx->token->length, ctx->src + ctx->token->offset);
-		return NULL;
+		return 0;
 	}
 
 	Node *argv = NULL;
@@ -1890,13 +1890,13 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 			if(done(ctx))
 			{
 				Error_Report(ctx->error, 0, "Source ended inside a function argument list");
-				return NULL;
+				return 0;
 			}
 
 			if(current(ctx) != TIDENT)
 			{
 				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" where a function argument name was expected", ctx->token->length, ctx->src + ctx->token->offset);
-				return NULL;
+				return 0;
 			}
 
 			char *arg_name = copy_token_text(ctx);
@@ -1904,7 +1904,7 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 			if(arg_name == NULL)
 			{
 				Error_Report(ctx->error, 1, "No memory");
-				return NULL;
+				return 0;
 			}
 
 			int   typec;
@@ -1913,23 +1913,32 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 			if(next(ctx) == ':') {
 				next(ctx); // Skip the ':'.
 
-				Node *type = parse_expression(ctx, 0);
+				Node *type = parse_expression(ctx, 0, 0);
 				if(type == NULL)
-					return NULL;
+					return 0;
 				typev = type;
 				typec = 1;
 				Node *tail = type;
 				while(current(ctx) == '|') {
 					next(ctx);
-					type = parse_expression(ctx, 0);
+					type = parse_expression(ctx, 0, 0);
 					if(type == NULL)
-						return NULL;
+						return 0;
 					tail->next = type;
 					tail = type;
 					typec += 1;
 				}
 			} else
 				typec = 0;
+
+			Node *defarg; // Default argument (or NULL if there isn't one)
+			if(current(ctx) == '=') {
+				next(ctx); // Skip the '='.
+				defarg = parse_expression(ctx, 0, 1);
+				if(defarg == NULL)
+					return 0;
+			} else
+				defarg = NULL;
 
 			ArgumentNode *arg;
 			{
@@ -1939,7 +1948,7 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 				if(arg == NULL)
 				{
 					Error_Report(ctx->error, 1, "No memory");
-					return NULL;
+					return 0;
 				}
 
 				arg->base.kind = NODE_ARG;
@@ -1949,6 +1958,7 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 				arg->name = arg_name;
 				arg->typev = typev;
 				arg->typec = typec;
+				arg->value = defarg;
 			}
 
 			// Add it to the list.
@@ -1961,7 +1971,7 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 			if(done(ctx))
 			{
 				Error_Report(ctx->error, 0, "Source ended inside a function argument list");
-				return NULL;
+				return 0;
 			}
 
 			if(current(ctx) == ')')
@@ -1970,7 +1980,7 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 			if(current(ctx) != ',')
 			{
 				Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
-				return NULL;
+				return 0;
 			}
 
 			// Now prepare for the next identifier.
@@ -1980,10 +1990,9 @@ static Node *parse_function_arguments(Context *ctx, int *argc_)
 
 	next(ctx); // Consume the ')'.
 
-	if(argc_ != NULL)
-		*argc_ = argc;
-
-	return argv;
+	if(argc_ != NULL) *argc_ = argc;
+	if(argv_ != NULL) *argv_ = argv;
+	return 1;
 }
 
 static Node *parse_function_definition(Context *ctx)
@@ -2022,8 +2031,8 @@ static Node *parse_function_definition(Context *ctx)
 	}
 
 	int   argc = 0; // Initialization for the warning.
-	Node *argv = parse_function_arguments(ctx, &argc);
-	if(argv == NULL)
+	Node *argv;
+	if(!parse_function_arguments(ctx, &argc, &argv))
 		return NULL;
 	
 	if(done(ctx))
@@ -2082,7 +2091,7 @@ static Node *parse_while_statement(Context *ctx)
 
 	next(ctx); // Consume the "while" keyword.
 
-	Node *condition = parse_expression(ctx, 1);
+	Node *condition = parse_expression(ctx, 1, 1);
 	
 	if(condition == NULL) 
 		return NULL;
@@ -2168,7 +2177,7 @@ static Node *parse_dowhile_statement(Context *ctx)
 
 	next(ctx); // Consume the "while" keyword.
 
-	Node *condition = parse_expression(ctx, 1);
+	Node *condition = parse_expression(ctx, 1, 1);
 	
 	if(condition == NULL) 
 		return NULL;

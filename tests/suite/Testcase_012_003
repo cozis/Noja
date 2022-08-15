@@ -1,0 +1,38 @@
+
+#source
+    
+    fun nop(a: int = 1)
+        {}
+
+#bytecode
+
+    PUSHFUN nop, 1;
+    ASS "nop";
+    POP 1;
+    JUMP nop_end;
+nop:
+    PUSHTYP;
+    PUSHNNETYP;
+    EQL;
+    JUMPIFNOTANDPOP not_none;
+    POP 1;
+    PUSHINT 1;
+not_none:
+    
+    PUSHTYP;
+    PUSHVAR "int";
+    PUSHTYP;
+    PUSHTYPTYP;
+    EQL;
+    JUMPIFNOTANDPOP annot_not_ok;
+    EQL;
+    JUMPIFANDPOP type_ok;
+    ERROR "Bad type for argument 0";
+annot_not_ok:
+    ERROR "Argument 0 type annotation 0 is not a type";
+type_ok:
+    ASS "a";
+    POP 1;
+    RETURN 0;
+nop_end:
+    RETURN 0;
