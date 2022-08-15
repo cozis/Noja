@@ -208,14 +208,23 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int argidx)
 {
 	/*
+	 *   // Push the type of the argument
 	 *   PUSHTYP;
-	 *   <arg-type-0> // What if this isn't a type?
+	 *   
+	 *   // Evaluate the type annotation and make
+	 *   // sure that it evaluated to a type.
+	 *   <arg-type-0>
 	 *   PUSHTYP;
 	 *   PUSHTYPTYP;
 	 *   EQL;
 	 *   JUMPIFANDPOP argument_annotation_0_not_type;
+     *
+	 *   // If the annotated type and the argument's
+	 *   // type match, jump to the argument assignment.
 	 *   EQL;
 	 *   JUMPIFANDPOP argument_type_ok;
+	 *
+	 *   // To the same for the next annotation.
 	 *
 	 *   PUSHTYP;
 	 *   <arg-type-1>
@@ -239,6 +248,9 @@ static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int
 	 * argument_annotation_0_not_a_type:
 	 *   ERROR "Argument N annotation M isn't a type";
 	 * argument_type_ok:
+	 *
+	 *   // At this point we know that the argument has
+	 *   // a valid type.
 	 *   ASS <arg-name>;
 	 *   POP 1;
 	 */

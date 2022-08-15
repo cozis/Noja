@@ -21,25 +21,29 @@ Here's an example of a noja program that orders the items in list using a bubble
 ```
 L = [3, 2, 1];
 
-do {
-    swapped = false;
+fun swap(a: int, b: int)
+    return b, a;
 
-    i = 0;
-    while i < count(L)-1 and not swapped: {
+fun order(L: List) {
 
-        if L[i+1] < L[i]: {
-        
-            swapped = true;
-            tmp = L[i+1];
-            L[i+1] = L[i];
-            L[i] = tmp;
+    do {
+        swapped = false;
+
+        i = 0;
+        while i < count(L)-1 and not swapped: {
+
+            swapped = L[i+1] < L[i];
+            if swapped:
+                L[i], L[i+1] = swap(L[i], L[i+1]);
+            
+            i = i+1;
         }
-        
-        i = i + 1;
-    }
-} while swapped;
+    } while swapped;
+}
 
-print(L, '\n'); # Outputs [1, 2, 3]
+print(L, '\n'); # [3, 2, 1]
+order(L);
+print(L, '\n'); # [1, 2, 3]
 ```
 
 ## Implementation Overview

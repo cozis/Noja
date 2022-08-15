@@ -1,21 +1,21 @@
 
-fun isSpace(c)
+fun isSpace(c: String)
     return c == " " or c == "\t" or c == "\n";
 
-fun isDigit(c) {
+fun isDigit(c: String) {
     u = unicode(c);
     d = u - unicode("0");
     return d >= 0 and d <= 9;
 }
 
-fun skipSpaces(context) {
+fun skipSpaces(context: Map) {
     # Skip zero or more whitespace characters.
     while context.cur < count(context.str) 
       and isSpace(context.str[context.cur]):
       context.cur = context.cur + 1;
 }
 
-fun parseNull(context) {
+fun parseNull(context: Map) {
     
     assert(context.cur < count(context) 
        and context.str[context.cur] == 'n');
@@ -30,7 +30,7 @@ fun parseNull(context) {
     return none;
 }
 
-fun parseTrue(context) {
+fun parseTrue(context: Map) {
     
     assert(context.cur < count(context) 
        and context.str[context.cur] == 't');
@@ -45,7 +45,7 @@ fun parseTrue(context) {
     return true;
 }
 
-fun parseFalse(context) {
+fun parseFalse(context: Map) {
     
     assert(context.cur < count(context) 
        and context.str[context.cur] == 'f');
@@ -61,14 +61,17 @@ fun parseFalse(context) {
     return false;
 }
 
-fun skip(context, test_callback) {
+fun dummy() {}
+Func = type(dummy);
+
+fun skip(context: Map, test_callback: Func) {
     k = context.cur;
     while k < count(context) and test_callback(context.str[k]):
         k = k + 1;
     return k;
 }
 
-fun parseInteger(context) {
+fun parseInteger(context: Map) {
     assert(context.cur < count(context) and isDigit(context.str[context.cur]));
 
     buffer = 0;
@@ -84,7 +87,7 @@ fun parseInteger(context) {
     return buffer;
 }
 
-fun parseFloating(context) {
+fun parseFloating(context: Map) {
     assert(context.cur < count(context) and isDigit(context.str[context.cur]));
 
     # It's ensured by the caller (parseIntegerOrFloating)
@@ -117,7 +120,7 @@ fun parseFloating(context) {
     return buffer;
 }
 
-fun parseIntegerOrFloating(context) {
+fun parseIntegerOrFloating(context: Map) {
     assert(context.cur < count(context) and isDigit(context.str[context.cur]));
 
     # Is the first digit sequence followed by a dot
@@ -132,7 +135,7 @@ fun parseIntegerOrFloating(context) {
         return parseInteger(context);
 }
 
-fun parseValue(context) {
+fun parseValue(context: Map) {
 
     if context.cur == count(context):
         return none, "Source ended where a value was expected";
@@ -159,7 +162,7 @@ fun parseValue(context) {
     return val, err;
 }
 
-fun parse(str) {
+fun parse(str: String) {
     context = {str: str, cur: 0};
     skipSpaces(context);
     val, err = parseValue(context);
