@@ -17,10 +17,10 @@ fun skipSpaces(context: Map) {
 
 fun parseNull(context: Map) {
     
-    assert(context.cur < count(context) 
+    assert(context.cur < count(context.str) 
        and context.str[context.cur] == 'n');
     
-    if context.cur+3 > count(context)
+    if context.cur+3 > count(context.str)
     or context.str[context.cur+1] != 'u' 
     or context.str[context.cur+2] != 'l'
     or context.str[context.cur+3] != 'l':
@@ -32,10 +32,10 @@ fun parseNull(context: Map) {
 
 fun parseTrue(context: Map) {
     
-    assert(context.cur < count(context) 
+    assert(context.cur < count(context.str) 
        and context.str[context.cur] == 't');
     
-    if context.cur+3 > count(context)
+    if context.cur+3 > count(context.str)
     or context.str[context.cur+1] != 'r' 
     or context.str[context.cur+2] != 'u'
     or context.str[context.cur+3] != 'e':
@@ -47,10 +47,10 @@ fun parseTrue(context: Map) {
 
 fun parseFalse(context: Map) {
     
-    assert(context.cur < count(context) 
+    assert(context.cur < count(context.str) 
        and context.str[context.cur] == 'f');
     
-    if context.cur+3 > count(context)
+    if context.cur+3 > count(context.str)
     or context.str[context.cur+1] != 'a' 
     or context.str[context.cur+2] != 'l'
     or context.str[context.cur+3] != 's'
@@ -66,13 +66,13 @@ Func = type(dummy);
 
 fun skip(context: Map, test_callback: Func) {
     k = context.cur;
-    while k < count(context) and test_callback(context.str[k]):
+    while k < count(context.str) and test_callback(context.str[k]):
         k = k + 1;
     return k;
 }
 
 fun parseInteger(context: Map) {
-    assert(context.cur < count(context) and isDigit(context.str[context.cur]));
+    assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
 
     buffer = 0;
 
@@ -81,14 +81,14 @@ fun parseInteger(context: Map) {
         d = unicode(c) - unicode('0');
         buffer = buffer * 10 + d;
         context.cur = context.cur + 1;
-    } while context.cur < count(context) 
+    } while context.cur < count(context.str) 
         and isDigit(context.str[context.cur]);
     
     return buffer;
 }
 
 fun parseFloating(context: Map) {
-    assert(context.cur < count(context) and isDigit(context.str[context.cur]));
+    assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
 
     # It's ensured by the caller (parseIntegerOrFloating)
     # that now the strings contains two sequences of
@@ -114,20 +114,20 @@ fun parseFloating(context: Map) {
         q = q / 10;
         buffer = buffer + q * d;
         context.cur = context.cur + 1;
-    } while context.cur < count(context)
+    } while context.cur < count(context.str)
         and isDigit(context);
 
     return buffer;
 }
 
 fun parseIntegerOrFloating(context: Map) {
-    assert(context.cur < count(context) and isDigit(context.str[context.cur]));
+    assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
 
     # Is the first digit sequence followed by a dot
     # and then one or more digits?
 
     k = skip(context, isDigit);
-    if k+1 < count(context) and context.str[k] == "." and isDigit(context.str[k+1]):
+    if k+1 < count(context.str) and context.str[k] == "." and isDigit(context.str[k+1]):
         # It's a floating point value, then!
         return parseFloating(context);
     else
@@ -135,9 +135,77 @@ fun parseIntegerOrFloating(context: Map) {
         return parseInteger(context);
 }
 
+fun parseString(context: Map) {
+    
+    assert(context.cur < count(context.str) and context.str[context.cur] == '"');
+
+    context.cur = context.cur + 1;
+
+    buffer = "";
+
+    while context.cur < count(context.str) 
+      and context.str[context.cur] != '"': {
+        # TODO: Support special characters such as \n, \t ecc
+        buffer = strcat(buffer, context.str[context.cur]);
+        context.cur = context.cur + 1;
+    }
+
+    if context.cur == count(context.str):
+        return none, "Source string ended inside a string literal";
+
+    context.cur = context.cur + 1;
+    return buffer;
+}
+
+fun parseArray(context: Map) {
+    assert(context.cur < count(context.str) 
+       and context.str[context.cur] == '[');
+
+    context.cur = context.cur + 1;
+
+    skipSpaces(context);
+
+    if context.cur == count(context.str):
+        return none, "Source string ended inside an array";
+
+    if context.str[context.cur] == ']':
+        return [];
+
+    list = [];
+
+    while true: {
+
+        item, err = parseValue(context);
+        if err != none:
+            return none, err;
+
+        list[count(list)] = item;
+
+        skipSpaces(context);
+
+        if context.cur == count(context.str):
+            return none, "Source string ended inside an array";
+
+        if context.str[context.cur] == ']':
+            break;
+
+        if context.str[context.cur] != ',':
+            return none, "Unexpected token inside an array, where either ',' or ']' were expected";
+
+        context.cur = context.cur + 1;
+
+        skipSpaces(context);
+    }
+    assert(context.cur < count(context.str)
+       and context.str[context.cur] == ']');
+
+    context.cur = context.cur + 1;
+    return list;
+}
+
 fun parseValue(context: Map) {
 
-    if context.cur == count(context):
+    if context.cur == count(context.str):
         return none, "Source ended where a value was expected";
 
     c = context.str[context.cur];
@@ -169,6 +237,50 @@ fun parse(str: String) {
     return val, err;
 }
 
-val, err = parse('3.14');
+fun compareAny(A, B) {
+    
+    fun compareLists(A: List, B: List) {
+        n = count(A);
+        if n != count(B):
+            return flase;
+
+        i = 0;
+        while i < n: {
+            if not compareAny(A[i], B[i]):
+                return false;
+            i = i + 1;
+        }
+        return true;
+    }
+
+    T = type(A);
+
+    if T != type(B):
+        return false;
+
+    if T == List:
+        return compareLists(A, B);
+
+    if T == Map:
+        error("Maps aren't supported yet!");
+
+    return A == B;
+}
+
+assert(compareAny(1, 2) == true);
+assert(compareAny([], []) == true);
+assert(compareAny([], [1]) == false);
+assert(compareAny([1, 2, 3], [1, 2, 3]) == true);
+assert(compareAny([1, 2, 3], [1, 2, 4]) == false);
+assert(compareAny([1, 2, 3], [1, 2, 3, 4]) == false);
+
+assert(parse("null") == none);
+assert(parse("true") == true);
+assert(parse("false") == false);
+assert(parse('"Hello, world!"') == "Hello, world!");
+assert(compareAny(parse('[]'), []));
+assert(compareAny(parse('[1, 2, 3]'), [1, 2, 3]));
+
+val, err = parse('[1, 2, 3]');
 print("val=[", val, "]\n");
 print("err=[", err, "]\n");
