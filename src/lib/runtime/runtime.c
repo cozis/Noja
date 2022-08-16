@@ -28,7 +28,10 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
+#include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include "../utils/path.h"
 #include "../utils/defs.h"
 #include "../utils/stack.h"
 #include "runtime.h"
@@ -55,6 +58,49 @@ struct xRuntime {
 	Stack *stack;
 	Heap  *heap;
 };
+
+
+// Returns the length written in buff (not considering the zero byte)
+size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
+{
+	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
+	if(path == NULL) {
+		if(getcwd(buff, sizeof(buffsize)) == NULL)
+			return 0;
+		return strlen(buff);
+	}
+	
+	// This following block is a custom implementation
+	// of [dirname], which doesn't write into the input
+	// string and is way buggier. It will for sure give
+	// problems in the future!!
+	size_t dir_len;
+	{
+		// This is buggy code!!
+		size_t path_len = strlen(path);
+		assert(path_len > 0); // Not empty
+		assert(Path_IsAbsolute(path)); // Is absolute
+		assert(path[path_len-1] != '/'); // Doesn't end with a slash.
+
+		size_t popped = 0;
+		while(path[path_len-1-popped] != '/')
+			popped += 1;
+		
+		assert(path_len > popped);
+
+		dir_len = path_len - popped;
+		
+		assert(dir_len < path_len);
+		assert(path[dir_len-1] == '/');
+	}
+
+	if(dir_len >= buffsize)
+		return 0;
+
+	memcpy(buff, path, dir_len);
+	buff[dir_len] = '\0';
+	return dir_len;
+}
 
 const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime)
 {

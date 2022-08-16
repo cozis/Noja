@@ -52,48 +52,6 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	return 0;
 }
 
-// Returns the length written in buff (not considering the zero byte)
-static size_t getCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
-{
-	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
-	if(path == NULL) {
-		if(getcwd(buff, sizeof(buffsize)) == NULL)
-			return 0;
-		return strlen(buff);
-	}
-
-	// This following block is a custom implementation
-	// of [dirname], which doesn't write into the input
-	// string and is way buggier. It will for sure give
-	// problems in the future!!
-	size_t dir_len;
-	{
-		// This is buggy code!!
-		size_t path_len = strlen(path);
-		assert(path_len > 0); // Not empty
-		assert(path[0] == '/'); // Is absolute
-		assert(path[path_len-1] != '/'); // Doesn't end with a slash.
-
-		size_t popped = 0;
-		while(path[path_len-1-popped] != '/')
-			popped += 1;
-		
-		assert(path_len > popped);
-
-		dir_len = path_len - popped;
-		
-		assert(dir_len < path_len);
-		assert(path[dir_len-1] == '/');
-	}
-
-	if(dir_len >= buffsize)
-		return 0;
-
-	memcpy(buff, path, dir_len);
-	buff[dir_len] = '\0';
-	return dir_len;
-}
-
 static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	assert(argc == 1);
@@ -128,7 +86,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		}
 		strcpy(full_path, path);
 	} else {
-		size_t written = getCurrentScriptFolder(runtime, full_path, sizeof(full_path));
+		size_t written = Runtime_GetCurrentScriptFolder(runtime, full_path, sizeof(full_path));
 		if(written == 0) {
 			Error_Report(error, 1, "Internal buffer is too small");
 			return -1;

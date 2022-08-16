@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include "source.h"
+#include "path.h"
 
 struct xSource {
 	char *name;
@@ -82,32 +83,6 @@ const char *Source_GetAbsolutePath(Source *src)
 	return NULL;
 }
 
-const char *makePathAbsolute(const char *path, char *buff, size_t buffsize)
-{
-	if(path[0] == '/')
-		// It's already absolute.
-		return path;
-
-	if(getcwd(buff, buffsize) == NULL)
-		return NULL;
-
-	size_t written = strlen(buff);
-	assert(buff[written-1] != '/');
-
-	if(written+1 >= buffsize)
-		return NULL; // No space for the / following the cwd.
-
-	buff[written++] = '/';
-
-	size_t n = strlen(path);
-	if(written + n >= buffsize)
-		return NULL;
-
-	memcpy(buff + written, path, n);
-	buff[written + n] = '\0';
-	return buff;
-}
-
 Source *Source_FromFile(const char *file, Error *error)
 {
 	assert(file != NULL);
@@ -118,7 +93,7 @@ Source *Source_FromFile(const char *file, Error *error)
 	}
 
 	char maybe[1024];
-	const char *abs_path = makePathAbsolute(file, maybe, sizeof(maybe));
+	const char *abs_path = Path_MakeAbsolute(file, maybe, sizeof(maybe));
 	if(abs_path == NULL) {
 		Error_Report(error, 0, "Internal buffer is too small");
 		return NULL;
