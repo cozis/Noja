@@ -28,9 +28,11 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
 #include "source.h"
@@ -40,6 +42,7 @@ struct xSource {
 	char *body;
 	int   size;
 	int   refs;
+	bool is_file;
 };
 
 Source *Source_Copy(Source *s)
@@ -72,9 +75,55 @@ unsigned int Source_GetSize(const Source *s)
 	return s->size;
 }
 
+const char *Source_GetAbsolutePath(Source *src)
+{
+	if(src != NULL && src->is_file)
+		return src->name;
+	return NULL;
+}
+
 Source *Source_FromFile(const char *file, Error *error)
 {
 	assert(file != NULL);
+
+	if(file[0] == '\0') {
+		Error_Report(error, 0, "Empty file name");
+		return NULL;
+	}
+
+	char maybe[1024];
+	const char *abs_path;
+
+	if(file[0] == '/')
+		abs_path = file;
+	else {
+		if(getcwd(maybe, sizeof(maybe)) == NULL) {
+			Error_Report(error, 0, "Internal buffer is too small");
+			return NULL;
+		}
+
+		size_t written = strlen(maybe);
+		assert(maybe[written-1] != '/');
+
+		if(written+1 >= sizeof(maybe)) {
+			Error_Report(error, 0, "Internal buffer is too small");
+			return NULL;
+		}
+
+		maybe[written] = '/';
+		written += 1;
+
+		size_t n = strlen(file);
+		if(written + n >= sizeof(maybe)) {
+			Error_Report(error, 0, "Internal buffer is too small");
+			return NULL;
+		}
+
+		memcpy(maybe + written, file, n);
+		maybe[written + n] = '\0';
+
+		abs_path = maybe;
+	}
 
 	// Open the file and get it's size.
 	// at the end of the block, the file
@@ -83,7 +132,7 @@ Source *Source_FromFile(const char *file, Error *error)
 	FILE *fp;
 	int size;
 	{
-		fp = fopen(file, "rb");
+		fp = fopen(abs_path, "rb");
 
 		if(fp == NULL)
 		{
@@ -121,7 +170,7 @@ Source *Source_FromFile(const char *file, Error *error)
 	// Allocate the source structure.
 	Source *s;
 	{
-		int namel = strlen(file);
+		int namel = strlen(abs_path);
 
 		s = malloc(sizeof(Source) + namel + size + 2);
 
@@ -132,12 +181,13 @@ Source *Source_FromFile(const char *file, Error *error)
 			return NULL;
 		}
 
+		s->is_file = true;
 		s->name = (char*) (s + 1);
 		s->body = s->name + namel + 1;
 	}
 
 	// Copy the name into it.
-	strcpy(s->name, file);
+	strcpy(s->name, abs_path);
 	s->size = size;
 	s->refs = 1;
 
@@ -182,6 +232,7 @@ Source *Source_FromString(const char *name, const char *body, int size, Error *e
 	s->body = s->name + namel + 1;
 	s->size = size;
 	s->refs = 1;
+	s->is_file = 0;
 
 	if(name)
 		strcpy(s->name, name);

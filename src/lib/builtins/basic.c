@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "math.h"
 #include "basic.h"
 #include "files.h"
@@ -49,6 +50,61 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	for(int i = 0; i < (int) argc; i += 1)
 		Object_Print(argv[i], stdout);
 	return 0;
+}
+
+static const char *getCurrentScriptAbsolutePath(Runtime *runtime)
+{
+	Executable *exe = Runtime_GetCurrentExecutable(runtime);
+	assert(exe != NULL);
+
+	Source *src = Executable_GetSource(exe);
+	if(src == NULL)
+		return NULL;
+
+	const char *path = Source_GetAbsolutePath(src);
+	if(path == NULL)
+		return NULL;
+
+	assert(path[0] != '\0');
+	return path;
+}
+
+// Returns the length written in buff (not considering the zero byte)
+static size_t getCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
+{
+	const char *path = getCurrentScriptAbsolutePath(runtime);
+	if(path == NULL) {
+		if(getcwd(buff, sizeof(buffsize)) == NULL)
+			return 0;
+		return strlen(buff);
+	}
+
+	size_t dir_len;
+	{
+		// This is buggy code!!
+		size_t path_len = strlen(path);
+		assert(path_len > 0); // Not empty
+		assert(path[0] == '/'); // Is absolute
+		assert(path[path_len-1] != '/'); // Doesn't end with a slash.
+
+		size_t popped = 0;
+		while(path[path_len-1-popped] != '/')
+			popped += 1;
+		
+		assert(path_len > popped);
+
+		dir_len = path_len - popped;
+		
+		assert(dir_len < path_len);
+		assert(path[dir_len-1] == '/');
+	}
+
+	if(dir_len >= buffsize)
+		return 0;
+
+	memcpy(buff, path, dir_len);
+	buff[dir_len] = '\0';
+	return dir_len;
 }
 
 static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
@@ -76,9 +132,33 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		path_len = (size_t) n;
 	}
 
+	char full_path[1024];
+
+	if(path[0] == '/') {
+		if(path_len >= sizeof(full_path)) {
+			Error_Report(error, 1, "Internal buffer is too small");
+			return -1;
+		}
+		strcpy(full_path, path);
+	} else {
+		size_t written = getCurrentScriptFolder(runtime, full_path, sizeof(full_path));
+		if(written == 0) {
+			Error_Report(error, 1, "Internal buffer is too small");
+			return -1;
+		}
+
+		if(written + path_len >= sizeof(full_path)) {
+			Error_Report(error, 1, "Internal buffer is too small");
+			return -1;
+		}
+
+		memcpy(full_path + written, path, path_len);
+		full_path[written + path_len] = '\0';
+	}
+
 	Error sub_error;
 	Error_Init(&sub_error);
-	Source *src = Source_FromFile(path, &sub_error);
+	Source *src = Source_FromFile(full_path, &sub_error);
 	if(src == NULL) {
 
 		if(maxretc == 0)

@@ -39,4 +39,5 @@ const char  *Source_GetBody(const Source *s);
 unsigned int Source_GetSize(const Source *s);
 Source 		*Source_FromFile(const char *file, Error *error);
 Source 		*Source_FromString(const char *name, const char *body, int size, Error *error);
+const char  *Source_GetAbsolutePath(Source *src);
 #endif

@@ -1,0 +1,12 @@
+
+json, err = import("json.noja");
+utils = import("utils.noja");
+
+assert(json.parse("null") == none);
+assert(json.parse("true") == true);
+assert(json.parse("false") == false);
+assert(json.parse('"Hello, world!"') == "Hello, world!");
+assert(utils.compareAny(json.parse('[]'), []));
+assert(utils.compareAny(json.parse('[1, 2, 3]'), [1, 2, 3]));
+
+print("No assertions fired!\n");
