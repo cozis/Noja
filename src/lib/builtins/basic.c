@@ -52,33 +52,20 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	return 0;
 }
 
-static const char *getCurrentScriptAbsolutePath(Runtime *runtime)
-{
-	Executable *exe = Runtime_GetCurrentExecutable(runtime);
-	assert(exe != NULL);
-
-	Source *src = Executable_GetSource(exe);
-	if(src == NULL)
-		return NULL;
-
-	const char *path = Source_GetAbsolutePath(src);
-	if(path == NULL)
-		return NULL;
-
-	assert(path[0] != '\0');
-	return path;
-}
-
 // Returns the length written in buff (not considering the zero byte)
 static size_t getCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
 {
-	const char *path = getCurrentScriptAbsolutePath(runtime);
+	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
 	if(path == NULL) {
 		if(getcwd(buff, sizeof(buffsize)) == NULL)
 			return 0;
 		return strlen(buff);
 	}
 
+	// This following block is a custom implementation
+	// of [dirname], which doesn't write into the input
+	// string and is way buggier. It will for sure give
+	// problems in the future!!
 	size_t dir_len;
 	{
 		// This is buggy code!!

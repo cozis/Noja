@@ -51,6 +51,7 @@ Object*		Runtime_GetBuiltins(Runtime *runtime);
 void 		Runtime_SetBuiltins(Runtime *runtime, Object *builtins);
 int 		Runtime_GetCurrentIndex(Runtime *runtime);
 Executable *Runtime_GetCurrentExecutable(Runtime *runtime);
+const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime);
 Snapshot   *Snapshot_New(Runtime *runtime);
 void 	    Snapshot_Free(Snapshot *snapshot);
 void 	    Snapshot_Print(Snapshot *snapshot, FILE *fp);

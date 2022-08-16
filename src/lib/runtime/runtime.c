@@ -56,6 +56,23 @@ struct xRuntime {
 	Heap  *heap;
 };
 
+const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime)
+{
+	Executable *exe = Runtime_GetCurrentExecutable(runtime);
+	assert(exe != NULL);
+
+	Source *src = Executable_GetSource(exe);
+	if(src == NULL)
+		return NULL;
+
+	const char *path = Source_GetAbsolutePath(src);
+	if(path == NULL)
+		return NULL;
+
+	assert(path[0] != '\0');
+	return path;
+}
+
 Stack *Runtime_GetStack(Runtime *runtime)
 {
 	return Stack_Copy(runtime->stack, 1);

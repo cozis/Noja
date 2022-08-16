@@ -1,5 +1,4 @@
-
-json, err = import("json.noja");
+json  = import("json.noja");
 utils = import("utils.noja");
 
 assert(json.parse("null") == none);
