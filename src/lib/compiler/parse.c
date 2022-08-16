@@ -1671,6 +1671,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 			if(right_expr == NULL)
 				return NULL;				
 		
+#warning "Should this break also trigger when the token is a = and allow_assignments is false?"
 			if(ctx->token->kind == ',' && allow_toplev_tuples == 0)
 				break;
 		}

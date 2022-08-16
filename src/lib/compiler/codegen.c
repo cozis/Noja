@@ -84,6 +84,12 @@ static void emitInstr_RETURN(CodegenContext *ctx,
 	CodegenContext_EmitInstr(ctx, OPCODE_RETURN, opv, 1, off, len);
 }
 
+static void emitInstr_EXIT(CodegenContext *ctx, 
+	                       int off, int len)
+{
+	CodegenContext_EmitInstr(ctx, OPCODE_EXIT, NULL, 0, off, len);
+}
+
 static void emitInstr_JUMP(CodegenContext *ctx, 
 	                         Label *op0,
 	                         int off, int len)
@@ -850,7 +856,7 @@ Executable *codegen(AST *ast, BPAlloc *alloc, Error *error)
 	CodegenContext_SetJumpDest(ctx, &env);
 
 	emitInstrForNode(ctx, ast->root, NULL);
-	emitInstr_RETURN(ctx, 0, Source_GetSize(ast->src), 0);
+	emitInstr_EXIT(ctx, Source_GetSize(ast->src), 0);
 	assert(error->occurred == false);
 
 	return CodegenContext_MakeExecutableAndFree(ctx, ast->src);

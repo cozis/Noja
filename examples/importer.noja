@@ -1,0 +1,4 @@
+
+vars, err = import("examples/imported.noja");
+print("vars=[", vars, "]\n");
+print("err=[", err, "]\n");

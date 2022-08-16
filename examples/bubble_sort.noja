@@ -12,7 +12,7 @@ fun copy(L) {
 	return L2;
 }
 
-fun bubble_sort(L, less) {
+fun bubbleSort(L, less) {
 	if less == none:
 		fun less(a, b) return a < b;
 
@@ -37,4 +37,4 @@ fun bubble_sort(L, less) {
 }
 
 
-print(bubble_sort([3, 2, 1, 6, 0-2]));
+print(bubbleSort([3, 2, 1, 6, 0-2]));

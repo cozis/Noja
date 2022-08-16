@@ -105,6 +105,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_PUSHNNETYP] = {"PUSHNNETYP", 0, NULL},
 	[OPCODE_RETURN] = {"RETURN", 1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_ERROR]  = {"ERROR",  1, (OperandType[]) {OPTP_STRING}},
+	[OPCODE_EXIT]   = {"EXIT", 0, NULL},
 	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_IDX}},
 	[OPCODE_JUMPIFANDPOP]    = {"JUMPIFANDPOP",    1, (OperandType[]) {OPTP_IDX}},
 	[OPCODE_JUMP]            = {"JUMP",            1, (OperandType[]) {OPTP_IDX}},

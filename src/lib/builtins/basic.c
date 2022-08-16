@@ -37,9 +37,8 @@
 #include "files.h"
 #include "../utils/utf8.h"
 #include "../objects/objects.h"
-
-
-
+#include "../compiler/compile.h"
+#include "../runtime/runtime.h"
 static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
 	(void) runtime;
@@ -49,6 +48,134 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 	for(int i = 0; i < (int) argc; i += 1)
 		Object_Print(argv[i], stdout);
+	return 0;
+}
+
+static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+{
+	assert(argc == 1);
+	Heap *heap = Runtime_GetHeap(runtime);
+	assert(heap != NULL);
+
+	Object *o_path = argv[0];
+	const char *path;
+	size_t path_len;
+	{
+		if(!Object_IsString(o_path))
+		{
+			Error_Report(error, 0, "Argument #%d is not a string", 1);
+			return -1;
+		}
+
+		int n;
+		path = Object_ToString(o_path, &n, Runtime_GetHeap(runtime), error);
+		if (path == NULL)
+			return -1;
+
+		assert(n >= 0);
+		path_len = (size_t) n;
+	}
+
+	Error sub_error;
+	Error_Init(&sub_error);
+	Source *src = Source_FromFile(path, &sub_error);
+	if(src == NULL) {
+
+		if(maxretc == 0)
+			return 0;
+
+		Object *o_none = Object_NewNone(heap, error);
+		if(o_none == NULL)
+			return -1;
+
+		if(maxretc == 1) {
+			rets[0] = o_none;
+			return 1;
+		}
+		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
+		if(o_err == NULL)
+			return -1;
+		Error_Free(&sub_error);
+
+		rets[0] = o_none;
+		rets[1] = o_err;
+		return 2;
+	}
+
+	CompilationErrorType errtyp;
+    Executable *exe = compile(src, &sub_error, &errtyp);
+    if(exe == NULL) {
+        const char *errname;
+        switch(errtyp) {
+            default:
+            case CompilationErrorType_INTERNAL: errname = NULL; break;
+            case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
+            case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
+        }
+        (void) errname;
+        
+        {
+        	if(maxretc == 0)
+				return 0;
+
+			Object *o_none = Object_NewNone(heap, error);
+			if(o_none == NULL)
+				return -1;
+
+			if(maxretc == 1) {
+				rets[0] = o_none;
+				return 1;
+			}
+			Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
+			if(o_err == NULL)
+				return -1;
+			Error_Free(&sub_error);
+
+			rets[0] = o_none;
+			rets[1] = o_err;
+			return 2;
+        }
+    }
+
+    {
+    	Object *sub_rets[8];
+    	int sub_maxretc = sizeof(sub_rets)/sizeof(sub_rets[0]);
+	    int retc = run(runtime, &sub_error, exe, 0, NULL, NULL, 0, sub_rets, sub_maxretc);
+	    if(retc < 0)
+	    {
+	    	const char *errname = "Runtime";
+	        // Snapshot?
+	        (void) errname;
+	    	{
+        		if(maxretc == 0)
+					return 0;
+
+				Object *o_none = Object_NewNone(heap, error);
+				if(o_none == NULL)
+					return -1;
+
+				if(maxretc == 1) {
+					rets[0] = o_none;
+					return 1;
+				}
+
+				Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
+				if(o_err == NULL)
+					return -1;
+				Error_Free(&sub_error);
+
+				rets[0] = o_none;
+				rets[1] = o_err;
+				return 2;
+	        }
+	    }
+	    assert(retc == 1);
+
+	    if(maxretc == 0)
+	    	return 0;
+	    rets[0] = sub_rets[0];
+	    return 1;
+	}
 	return 0;
 }
 
@@ -412,6 +539,7 @@ StaticMapSlot bins_basic[] = {
 //	{ "files", SM_SMAP, .as_smap = bins_files, },
 //	{ "net",  SM_SMAP, .as_smap = bins_net, },
 
+	{ "import", SM_FUNCT, .as_funct = bin_import, .argc = 1, },
 	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },
 	{ "sliceBuffer", SM_FUNCT, .as_funct = bin_sliceBuffer, .argc = 3 },
 	{ "bufferToString", SM_FUNCT, .as_funct = bin_bufferToString, .argc = 1 },

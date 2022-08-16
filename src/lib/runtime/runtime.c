@@ -123,6 +123,7 @@ Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool 
 
 	return Runtime_New2(stack_size, heap, 1, callback_userp, callback_addr);
 }
+
 void Runtime_Free(Runtime *runtime)
 {
 	if(runtime->free_heap)
@@ -1192,6 +1193,18 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 		}
 
+		case OPCODE_EXIT:
+		{
+			assert(opc == 0);
+
+			Object *vars = runtime->frame->locals;
+			assert(vars != NULL);
+
+			if(!Runtime_Push(runtime, error, vars))
+				return 0;
+			return 0;
+		}
+
 		case OPCODE_RETURN:
 		{
 			assert(opc == 1);
@@ -1316,7 +1329,11 @@ static _Bool collect(Runtime *runtime, Error *error)
 	return Heap_StopCollection(runtime->heap);
 }
 
-int run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc, Object **rets, int maxretc)
+int run(Runtime *runtime, Error *error, 
+	    Executable *exe, int index, 
+	    Object *closure, 
+	    Object **argv, int argc, 
+	    Object **rets, int maxretc)
 {
 	assert(runtime != NULL);
 	assert(error != NULL);
