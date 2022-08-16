@@ -29,7 +29,6 @@
 */
 
 #include <stdint.h>
-#include <assert.h>
 #include <stdlib.h>
 #include "defs.h"
 #include "bpalloc.h"
@@ -117,8 +116,8 @@ BPAlloc *BPAlloc_Init3(void *mem, int mem_size, int chunk_size,
 						void *(*fn_malloc)(void *userp, int size), 
 						void  (*fn_free  )(void *userp, void *addr))
 {
-	assert(mem != NULL);
-	assert(mem_size >= 0);
+	ASSERT(mem != NULL);
+	ASSERT(mem_size >= 0);
 
 	if(chunk_size < 0)
 		chunk_size = CHUNK_SIZE;
@@ -161,7 +160,7 @@ BPAlloc *BPAlloc_Init3(void *mem, int mem_size, int chunk_size,
 
 void BPAlloc_Free(BPAlloc *alloc)
 {
-	assert(alloc != NULL);
+	ASSERT(alloc != NULL);
 
 #if USING_VALGRIND
 	VALGRIND_DESTROY_MEMPOOL(alloc);
@@ -186,8 +185,8 @@ void BPAlloc_Free(BPAlloc *alloc)
 
 void *BPAlloc_Malloc(BPAlloc *alloc, int req_size)
 {
-	assert(alloc != NULL);
-	assert(req_size >= 0);
+	ASSERT(alloc != NULL);
+	ASSERT(req_size >= 0);
 
 	alloc->used += PADDING;
 
@@ -201,7 +200,7 @@ void *BPAlloc_Malloc(BPAlloc *alloc, int req_size)
 		// size to the requested size.
 		int chunk_size = MAX(alloc->minsize, req_size + PADDING);
 
-		assert(alloc->fn_malloc != NULL);
+		ASSERT(alloc->fn_malloc != NULL);
 		BPAllocChunk *chunk = alloc->fn_malloc(alloc->userp, sizeof(BPAllocChunk) + chunk_size);
 		
 		if(chunk == NULL)
@@ -218,7 +217,7 @@ void *BPAlloc_Malloc(BPAlloc *alloc, int req_size)
 
 	void *addr = alloc->tail->body + alloc->used;
 
-	assert(((intptr_t) addr) % 8 == 0);
+	ASSERT(((intptr_t) addr) % 8 == 0);
 	
 	alloc->used += req_size;
 
@@ -233,15 +232,17 @@ void *BPAlloc_Malloc(BPAlloc *alloc, int req_size)
 
 static void *default_fn_malloc(void *userp, int size)
 {
-	assert(userp == NULL);
-	assert(size >= 0);
+	UNUSED(userp);
+	ASSERT(userp == NULL);
+	ASSERT(size >= 0);
 	
 	return malloc(size);
 }
 
 static void default_fn_free(void *userp, void *addr)
 {
-	assert(userp == NULL);
+	UNUSED(userp);
+	ASSERT(userp == NULL);
 
 	free(addr);
 }

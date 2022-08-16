@@ -29,7 +29,6 @@
 */
 
 #include <string.h>
-#include <assert.h>
 #include "../utils/defs.h"
 #include "../utils/hash.h"
 #include "../utils/utf8.h"
@@ -83,17 +82,17 @@ static int char_index_to_offset(StringObject *str, int idx)
 		scanned_bytes += last_code_len;
 		idx -= 1;
 
-		assert(scanned_bytes <= str->bytes);
+		ASSERT(scanned_bytes <= str->bytes);
 	}
 
-	assert(idx == 0);
+	ASSERT(idx == 0);
 	return scanned_bytes;
 }
 
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 {
-	assert(self != NULL && self->type == &t_string);
-	assert(key != NULL && heap != NULL && error != NULL);
+	ASSERT(self != NULL && self->type == &t_string);
+	ASSERT(key != NULL && heap != NULL && error != NULL);
 
 	if(!Object_IsInt(key))
 	{
@@ -102,7 +101,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	StringObject *str = (StringObject*) self;
 
@@ -120,8 +119,8 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 
 static char *to_string(Object *self, int *size, Heap *heap, Error *err)
 {
-	assert(self != NULL);
-	assert(self->type == &t_string);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_string);
 
 	(void) heap;
 	(void) err;
@@ -141,9 +140,9 @@ TypeObject *Object_GetStringType()
 
 Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 {
-	assert(str != NULL);
-	assert(heap != NULL);
-	assert(error != NULL);
+	ASSERT(str != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(error != NULL);
 
 	if(len < 0)
 		len = strlen(str);
@@ -177,8 +176,8 @@ Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 
 static int count(Object *self)
 {
-	assert(self != NULL);
-	assert(self->type == &t_string);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_string);
 
 	StringObject *strobj = (StringObject*) self;
 
@@ -187,8 +186,8 @@ static int count(Object *self)
 
 static int hash(Object *self)
 {
-	assert(self != NULL);
-	assert(self->type == &t_string);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_string);
 
 	StringObject *strobj = (StringObject*) self;
 
@@ -197,20 +196,22 @@ static int hash(Object *self)
 
 static Object *copy(Object *self, Heap *heap, Error *err)
 {
-	assert(self != NULL);
-	assert(self->type == &t_string);
-	assert(heap != NULL);
-	assert(err != NULL);
+	UNUSED(heap);
+	UNUSED(err);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_string);
+	ASSERT(heap != NULL);
+	ASSERT(err != NULL);
 
 	return self;
 }
 
 static _Bool op_eql(Object *self, Object *other)
 {
-	assert(self != NULL);
-	assert(self->type == &t_string);
-	assert(other != NULL);
-	assert(other->type == &t_string);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_string);
+	ASSERT(other != NULL);
+	ASSERT(other->type == &t_string);
 
 	StringObject *s1 = (StringObject*) self;
 	StringObject *s2 = (StringObject*) other;
@@ -222,9 +223,9 @@ static _Bool op_eql(Object *self, Object *other)
 
 static void print(Object *obj, FILE *fp)
 {
-	assert(fp != NULL);
-	assert(obj != NULL);
-	assert(obj->type == &t_string);
+	ASSERT(fp != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type == &t_string);
 
 	StringObject *str = (StringObject*) obj;
 

@@ -125,7 +125,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 		if(!strcmp(name, map->slots[i].name))
 		{
 			StaticMapSlot slot = map->slots[i];
-			Object *obj;
+			Object *obj = NULL;
 			switch(slot.kind)
 			{
 				case SM_BOOL:  return Object_FromBool(slot.as_bool, heap, error);

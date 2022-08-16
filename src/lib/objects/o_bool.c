@@ -28,9 +28,9 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include <string.h>
 #include "objects.h"
+#include "../utils/defs.h"
 
 static _Bool to_bool(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
@@ -62,13 +62,13 @@ static Object the_false_object = {
 
 static int hash(Object *self)
 {
-	assert(self != NULL);
-	assert(self->type == &t_bool);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_bool);
 
 	if(self == &the_true_object)
 		return 1;
 
-	assert(self == &the_false_object);
+	ASSERT(self == &the_false_object);
 	return 0;
 }
 
@@ -81,19 +81,20 @@ static Object *copy(Object *self, Heap *heap, Error *err)
 
 static _Bool op_eql(Object *self, Object *other)
 {
-	assert(self != NULL);
-	assert(self->type == &t_bool);
-	assert(other != NULL);
-	assert(other->type == &t_bool);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_bool);
+	ASSERT(other != NULL);
+	ASSERT(other->type == &t_bool);
 
 	return self == other;
 }
 
 static _Bool to_bool(Object *obj, Error *err)
 {
-	assert(obj);
-	assert(err);
-	assert(Object_GetType(obj) == &t_bool);
+	UNUSED(err);
+	ASSERT(obj);
+	ASSERT(err);
+	ASSERT(Object_GetType(obj) == &t_bool);
 	return obj == &the_true_object;
 }
 
@@ -111,9 +112,9 @@ Object *Object_FromBool(_Bool val, Heap *heap, Error *error)
 
 static void print(Object *obj, FILE *fp)
 {
-	assert(fp != NULL);
-	assert(obj != NULL);
-	assert(obj->type == &t_bool);
+	ASSERT(fp != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type == &t_bool);
 
 	fprintf(fp, obj == &the_true_object ? "true" : "false");
 }

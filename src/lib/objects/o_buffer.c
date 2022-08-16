@@ -29,7 +29,6 @@
 */
 
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 #include "../utils/defs.h"
 #include "objects.h"
@@ -94,7 +93,7 @@ _Bool Object_IsBuffer(Object *obj)
 
 Object *Object_NewBuffer(int size, Heap *heap, Error *error)
 {
-	assert(size >= 0);
+	ASSERT(size >= 0);
 
 	// Make the thing.
 	BufferObject *obj;
@@ -189,7 +188,7 @@ Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, E
 	}
 	else
 	{
-		assert(buffer->type == &t_buffer_slice);
+		ASSERT(buffer->type == &t_buffer_slice);
 
 		slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
 
@@ -243,7 +242,7 @@ void *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error)
 	}
 	else
 	{
-		assert(obj->type == &t_buffer_slice);
+		ASSERT(obj->type == &t_buffer_slice);
 
 		BufferSliceObject *slice = (BufferSliceObject*) obj;
 
@@ -256,11 +255,11 @@ void *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error)
 
 static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error)
 {
-	assert(self != NULL);
-	assert(self->type == &t_buffer);
-	assert(key != NULL);
-	assert(heap != NULL);
-	assert(error != NULL);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_buffer);
+	ASSERT(key != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(error != NULL);
 
 	if(!Object_IsInt(key))
 	{
@@ -269,7 +268,7 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	BufferObject *buffer = (BufferObject*) self;
 
@@ -286,11 +285,11 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 
 static Object *slice_select(Object *self, Object *key, Heap *heap, Error *error)
 {
-	assert(self != NULL);
-	assert(self->type == &t_buffer_slice);
-	assert(key != NULL);
-	assert(heap != NULL);
-	assert(error != NULL);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_buffer_slice);
+	ASSERT(key != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(error != NULL);
 
 	if(!Object_IsInt(key))
 	{
@@ -299,7 +298,7 @@ static Object *slice_select(Object *self, Object *key, Heap *heap, Error *error)
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	BufferSliceObject *slice = (BufferSliceObject*) self;
 
@@ -316,12 +315,13 @@ static Object *slice_select(Object *self, Object *key, Heap *heap, Error *error)
 
 static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, Error *error)
 {
-	assert(error != NULL);
-	assert(key != NULL);
-	assert(val != NULL);
-	assert(heap != NULL);
-	assert(self != NULL);
-	assert(self->type == &t_buffer);
+	UNUSED(heap);
+	ASSERT(error != NULL);
+	ASSERT(key != NULL);
+	ASSERT(val != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_buffer);
 
 	BufferObject *buffer = (BufferObject*) self;
 
@@ -332,7 +332,7 @@ static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, E
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	if(idx < 0 || idx >= buffer->size)
 	{
@@ -359,12 +359,13 @@ static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, E
 
 static _Bool slice_insert(Object *self, Object *key, Object *val, Heap *heap, Error *error)
 {
-	assert(error != NULL);
-	assert(key != NULL);
-	assert(val != NULL);
-	assert(heap != NULL);
-	assert(self != NULL);
-	assert(self->type == &t_buffer_slice);
+	UNUSED(heap);
+	ASSERT(error != NULL);
+	ASSERT(key != NULL);
+	ASSERT(val != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_buffer_slice);
 
 	BufferSliceObject *slice = (BufferSliceObject*) self;
 
@@ -375,7 +376,7 @@ static _Bool slice_insert(Object *self, Object *key, Object *val, Heap *heap, Er
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	if(idx < 0 || idx >= slice->length)
 	{
@@ -426,8 +427,8 @@ static void print_bytes(FILE *fp, unsigned char *addr, int size)
 		low  = byte & 0xf;
 		high = byte >> 4;
 
-		assert(low  < 16);
-		assert(high < 16);
+		ASSERT(low  < 16);
+		ASSERT(high < 16);
 
 		char c1, c2;
 

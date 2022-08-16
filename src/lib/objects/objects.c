@@ -28,7 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include "../utils/defs.h"
 #include "objects.h"
 
@@ -53,42 +52,43 @@ static _Bool op_eql(Object *self, Object *other)
 
 const char *Object_GetName(const Object *obj)
 {
-	assert(obj != NULL);
+	ASSERT(obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	const char *name = type->name;
-	assert(name);
+	ASSERT(name);
 
 	return name;
 }
 
 const TypeObject *Object_GetType(const Object *obj)
 {
-	assert(obj != NULL);
-	assert(obj->type != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type != NULL);
 	return obj->type;
 }
 
 unsigned int Object_GetSize(const Object *obj, Error *err)
 {
-	assert(err != NULL);
-	assert(obj != NULL);
+	UNUSED(err);
+	ASSERT(err != NULL);
+	ASSERT(obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	return type->size;
 }
 
 unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 {
-	assert(err != NULL);
-	assert(obj != NULL);
+	ASSERT(err != NULL);
+	ASSERT(obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->deepsize == NULL)
 	{
@@ -101,20 +101,20 @@ unsigned int Object_GetDeepSize(const Object *obj, Error *err)
 
 int Object_Hash(Object *obj)
 {
-	assert(obj != NULL);
+	ASSERT(obj != NULL);
 	const TypeObject *type = Object_GetType(obj);
-	assert(type != NULL);
-	assert(type->hash != NULL);
+	ASSERT(type != NULL);
+	ASSERT(type->hash != NULL);
 	return type->hash(obj);
 }
 
 Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 {
-	assert(err != NULL);
-	assert(obj != NULL);
+	ASSERT(err != NULL);
+	ASSERT(obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type != NULL);
+	ASSERT(type != NULL);
 
 	if(type->copy == NULL)
 	{
@@ -127,10 +127,10 @@ Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 
 int Object_Call(Object *obj, Object **argv, unsigned int argc, Object **rets, unsigned int maxrets, Heap *heap, Error *err)
 {
-	assert(err != NULL && obj != NULL);
+	ASSERT(err != NULL && obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->call == NULL)
 	{
@@ -143,10 +143,10 @@ int Object_Call(Object *obj, Object **argv, unsigned int argc, Object **rets, un
 
 void Object_Print(Object *obj, FILE *fp)
 {
-	assert(obj != NULL);
+	ASSERT(obj != NULL);
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->print == NULL)
 		fprintf(fp, "<%s is unprintable>", Object_GetName(obj));
@@ -156,12 +156,12 @@ void Object_Print(Object *obj, FILE *fp)
 
 Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(key);
-	assert(coll);
+	ASSERT(err);
+	ASSERT(key);
+	ASSERT(coll);
 
 	const TypeObject *type = Object_GetType(coll);
-	assert(type);
+	ASSERT(type);
 
 	if(type->select == NULL)
 	{
@@ -174,12 +174,12 @@ Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)
 
 Object *Object_Delete(Object *coll, Object *key, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(key);
-	assert(coll);
+	ASSERT(err);
+	ASSERT(key);
+	ASSERT(coll);
 
 	const TypeObject *type = Object_GetType(coll);
-	assert(type);
+	ASSERT(type);
 
 	if(type->delete == NULL)
 	{
@@ -192,12 +192,12 @@ Object *Object_Delete(Object *coll, Object *key, Heap *heap, Error *err)
 
 _Bool Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(key);
-	assert(coll);
+	ASSERT(err);
+	ASSERT(key);
+	ASSERT(coll);
 
 	const TypeObject *type = Object_GetType(coll);
-	assert(type);
+	ASSERT(type);
 
 	if(type->insert == NULL)
 	{
@@ -210,11 +210,11 @@ _Bool Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *e
 
 int	Object_Count(Object *coll, Error *err)
 {
-	assert(err);
-	assert(coll);
+	ASSERT(err);
+	ASSERT(coll);
 
 	const TypeObject *type = Object_GetType(coll);
-	assert(type);
+	ASSERT(type);
 
 	if(type->count == NULL)
 	{
@@ -227,11 +227,11 @@ int	Object_Count(Object *coll, Error *err)
 
 Object *Object_Next(Object *iter, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(iter);
+	ASSERT(err);
+	ASSERT(iter);
 
 	const TypeObject *type = Object_GetType(iter);
-	assert(type);
+	ASSERT(type);
 
 	if(type->next == NULL)
 	{
@@ -244,11 +244,11 @@ Object *Object_Next(Object *iter, Heap *heap, Error *err)
 
 Object *Object_Prev(Object *iter, Heap *heap, Error *err)
 {
-	assert(err);
-	assert(iter);
+	ASSERT(err);
+	ASSERT(iter);
 
 	const TypeObject *type = Object_GetType(iter);
-	assert(type);
+	ASSERT(type);
 
 	if(type->prev == NULL)
 	{
@@ -261,36 +261,36 @@ Object *Object_Prev(Object *iter, Heap *heap, Error *err)
 
 _Bool Object_IsInt(Object *obj)
 {
-	assert(obj != NULL);
-	assert(obj->type != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type != NULL);
 	return obj->type->atomic == ATMTP_INT;
 }
 
 _Bool Object_IsBool(Object *obj)
 {
-	assert(obj != NULL);
-	assert(obj->type != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type != NULL);
 	return obj->type->atomic == ATMTP_BOOL;
 }
 
 _Bool Object_IsFloat(Object *obj)
 {
-	assert(obj != NULL);
-	assert(obj->type != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type != NULL);
 	return obj->type->atomic == ATMTP_FLOAT;
 }
 
 _Bool Object_IsString(Object *obj)
 {
-	assert(obj != NULL);
-	assert(obj->type != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type != NULL);
 	return obj->type->atomic == ATMTP_STRING;
 }
 
 long long int Object_ToInt(Object *obj, Error *err)
 {
-	assert(err);
-	assert(obj);
+	ASSERT(err);
+	ASSERT(obj);
 
 	if(!Object_IsInt(obj))
 	{
@@ -299,7 +299,7 @@ long long int Object_ToInt(Object *obj, Error *err)
 	}
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->to_int == NULL)
 	{
@@ -312,8 +312,8 @@ long long int Object_ToInt(Object *obj, Error *err)
 
 _Bool Object_ToBool(Object *obj, Error *err)
 {
-	assert(err);
-	assert(obj);
+	ASSERT(err);
+	ASSERT(obj);
 
 	if(!Object_IsBool(obj))
 	{
@@ -322,7 +322,7 @@ _Bool Object_ToBool(Object *obj, Error *err)
 	}
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->to_bool == NULL)
 	{
@@ -335,8 +335,8 @@ _Bool Object_ToBool(Object *obj, Error *err)
 
 double Object_ToFloat(Object *obj, Error *err)
 {
-	assert(err);
-	assert(obj);
+	ASSERT(err);
+	ASSERT(obj);
 
 	if(!Object_IsFloat(obj))
 	{
@@ -345,7 +345,7 @@ double Object_ToFloat(Object *obj, Error *err)
 	}
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->to_float == NULL)
 	{
@@ -358,8 +358,8 @@ double Object_ToFloat(Object *obj, Error *err)
 
 const char *Object_ToString(Object *obj, int *size, Heap *heap, Error *err)
 {
-	assert(err != NULL);
-	assert(obj != NULL);
+	ASSERT(err != NULL);
+	ASSERT(obj != NULL);
 
 	if(!Object_IsString(obj))
 	{
@@ -368,7 +368,7 @@ const char *Object_ToString(Object *obj, int *size, Heap *heap, Error *err)
 	}
 
 	const TypeObject *type = Object_GetType(obj);
-	assert(type);
+	ASSERT(type);
 
 	if(type->to_string == NULL)
 	{
@@ -381,9 +381,9 @@ const char *Object_ToString(Object *obj, int *size, Heap *heap, Error *err)
 
 _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)
 {
-	assert(obj1 != NULL);
-	assert(obj2 != NULL);
-	assert(error != NULL);
+	ASSERT(obj1 != NULL);
+	ASSERT(obj2 != NULL);
+	ASSERT(error != NULL);
 
 	if(obj1->type != obj2->type)
 		return 0;
@@ -399,14 +399,14 @@ _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)
 
 void Object_WalkReferences(Object *parent, void (*callback)(Object **referer, void *userp), void *userp)
 {
-	assert(parent != NULL);
+	ASSERT(parent != NULL);
 	if(parent->type->walk != NULL)
 		parent->type->walk(parent, callback, userp);
 }
 
 void Object_WalkExtensions(Object *parent, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
 {
-	assert(parent != NULL);
+	ASSERT(parent != NULL);
 	if(parent->type->walkexts != NULL)
 		parent->type->walkexts(parent, callback, userp);
 }

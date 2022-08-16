@@ -117,7 +117,7 @@ _Bool Executable_GetOpcodeBinaryFromName(const char *name, size_t name_len, Opco
 	// so to simplify things we duplicate it to add
 	// an extra null byte.
 	char buff[128]; // No opcode should have a name this big.
-	assert(name_len < sizeof(buff)); // If this is triggered, [buff] should be made bigger.
+	ASSERT(name_len < sizeof(buff)); // If this is triggered, [buff] should be made bigger.
 	
 	memcpy(buff, name, name_len);
 	buff[name_len] = '\0';
@@ -125,7 +125,7 @@ _Bool Executable_GetOpcodeBinaryFromName(const char *name, size_t name_len, Opco
 	name = buff;
 
 	// Now name is zero terminated.
-	assert(name[name_len] == '\0');
+	ASSERT(name[name_len] == '\0');
 
 	for(size_t i = 0; i < sizeof(instr_table)/sizeof(instr_table[0]); i += 1) {
 		if(!strcmp(name, instr_table[i].name)) {
@@ -143,7 +143,7 @@ const char *Executable_GetOpcodeName(Opcode opcode)
 
 Executable *Executable_Copy(Executable *exe)
 {
-	assert(exe != NULL);
+	ASSERT(exe != NULL);
 
 	exe->refs += 1;
 	return exe;
@@ -152,7 +152,7 @@ Executable *Executable_Copy(Executable *exe)
 void Executable_Free(Executable *exe)
 {
 	exe->refs -= 1;
-	assert(exe->refs >= 0);
+	ASSERT(exe->refs >= 0);
 
 	if(exe->refs == 0)
 	{
@@ -243,7 +243,7 @@ int Executable_GetInstrLength(Executable *exe, int index)
 
 _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops, int *opc)
 {
-	assert(index >= 0);
+	ASSERT(index >= 0);
 
 	if(index >= exe->bodyl)
 		return 0;
@@ -263,7 +263,7 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 		for(i = 0; i < k; i += 1)
 		{
 			OperandType type = info->optypes[i];
-			assert(type != OPTP_PROMISE);
+			ASSERT(type != OPTP_PROMISE);
 
 			switch(type) 
 			{
@@ -271,7 +271,7 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 				{
 					int data_offset = instr->operands[i].as_int;
 
-					assert(data_offset < exe->headl);
+					ASSERT(data_offset < exe->headl);
 
 					ops[i].type = OPTP_STRING;
 					ops[i].as_string = exe->head + data_offset;
@@ -337,16 +337,16 @@ _Bool Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char
 		// same, the number of operands must be
 		// the same too. (Their type must be
 		// the same too.)
-		assert(exe1_opc == exe2_opc);
+		ASSERT(exe1_opc == exe2_opc);
 
 		for(int opno = 0; opno < exe1_opc; opno += 1) {
 
-			assert(exe1_opv[opno].type == exe2_opv[opno].type);
+			ASSERT(exe1_opv[opno].type == exe2_opv[opno].type);
 
 			// Also, an executable can never have
 			// a promise operand. That's only used
 			// when building the executable.
-			assert(exe1_opv[opno].type != OPTP_PROMISE);
+			ASSERT(exe1_opv[opno].type != OPTP_PROMISE);
 
 			switch(exe1_opv[opno].type) {
 				
@@ -392,8 +392,7 @@ _Bool Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char
 				break;
 				
 				case OPTP_PROMISE:
-				/* Unreachable */
-				assert(0);
+				UNREACHABLE;
 				break;
 			}
 		}
@@ -405,7 +404,7 @@ _Bool Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char
 
 ExeBuilder *ExeBuilder_New(BPAlloc *alloc)
 {
-	assert(alloc != NULL);
+	ASSERT(alloc != NULL);
 
 	ExeBuilder *exeb = BPAlloc_Malloc(alloc, sizeof(ExeBuilder));
 
@@ -423,7 +422,7 @@ ExeBuilder *ExeBuilder_New(BPAlloc *alloc)
 
 Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 {
-	assert(exeb != NULL);
+	ASSERT(exeb != NULL);
 
 	if(exeb->promc > 0)
 	{
@@ -436,7 +435,7 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 		int data_size = BucketList_Size(exeb->data);
 		int code_size = BucketList_Size(exeb->code);
 
-		assert(code_size % sizeof(Instruction) == 0);
+		ASSERT(code_size % sizeof(Instruction) == 0);
 
 		void *temp = malloc(sizeof(Executable) + data_size + code_size);
 
@@ -463,18 +462,18 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 
 static void promise_callback(void *userp)
 {
-	assert(userp != NULL);
+	ASSERT(userp != NULL);
 
 	ExeBuilder *exeb = userp;
 
 	exeb->promc -= 1;
-	assert(exeb->promc >= 0);
+	ASSERT(exeb->promc >= 0);
 }
 
 _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *opv, int opc, int off, int len)
 {
-	assert(exeb != NULL);
-	assert(opc >= 0);
+	ASSERT(exeb != NULL);
+	ASSERT(opc >= 0);
 
 	static const char *operand_type_names[] = {
 		[OPTP_IDX] = "index",
@@ -508,7 +507,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 		return 0;
 	}
 
-	assert(opc <= MAX_OPS);
+	ASSERT(opc <= MAX_OPS);
 
 	{
 		Instruction *instr = BucketList_Append2(exeb->code, NULL, sizeof(Instruction));
@@ -532,11 +531,11 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 				OperandType expected_type = info->optypes[i];
 				OperandType provided_type = opv[i].type;
 
-				assert(expected_type != OPTP_PROMISE);
+				ASSERT(expected_type != OPTP_PROMISE);
 
 				if(provided_type == OPTP_PROMISE)
 				{
-					assert(opv[i].as_promise != NULL);
+					ASSERT(opv[i].as_promise != NULL);
 
 					if(expected_type == OPTP_STRING)
 					{
@@ -588,7 +587,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 				break;
 
 				case OPTP_PROMISE:
-				assert(info->optypes[i] != OPTP_STRING);
+				ASSERT(info->optypes[i] != OPTP_STRING);
 
 				// This must be incremented before subscribing
 				// since the counter-decrementing callback may 
@@ -630,7 +629,7 @@ int ExeBuilder_InstrCount(ExeBuilder *exeb)
 {
 	int raw_size = BucketList_Size(exeb->code);
 
-	assert(raw_size % sizeof(Instruction) == 0);
+	ASSERT(raw_size % sizeof(Instruction) == 0);
 
 	return raw_size / sizeof(Instruction);
 }

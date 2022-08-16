@@ -28,7 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include <string.h>
 #include "../utils/defs.h"
 #include "objects.h"
@@ -64,8 +63,8 @@ static TypeObject t_list = {
 
 static int hash(Object *self)
 {
-	assert(self != NULL);
-	assert(self->type == &t_list);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_list);
 
 	ListObject *ls = (ListObject*) self;
 
@@ -81,8 +80,8 @@ static int hash(Object *self)
 
 static Object *copy(Object *self, Heap *heap, Error *err)
 {
-	(void) heap;
-	(void) err;
+	UNUSED(heap);
+	UNUSED(err);
 
 	ListObject *ls  = (ListObject*) self;
 	ListObject *ls2 = (ListObject*) Object_NewList(ls->count, heap, err);
@@ -131,7 +130,7 @@ Object *Object_NewList(int capacity, Heap *heap, Error *error)
 
 Object *Object_NewList2(int num, Object **items, Heap *heap, Error *error)
 {
-	assert(num > -1);
+	ASSERT(num > -1);
 
 	ListObject *list = (ListObject*) Object_NewList(num, heap, error);
 
@@ -161,11 +160,12 @@ static void walkexts(Object *self, void (*callback)(void **referer, unsigned int
 
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 {
-	assert(self != NULL);
-	assert(self->type == &t_list);
-	assert(key != NULL);
-	assert(heap != NULL);
-	assert(error != NULL);
+	UNUSED(heap);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_list);
+	ASSERT(key != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(error != NULL);
 
 	if(!Object_IsInt(key))
 	{
@@ -174,7 +174,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	ListObject *list = (ListObject*) self;
 
@@ -194,7 +194,7 @@ static unsigned int calc_new_capacity(unsigned int old_capacity)
 
 static _Bool grow(ListObject *list, Heap *heap, Error *error)
 {
-	assert(list != NULL);
+	ASSERT(list != NULL);
 
 	int new_capacity = calc_new_capacity(list->capacity);
 
@@ -213,12 +213,12 @@ static _Bool grow(ListObject *list, Heap *heap, Error *error)
 
 static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *error)
 {
-	assert(error != NULL);
-	assert(key != NULL);
-	assert(val != NULL);
-	assert(heap != NULL);
-	assert(self != NULL);
-	assert(self->type == &t_list);
+	ASSERT(error != NULL);
+	ASSERT(key != NULL);
+	ASSERT(val != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_list);
 
 	ListObject *list = (ListObject*) self;
 
@@ -229,7 +229,7 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 	}
 
 	int idx = Object_ToInt(key, error);
-	assert(error->occurred == 0);
+	ASSERT(error->occurred == 0);
 
 	if(idx < 0 || idx > list->count)
 	{

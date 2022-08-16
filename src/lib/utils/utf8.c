@@ -28,8 +28,8 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include <stddef.h> // NULL
+#include "defs.h"
 #include "utf8.h"
 
 // If this is turned on, these functions will assume
@@ -137,8 +137,8 @@ int utf8_sequence_from_utf32_codepoint(char *utf8_data, int nbytes, uint32_t utf
 */
 int utf8_sequence_to_utf32_codepoint(const char *utf8_data, int nbytes, uint32_t *utf32_code)
 {
-    assert(utf8_data != NULL);
-    assert(nbytes >= 0);
+    ASSERT(utf8_data != NULL);
+    ASSERT(nbytes >= 0);
 
     uint32_t dummy;
     if(utf32_code == NULL)
@@ -204,7 +204,7 @@ int utf8_sequence_to_utf32_codepoint(const char *utf8_data, int nbytes, uint32_t
                     = (((uint32_t) utf8_data[0] & 0x1f) << 6)
                     | (((uint32_t) utf8_data[1] & 0x3f));
                     
-                assert(*utf32_code <= 0x10ffff);
+                ASSERT(*utf32_code <= 0x10ffff);
                 return 2;
             }
             
@@ -248,8 +248,8 @@ int utf8_sequence_to_utf32_codepoint(const char *utf8_data, int nbytes, uint32_t
 */
 int utf8_strlen(const char *utf8_data, int nbytes)
 {
-    assert(utf8_data != NULL);
-    assert(nbytes >= 0);
+    ASSERT(utf8_data != NULL);
+    ASSERT(nbytes >= 0);
 
     int len = 0;
 
@@ -324,8 +324,10 @@ int utf8_strlen(const char *utf8_data, int nbytes)
 */
 int utf8_prev(const char *utf8_data, int nbytes, int idx, uint32_t *utf32_code)
 {
-    assert(idx >= 0);
-    assert(idx <= nbytes);
+    UNUSED(nbytes);
+    ASSERT(idx >= 0);
+    ASSERT(idx <= nbytes);
+
 
     // [idx] currently refers to the head byte
     // of a UTF-8 sequence. We need to first
@@ -384,13 +386,13 @@ int utf8_prev(const char *utf8_data, int nbytes, int idx, uint32_t *utf32_code)
         // The sequence wasn't valid UTF-8.
         return -1;
 
-    assert(n > 0);
+    ASSERT(n > 0);
 
     if(n < aux + 1)
         // Not all of the auxiliary bytes were considered while parsing.
         return -1;
 
-    assert(n == aux + 1);
+    ASSERT(n == aux + 1);
 
     return head;
 }
@@ -444,8 +446,8 @@ int utf8_next(const char *utf8_data, int nbytes, int idx, uint32_t *utf32_code)
 
 int utf8_curr(const char *utf8_data, int nbytes, int idx, uint32_t *utf32_code)
 {
-    assert(idx >= 0);
-    assert(idx < nbytes);
+    ASSERT(idx >= 0);
+    ASSERT(idx < nbytes);
 
     int n = utf8_sequence_to_utf32_codepoint(utf8_data + idx, nbytes - idx, utf32_code);
 

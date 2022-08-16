@@ -55,7 +55,7 @@ void *Stack_New(int size)
 	if(s == NULL)
 		return NULL;
 
-	assert((intptr_t) s % 8 == 0);
+	ASSERT((intptr_t) s % 8 == 0);
 
 	s->size = size;
 	s->used = 0;
@@ -70,7 +70,7 @@ static Stack *unmark(Stack *s)
 
 void *Stack_Top(Stack *s, int n)
 {
-	assert(n <= 0);
+	ASSERT(n <= 0);
 
 	// Remove readonly bit.
 	s = unmark(s);
@@ -86,7 +86,7 @@ void *Stack_Top(Stack *s, int n)
 
 void **Stack_TopRef(Stack *s, int n)
 {
-	assert(n <= 0);
+	ASSERT(n <= 0);
 
 	if(Stack_IsReadOnlyCopy(s))
 		return NULL;
@@ -118,8 +118,8 @@ _Bool Stack_Pop(Stack *s, unsigned int n)
 
 _Bool Stack_Push(Stack *s, void *item)
 {
-	assert(s != NULL);
-	assert(item != NULL);
+	ASSERT(s != NULL);
+	ASSERT(item != NULL);
 
 	if(Stack_IsReadOnlyCopy(s))
 		return 0;
@@ -159,7 +159,7 @@ void Stack_Free(Stack *s)
 	s = unmark(s);
 
 	s->refs -= 1;
-	assert(s->refs >= 0);
+	ASSERT(s->refs >= 0);
 
 	if(s->refs == 0)
 		free(s);

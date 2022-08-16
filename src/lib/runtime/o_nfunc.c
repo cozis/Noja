@@ -105,8 +105,11 @@ static int call(Object *self, Object **argv, unsigned int argc, Object **rets, u
 				return -1;
 			}
 		}
+	} else {
+		UNREACHABLE;
+		argv2 = NULL;
+		argc2 = -1;
 	}
-	else UNREACHABLE;
 
 	assert(func->callback != NULL);
 	int retc = func->callback(func->runtime, argv2, argc2, rets, maxretc, error);

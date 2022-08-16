@@ -48,7 +48,7 @@ Promise *Label_ToPromise(Label *label)
 
 static void okNowJump(CodegenContext *ctx)
 {
-    assert(ctx->env_set == true);
+    ASSERT(ctx->env_set == true);
     longjmp(*ctx->env, 1);
     UNREACHABLE;
 }
@@ -68,7 +68,7 @@ void CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file,
 
 void CodegenContext_SetJumpDest(CodegenContext *ctx, jmp_buf *env)
 {
-    assert(ctx->env_set == false);
+    ASSERT(ctx->env_set == false);
     ctx->env = env;
     ctx->env_set = true;
 }

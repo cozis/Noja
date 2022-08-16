@@ -28,7 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -37,15 +36,17 @@
 #include "basic.h"
 #include "files.h"
 #include "../utils/utf8.h"
+#include "../utils/defs.h"
 #include "../objects/objects.h"
 #include "../compiler/compile.h"
 #include "../runtime/runtime.h"
+
 static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	(void) runtime;
-	(void) rets;
-	(void) maxretc;
-	(void) error;
+	UNUSED(runtime);
+	UNUSED(rets);
+	UNUSED(maxretc);
+	UNUSED(error);
 
 	for(int i = 0; i < (int) argc; i += 1)
 		Object_Print(argv[i], stdout);
@@ -54,9 +55,11 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	assert(argc == 1);
+	UNUSED(argc);
+	ASSERT(argc == 1);
+
 	Heap *heap = Runtime_GetHeap(runtime);
-	assert(heap != NULL);
+	ASSERT(heap != NULL);
 
 	Object *o_path = argv[0];
 	const char *path;
@@ -73,7 +76,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		if (path == NULL)
 			return -1;
 
-		assert(n >= 0);
+		ASSERT(n >= 0);
 		path_len = (size_t) n;
 	}
 
@@ -137,7 +140,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
             case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
             case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
         }
-        (void) errname;
+        UNUSED(errname);
         
         {
         	if(maxretc == 0)
@@ -170,7 +173,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 	    {
 	    	const char *errname = "Runtime";
 	        // Snapshot?
-	        (void) errname;
+	        UNUSED(errname);
 	    	{
         		if(maxretc == 0)
 					return 0;
@@ -194,7 +197,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 				return 2;
 	        }
 	    }
-	    assert(retc == 1);
+	    ASSERT(retc == 1);
 
 	    if(maxretc == 0)
 	    	return 0;
@@ -206,9 +209,10 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 
 static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	assert(argc == 1);
-	(void) runtime;
-	(void) error;
+	ASSERT(argc == 1);
+	UNUSED(runtime);
+	UNUSED(error);
+	UNUSED(argc);
 
 	if(maxretc == 0)
 		return 0;
@@ -218,10 +222,10 @@ static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object *
 
 static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	(void) runtime;
-	(void) error;
-
-	assert(argc == 1);
+	UNUSED(runtime);
+	UNUSED(error);
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
 	uint32_t ret = 0;
 
@@ -245,7 +249,8 @@ static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Objec
 
 
 	int k = utf8_sequence_to_utf32_codepoint(string,n,&ret);
-	assert(k >= 0);
+	UNUSED(k);
+	ASSERT(k >= 0);
 
 	Object *temp = Object_FromInt(ret,Runtime_GetHeap(runtime),error);
 
@@ -260,16 +265,14 @@ static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Objec
 
 static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
-	assert(argc == 1);
-
-	
 	if(!Object_IsInt(argv[0]))
 	{
 		Error_Report(error, 0, "Argument #%d is not an integer", 1);
 		return -1;
 	}
-
 
 	char buff[32];
 	
@@ -300,7 +303,8 @@ static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object **
 
 static int bin_count(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	assert(argc == 1);
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
 	int n = Object_Count(argv[0], error);
 
@@ -320,9 +324,9 @@ static int bin_count(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	(void) argv;
-	
-	assert(argc == 0);
+	UNUSED(argv);
+	UNUSED(argc);
+	ASSERT(argc == 0);
 
 	char maybe[256];
 	char *str = maybe;
@@ -372,9 +376,9 @@ static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	(void) runtime;
-	(void) rets;
-	(void) maxretc;
+	UNUSED(runtime);
+	UNUSED(rets);
+	UNUSED(maxretc);
 
 	for(unsigned int i = 0; i < argc; i += 1)
 		if(!Object_ToBool(argv[i], error))
@@ -388,10 +392,10 @@ static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object
 
 static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	(void) rets;
-	(void) maxretc;
-
-	assert(argc == 1);
+	UNUSED(argc);
+	UNUSED(rets);
+	UNUSED(maxretc);
+	ASSERT(argc == 1);
 
 	int         length;
 	const char *string;
@@ -471,7 +475,8 @@ done:
 
 static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	assert(argc == 1);
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
 	long long int size = Object_ToInt(argv[0], error);
 
@@ -491,7 +496,8 @@ static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Obj
 
 static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	assert(argc == 3);
+	UNUSED(argc);
+	ASSERT(argc == 3);
 
 	long long int offset = Object_ToInt(argv[1], error);
 	if(error->occurred == 1) return -1;
@@ -512,7 +518,8 @@ static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, O
 
 static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
 {
-	assert(argc == 1);
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
 	void *buffaddr;
 	int   buffsize;

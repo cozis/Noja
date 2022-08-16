@@ -28,8 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
-
 #ifndef MAX
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
@@ -42,6 +40,26 @@
 #define NULL ((void*) 0)
 #endif
 
-#define UNREACHABLE assert(0);
+#define UNUSED(x) ((void) (x))
+
+#ifdef DEBUG
+#define ASSERT(X)       \
+    do {                \
+        if(!(X)) {      \
+            fprintf(stderr, "Assertion failure %s:%d (in %s): [" #X "] is false\n", __FILE__, __LINE__, __func__); \
+            abort();    \
+        }               \
+    } while(0);
+#define UNREACHABLE     \
+    do {                \
+        if(!(x)) {      \
+            fprintf(stderr, "ABORT at %s:%d (in %s): Reached code assumed to be unreachable\n", __FILE__, __LINE__, __func__); \
+            abort();    \
+        }               \
+    } while(0);
+#else
+#define ASSERT(x)
+#define UNREACHABLE
+#endif
 
 #define membersizeof(type, member) (sizeof(((type*) 0)->member))

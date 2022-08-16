@@ -28,9 +28,9 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include <string.h>
 #include "objects.h"
+#include "../utils/defs.h"
 
 static _Bool op_eql(Object *self, Object *other);
 static void   print(Object *obj, FILE *fp);
@@ -64,37 +64,39 @@ _Bool Object_IsNone(Object *obj)
 
 static int hash(Object *self)
 {
-	assert(self == &the_none_object);
+	UNUSED(self);
+	ASSERT(self == &the_none_object);
 	return 0;
 }
 
 static Object *copy(Object *self, Heap *heap, Error *err)
 {
-	(void) heap;
-	(void) err;
+	UNUSED(heap);
+	UNUSED(err);
 	return self;
 }
 
 Object *Object_NewNone(Heap *heap, Error *error)
 {
-	(void) heap;
-	(void) error;
+	UNUSED(heap);
+	UNUSED(error);
 	return &the_none_object;
 }
 
 static void print(Object *obj, FILE *fp)
 {
-	assert(fp != NULL);
-	assert(obj != NULL);
-	assert(obj->type == &t_none);
+	UNUSED(obj);
+	ASSERT(fp != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type == &t_none);
 
 	fprintf(fp, "none");
 }
 
 static _Bool op_eql(Object *self, Object *other)
 {
-	(void) self;
-	
-	assert(other->type == &t_none);
+	UNUSED(self);
+	UNUSED(other);
+	ASSERT(other->type == &t_none);
 	return 1;
 }

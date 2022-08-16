@@ -28,7 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include "../utils/defs.h"
 #include "objects.h"
 
@@ -164,7 +163,7 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp)
 {
-	assert(self->type == &t_map);
+	ASSERT(self->type == &t_map);
 
 	MapObject *map = (MapObject*) self;
 
@@ -177,11 +176,12 @@ static void walkexts(Object *self, void (*callback)(void **referer, unsigned int
 
 static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 {
-	assert(self != NULL);
-	assert(self->type == &t_map);
-	assert(key != NULL);
-	assert(heap != NULL);
-	assert(error != NULL);
+	UNUSED(heap);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_map);
+	ASSERT(key != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(error != NULL);
 
 	MapObject *map = (MapObject*) self;
 
@@ -206,7 +206,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 			// Found an item. 
 			// Is it the right one?
 					
-			assert(k >= 0);
+			ASSERT(k >= 0);
 
 			if(Object_Compare(key, map->keys[k], error))
 				// Found it!
@@ -229,7 +229,7 @@ static Object *select(Object *self, Object *key, Heap *heap, Error *error)
 
 static _Bool grow(MapObject *map, Heap *heap, Error *error)
 {
-	assert(map != NULL);
+	ASSERT(map != NULL);
 
 	int new_mapper_size = map->mapper_size << 1;
 	int new_capacity = calc_capacity(new_mapper_size);
@@ -289,12 +289,12 @@ static _Bool grow(MapObject *map, Heap *heap, Error *error)
 
 static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *error)
 {
-	assert(error != NULL);
-	assert(key != NULL);
-	assert(val != NULL);
-	assert(heap != NULL);
-	assert(self != NULL);
-	assert(self->type == &t_map);
+	ASSERT(error != NULL);
+	ASSERT(key != NULL);
+	ASSERT(val != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_map);
 
 	MapObject *map = (MapObject*) self;
 
@@ -328,7 +328,7 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 		}
 		else
 		{
-			assert(k >= 0);
+			ASSERT(k >= 0);
 
 			if(Object_Compare(key, map->keys[k], error))
 			{

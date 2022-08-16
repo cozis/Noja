@@ -78,20 +78,20 @@ size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffs
 	{
 		// This is buggy code!!
 		size_t path_len = strlen(path);
-		assert(path_len > 0); // Not empty
-		assert(Path_IsAbsolute(path)); // Is absolute
-		assert(path[path_len-1] != '/'); // Doesn't end with a slash.
+		ASSERT(path_len > 0); // Not empty
+		ASSERT(Path_IsAbsolute(path)); // Is absolute
+		ASSERT(path[path_len-1] != '/'); // Doesn't end with a slash.
 
 		size_t popped = 0;
 		while(path[path_len-1-popped] != '/')
 			popped += 1;
 		
-		assert(path_len > popped);
+		ASSERT(path_len > popped);
 
 		dir_len = path_len - popped;
 		
-		assert(dir_len < path_len);
-		assert(path[dir_len-1] == '/');
+		ASSERT(dir_len < path_len);
+		ASSERT(path[dir_len-1] == '/');
 	}
 
 	if(dir_len >= buffsize)
@@ -105,7 +105,7 @@ size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffs
 const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime)
 {
 	Executable *exe = Runtime_GetCurrentExecutable(runtime);
-	assert(exe != NULL);
+	ASSERT(exe != NULL);
 
 	Source *src = Executable_GetSource(exe);
 	if(src == NULL)
@@ -115,7 +115,7 @@ const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime)
 	if(path == NULL)
 		return NULL;
 
-	assert(path[0] != '\0');
+	ASSERT(path[0] != '\0');
 	return path;
 }
 
@@ -207,9 +207,9 @@ void Runtime_SetBuiltins(Runtime *runtime, Object *builtins)
 
 _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 {
-	assert(runtime != NULL);
-	assert(error != NULL);
-	assert(obj != NULL);
+	ASSERT(runtime != NULL);
+	ASSERT(error != NULL);
+	ASSERT(obj != NULL);
 
 	if(runtime->depth == 0)
 	{
@@ -217,7 +217,7 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 		return 0;
 	}
 
-	assert(runtime->frame->used <= MAX_FRAME_STACK);
+	ASSERT(runtime->frame->used <= MAX_FRAME_STACK);
 	
 	if(runtime->frame->used == MAX_FRAME_STACK)
 	{
@@ -237,8 +237,8 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 
 _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 {
-	assert(runtime != NULL);
-	assert(error != NULL);
+	ASSERT(runtime != NULL);
+	ASSERT(error != NULL);
 
 	if(runtime->depth == 0)
 	{
@@ -246,7 +246,7 @@ _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 		return 0;
 	}
 
-	assert(runtime->frame->used >= 0);
+	ASSERT(runtime->frame->used >= 0);
 
 	if((unsigned int) runtime->frame->used < n)
 	{
@@ -261,7 +261,7 @@ _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 
 	runtime->frame->used -= n;
 
-	assert(runtime->frame->used >= 0);
+	ASSERT(runtime->frame->used >= 0);
 	
 	return 1;
 }
@@ -278,7 +278,7 @@ struct xSnapshot {
 
 Snapshot *Snapshot_New(Runtime *runtime)
 {
-	assert(runtime->depth >= 0);
+	ASSERT(runtime->depth >= 0);
 
 	Snapshot *snapshot = malloc(sizeof(Snapshot) + sizeof(SnapshotNode) * runtime->depth);
 
@@ -292,7 +292,7 @@ Snapshot *Snapshot_New(Runtime *runtime)
 
 		while(snapshot->depth < runtime->depth)
 		{
-			assert(f != NULL);
+			ASSERT(f != NULL);
 
 			SnapshotNode *node = snapshot->nodes + snapshot->depth;
 
@@ -306,7 +306,7 @@ Snapshot *Snapshot_New(Runtime *runtime)
 			snapshot->depth += 1;
 		}
 
-		assert(f == NULL);
+		ASSERT(f == NULL);
 	}
 
 	return snapshot;
@@ -328,8 +328,8 @@ void Snapshot_Free(Snapshot *snapshot)
 
 void Snapshot_Print(Snapshot *snapshot, FILE *fp)
 {
-	assert(snapshot != NULL);
-	assert(fp != NULL);
+	ASSERT(snapshot != NULL);
+	ASSERT(fp != NULL);
 
 	fprintf(fp, "Stack trace:\n");
 
@@ -385,8 +385,8 @@ void Snapshot_Print(Snapshot *snapshot, FILE *fp)
 
 static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, Error *error)
 {
-	assert(lop != NULL);
-	assert(rop != NULL);
+	ASSERT(lop != NULL);
+	ASSERT(rop != NULL);
 
 	#define APPLY(x, y, z, id) 							\
 		switch(opcode)									\
@@ -402,7 +402,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 			} 											\
 			(z) = (x) / (y); 							\
 			break;										\
-			default: assert(0); break;					\
+			default: UNREACHABLE; break;				\
 		}
 
 	Object *res;
@@ -422,7 +422,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 			if(error->occurred)
 				return NULL;
 
-			long long int raw_res;
+			long long int raw_res = 0;
 
 			APPLY(raw_lop, raw_rop, raw_res, id)
 
@@ -436,7 +436,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 			if(error->occurred)
 				return NULL;
 
-			double raw_res;
+			double raw_res = 0;
 
 			APPLY((double) raw_lop, raw_rop, raw_res, id)
 
@@ -463,7 +463,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 			if(error->occurred)
 				return NULL;
 
-			double raw_res;
+			double raw_res = 0;
 
 			APPLY(raw_lop, (double) raw_rop, raw_res, id)
 
@@ -477,7 +477,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 			if(error->occurred)
 				return NULL;
 
-			double raw_res;
+			double raw_res = 0;
 
 			APPLY(raw_lop, raw_rop, raw_res, id)
 
@@ -502,20 +502,20 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 
 static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, Error *error)
 {
-	assert(lop != NULL);
-	assert(rop != NULL);
+	ASSERT(lop != NULL);
+	ASSERT(rop != NULL);
 
-	#define APPLY(x, y, z, id) 								\
-		switch(opcode)										\
+	#define APPLY(x, y, z, id) 							\
+		switch(opcode)									\
 		{												\
 			case OPCODE_LSS: (z) = (x) <  (y); break;	\
 			case OPCODE_GRT: (z) = (x) >  (y); break;	\
 			case OPCODE_LEQ: (z) = (x) <= (y); break;	\
 			case OPCODE_GEQ: (z) = (x) >= (y); break;	\
-			default: assert(0); break;					\
+			default: UNREACHABLE; break;				\
 		}
 
-	_Bool res;
+	_Bool res = 0;
 
 	if(Object_IsInt(lop))
 	{
@@ -596,8 +596,8 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 
 static _Bool step(Runtime *runtime, Error *error)
 {
-	assert(runtime != NULL);
-	assert(error->occurred == 0);
+	ASSERT(runtime != NULL);
+	ASSERT(error->occurred == 0);
 	Opcode opcode;	
 	Operand ops[3];
 	int     opc = sizeof(ops) / sizeof(ops[0]);
@@ -618,7 +618,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_POS:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used == 0)
 			{
@@ -632,7 +632,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_NEG:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used == 0)
 			{
@@ -641,13 +641,13 @@ static _Bool step(Runtime *runtime, Error *error)
 			}
 
 			Object *top = Stack_Top(runtime->stack, 0);
-			assert(top != NULL);
+			ASSERT(top != NULL);
 
 			if(!Runtime_Pop(runtime, error, 1))
 				return 0;
 
 			Heap *heap = Runtime_GetHeap(runtime);
-			assert(heap != NULL);
+			ASSERT(heap != NULL);
 
 			if(Object_IsInt(top))
 			{
@@ -683,7 +683,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_NOT:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used == 0)
 			{
@@ -696,7 +696,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			if(!Runtime_Pop(runtime, error, 1))
 				return 0;
 
-			assert(top != NULL);
+			ASSERT(top != NULL);
 
 			_Bool v = Object_ToBool(top, error);
 
@@ -718,7 +718,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		case OPCODE_MUL:
 		case OPCODE_DIV:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *rop = Stack_Top(runtime->stack,  0);
 			Object *lop = Stack_Top(runtime->stack, -1);
@@ -728,8 +728,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			// We managed to pop rop and lop,
 			// so we know they're not NULL.
-			assert(rop != NULL);
-			assert(lop != NULL);
+			ASSERT(rop != NULL);
+			ASSERT(lop != NULL);
 
 			Object *res = do_math_op(lop, rop, opcode, runtime->heap, error);
 
@@ -744,7 +744,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		case OPCODE_EQL:
 		case OPCODE_NQL:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *rop = Stack_Top(runtime->stack,  0);
 			Object *lop = Stack_Top(runtime->stack, -1);
@@ -754,8 +754,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			// We managed to pop rop and lop,
 			// so we know they're not NULL.
-			assert(rop != NULL);
-			assert(lop != NULL);
+			ASSERT(rop != NULL);
+			ASSERT(lop != NULL);
 
 			_Bool rawres = Object_Compare(lop, rop, error);
 
@@ -780,7 +780,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		case OPCODE_LEQ:
 		case OPCODE_GEQ:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *rop = Stack_Top(runtime->stack,  0);
 			Object *lop = Stack_Top(runtime->stack, -1);
@@ -790,8 +790,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			// We managed to pop rop and lop,
 			// so we know they're not NULL.
-			assert(rop != NULL);
-			assert(lop != NULL);
+			ASSERT(rop != NULL);
+			ASSERT(lop != NULL);
 
 			Object *res = do_relational_op(lop, rop, opcode, runtime->heap, error);
 
@@ -806,7 +806,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		case OPCODE_AND:
 		case OPCODE_OR:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *rop = Stack_Top(runtime->stack,  0);
 			Object *lop = Stack_Top(runtime->stack, -1);
@@ -816,8 +816,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			// We managed to pop rop and lop,
 			// so we know they're not NULL.
-			assert(rop != NULL);
-			assert(lop != NULL);
+			ASSERT(rop != NULL);
+			ASSERT(lop != NULL);
 
 			_Bool raw_rop, raw_lop, raw_res;
 			raw_lop = Object_ToBool(lop, error);
@@ -828,7 +828,10 @@ static _Bool step(Runtime *runtime, Error *error)
 			{
 				case OPCODE_AND: raw_res = raw_lop && raw_rop; break;
 				case OPCODE_OR:  raw_res = raw_lop || raw_rop; break;
-				default: assert(0); break;
+				default: 
+				UNREACHABLE; 
+				raw_res = 0;
+				break;
 			}
 
 			Object *res = Object_FromBool(raw_res, runtime->heap, error);
@@ -843,8 +846,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_ASS:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_STRING);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_STRING);
 
 			if(runtime->frame->used == 0)
 			{
@@ -853,7 +856,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			}
 
 			Object *val = Stack_Top(runtime->stack, 0);
-			assert(val != NULL);
+			ASSERT(val != NULL);
 
 			Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
 
@@ -867,7 +870,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_POP:
 		{
-			assert(opc == 1);
+			ASSERT(opc == 1);
 
 			if(!Runtime_Pop(runtime, error, ops[0].as_int))
 				return 0;
@@ -876,13 +879,13 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_CALL:
 		{
-			assert(opc == 2);
-			assert(ops[0].type == OPTP_INT);
-			assert(ops[1].type == OPTP_INT);
+			ASSERT(opc == 2);
+			ASSERT(ops[0].type == OPTP_INT);
+			ASSERT(ops[1].type == OPTP_INT);
 
 			int argc = ops[0].as_int;
 			int retc = ops[1].as_int;
-			assert(argc >= 0 && retc > 0);
+			ASSERT(argc >= 0 && retc > 0);
 
 			if(runtime->frame->used < argc + 1)
 			{
@@ -891,7 +894,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			}
 
 			Object *callable = Stack_Top(runtime->stack, 0);
-			assert(callable != NULL);
+			ASSERT(callable != NULL);
 
 			Object *argv[8];
 
@@ -905,12 +908,12 @@ static _Bool step(Runtime *runtime, Error *error)
 			for(int i = 0; i < argc; i += 1)
 			{
 				argv[i] = Stack_Top(runtime->stack, -(i+1));
-				assert(argv[i] != NULL);
+				ASSERT(argv[i] != NULL);
 			}
 
-			assert(error->occurred == 0);
+			ASSERT(error->occurred == 0);
 			(void) Runtime_Pop(runtime, error, argc+1);
-			assert(error->occurred == 0);
+			ASSERT(error->occurred == 0);
 
 			Object *rets[8];
 			unsigned int maxrets = sizeof(rets)/sizeof(rets[0]);
@@ -922,7 +925,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			// NOTE: Every local object reference is invalidated from here.
 
-			assert(error->occurred == 0);
+			ASSERT(error->occurred == 0);
 
 			for(int g = 0; g < MIN(num_rets, retc); g += 1)
 				if(!Runtime_Push(runtime, error, rets[g]))
@@ -943,7 +946,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_SELECT:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used < 2)
 			{
@@ -954,12 +957,12 @@ static _Bool step(Runtime *runtime, Error *error)
 			Object *col = Stack_Top(runtime->stack, -1);
 			Object *key = Stack_Top(runtime->stack,  0);
 
-			assert(col != NULL && key != NULL);
+			ASSERT(col != NULL && key != NULL);
 
 			if(!Runtime_Pop(runtime, error, 2))
 				return 0;
 
-			assert(error->occurred == 0);
+			ASSERT(error->occurred == 0);
 
 			Error dummy;
 			Error_Init(&dummy); // We want to catch the error reported by this Object_Select.
@@ -976,18 +979,18 @@ static _Bool step(Runtime *runtime, Error *error)
 						return 0;
 				}
 
-			assert(error->occurred == 0);
+			ASSERT(error->occurred == 0);
 
 			if(!Runtime_Push(runtime, error, val))
 				return 0;
 
-			assert(error->occurred == 0);
+			ASSERT(error->occurred == 0);
 			return 1;
 		}
 
 		case OPCODE_INSERT:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used < 3)
 			{
@@ -999,7 +1002,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			Object *key = Stack_Top(runtime->stack, -1);
 			Object *val = Stack_Top(runtime->stack,  0);
 
-			assert(col != NULL && key != NULL && val != NULL);
+			ASSERT(col != NULL && key != NULL && val != NULL);
 
 			if(!Runtime_Pop(runtime, error, 2))
 				return 0;
@@ -1011,7 +1014,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_INSERT2:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used < 3)
 			{
@@ -1023,7 +1026,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			Object *col = Stack_Top(runtime->stack, -1);
 			Object *key = Stack_Top(runtime->stack,  0);
 
-			assert(col != NULL && key != NULL && val != NULL);
+			ASSERT(col != NULL && key != NULL && val != NULL);
 
 			if(!Runtime_Pop(runtime, error, 2))
 				return 0;
@@ -1035,8 +1038,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHINT:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_INT);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_INT);
 
 			Object *obj = Object_FromInt(ops[0].as_int, runtime->heap, error);
 
@@ -1050,8 +1053,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHFLT:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_FLOAT);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_FLOAT);
 
 			Object *obj = Object_FromFloat(ops[0].as_float, runtime->heap, error);
 
@@ -1065,8 +1068,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHSTR:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_STRING);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_STRING);
 
 			Object *obj = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
 
@@ -1080,8 +1083,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHVAR:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_STRING);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_STRING);
 
 			Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
 				
@@ -1120,7 +1123,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHNNE:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *obj = Object_NewNone(runtime->heap, error);
 
@@ -1134,7 +1137,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHTRU:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *obj = Object_FromBool(1, runtime->heap, error);
 
@@ -1148,7 +1151,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHFLS:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *obj = Object_FromBool(0, runtime->heap, error);
 
@@ -1162,9 +1165,9 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHFUN:
 		{
-			assert(opc == 2);
-			assert(ops[0].type == OPTP_IDX);
-			assert(ops[1].type == OPTP_INT);
+			ASSERT(opc == 2);
+			ASSERT(ops[0].type == OPTP_IDX);
+			ASSERT(ops[1].type == OPTP_INT);
 
 			Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
 
@@ -1183,8 +1186,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHLST:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_INT);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_INT);
 
 			Object *obj = Object_NewList(ops[0].as_int, runtime->heap, error);
 
@@ -1198,8 +1201,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHMAP:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_INT);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_INT);
 
 			Object *obj = Object_NewMap(ops[0].as_int, runtime->heap, error);
 
@@ -1213,10 +1216,10 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHTYPTYP:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *obj = (Object*) Object_GetTypeType();
-			assert(obj != NULL);
+			ASSERT(obj != NULL);
 
 			if(!Runtime_Push(runtime, error, obj))
 				return 0;
@@ -1225,10 +1228,10 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHNNETYP:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *obj = (Object*) Object_GetNoneType();
-			assert(obj != NULL);
+			ASSERT(obj != NULL);
 
 			if(!Runtime_Push(runtime, error, obj))
 				return 0;
@@ -1237,7 +1240,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHTYP:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			if(runtime->frame->used < 1)
 			{
@@ -1246,10 +1249,10 @@ static _Bool step(Runtime *runtime, Error *error)
 			}
 
 			Object *top = Stack_Top(runtime->stack, 0);
-			assert(top != NULL);
+			ASSERT(top != NULL);
 
 			Object *typ = (Object*) Object_GetType(top);
-			assert(typ != NULL);
+			ASSERT(typ != NULL);
 			
 			if(!Runtime_Push(runtime, error, typ))
 				return 0;
@@ -1258,10 +1261,10 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_EXIT:
 		{
-			assert(opc == 0);
+			ASSERT(opc == 0);
 
 			Object *vars = runtime->frame->locals;
-			assert(vars != NULL);
+			ASSERT(vars != NULL);
 
 			if(!Runtime_Push(runtime, error, vars))
 				return 0;
@@ -1270,33 +1273,34 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_RETURN:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_INT);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_INT);
 			int retc = ops[0].as_int;
-			assert(retc >= 0);
-			assert(retc == runtime->frame->used);
+			UNUSED(retc);
+			ASSERT(retc >= 0);
+			ASSERT(retc == runtime->frame->used);
 			return 0;
 		}
 
 		case OPCODE_ERROR:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_STRING);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_STRING);
 			const char *msg = ops[0].as_string;
 			Error_Report(error, 0, "%s", msg);
 			return 0;
 		}
 
 		case OPCODE_JUMP:
-		assert(opc == 1);
-		assert(ops[0].type == OPTP_IDX);
+		ASSERT(opc == 1);
+		ASSERT(ops[0].type == OPTP_IDX);
 		runtime->frame->index = ops[0].as_int;
 		return 1;
 
 		case OPCODE_JUMPIFANDPOP:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_IDX);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_IDX);
 				
 			long long int target = ops[0].as_int;
 
@@ -1311,7 +1315,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			if(!Runtime_Pop(runtime, error, 1))
 				return 0;			
 
-			assert(top != NULL);
+			ASSERT(top != NULL);
 
 			if(!Object_IsBool(top))
 			{
@@ -1327,8 +1331,8 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_JUMPIFNOTANDPOP:
 		{
-			assert(opc == 1);
-			assert(ops[0].type == OPTP_IDX);
+			ASSERT(opc == 1);
+			ASSERT(ops[0].type == OPTP_IDX);
 				
 			long long int target = ops[0].as_int;
 
@@ -1343,7 +1347,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			if(!Runtime_Pop(runtime, error, 1))
 				return 0;			
 
-			assert(top != NULL);
+			ASSERT(top != NULL);
 
 			if(!Object_IsBool(top))
 			{
@@ -1384,7 +1388,7 @@ static _Bool collect(Runtime *runtime, Error *error)
 	for(unsigned int i = 0; i < Stack_Size(runtime->stack); i += 1)
 	{
 		Object **ref = (Object**) Stack_TopRef(runtime->stack, -i);
-		assert(ref != NULL);
+		ASSERT(ref != NULL);
 
 		Heap_CollectReference(ref, runtime->heap);
 	}
@@ -1398,11 +1402,11 @@ int run(Runtime *runtime, Error *error,
 	    Object **argv, int argc, 
 	    Object **rets, int maxretc)
 {
-	assert(runtime != NULL);
-	assert(error != NULL);
-	assert(exe != NULL);
-	assert(index >= 0);
-	assert(argc >= 0);
+	ASSERT(runtime != NULL);
+	ASSERT(error != NULL);
+	ASSERT(exe != NULL);
+	ASSERT(index >= 0);
+	ASSERT(argc >= 0);
 
 	if(runtime->depth == MAX_FRAMES)
 	{
@@ -1410,7 +1414,7 @@ int run(Runtime *runtime, Error *error,
 		return -1;
 	}
 
-	assert(runtime->depth < MAX_FRAMES);
+	ASSERT(runtime->depth < MAX_FRAMES);
 		
 	// Initialize the frame.
 	Frame frame;
@@ -1485,7 +1489,7 @@ int run(Runtime *runtime, Error *error,
 		for(int i = 0; i < retc; i += 1)
 		{
 			rets[i] = Stack_Top(runtime->stack, i - retc + 1);
-			assert(rets[i] != NULL);
+			ASSERT(rets[i] != NULL);
 		}
 	}
 
