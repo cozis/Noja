@@ -11,4 +11,4 @@ begin:
     JUMPIFNOTANDPOP end;
     JUMP begin;
 end:
-    RETURN 0;
+    EXIT;

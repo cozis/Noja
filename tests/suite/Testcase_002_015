@@ -9,4 +9,4 @@
     PUSHINT 2;
     EQL;
     POP 1;
-    RETURN 0;
+    EXIT;

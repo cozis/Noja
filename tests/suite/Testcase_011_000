@@ -12,4 +12,4 @@
 fun:
     RETURN 0;
 end:
-    RETURN 0;
+    EXIT;

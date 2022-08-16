@@ -9,4 +9,4 @@
     PUSHSTR "key";
     SELECT;
     POP 1;
-    RETURN 0;
+    EXIT;

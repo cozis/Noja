@@ -4,4 +4,4 @@
     # (Empty source)
     
 #bytecode
-    RETURN 0;
+    EXIT;

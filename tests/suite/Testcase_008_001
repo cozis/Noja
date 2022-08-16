@@ -11,4 +11,4 @@
     PUSHNNE;
     POP 1;
 end:
-    RETURN 0;
+    EXIT;

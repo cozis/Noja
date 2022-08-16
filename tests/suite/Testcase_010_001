@@ -15,4 +15,4 @@ begin:
     JUMPIFANDPOP begin;
     PUSHFLS;
     POP 1;
-    RETURN 0;
+    EXIT;

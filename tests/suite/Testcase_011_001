@@ -14,4 +14,4 @@ fun:
     POP 1;
     RETURN 0;
 end:
-    RETURN 0;
+    EXIT;

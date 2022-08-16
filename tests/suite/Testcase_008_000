@@ -9,4 +9,4 @@
     PUSHTRU;
     JUMPIFNOTANDPOP end;
 end:
-    RETURN 0;
+    EXIT;

@@ -10,4 +10,4 @@
     PUSHINT 1;
     INSERT;
     POP     1;
-    RETURN  0;
+    EXIT;

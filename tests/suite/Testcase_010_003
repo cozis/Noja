@@ -21,4 +21,4 @@ begin:
 end:
     PUSHFLS;
     POP 1;
-    RETURN 0;
+    EXIT;

@@ -10,4 +10,4 @@
 begin:
     PUSHNNE;
     JUMPIFANDPOP begin;
-    RETURN 0;
+    EXIT;

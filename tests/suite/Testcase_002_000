@@ -9,4 +9,4 @@
     PUSHINT 7;
     ADD;
     POP 1;
-    RETURN 0;
+    EXIT;

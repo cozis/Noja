@@ -31,4 +31,4 @@ true_2:
     PUSHTRU;
 end_2:
     POP 1;
-    RETURN 0;
+    EXIT;

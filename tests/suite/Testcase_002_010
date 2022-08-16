@@ -9,4 +9,4 @@
     PUSHFLT 7.0;
     MUL;
     POP 1;
-    RETURN 0;
+    EXIT;

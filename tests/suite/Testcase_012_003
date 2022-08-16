@@ -35,4 +35,4 @@ type_ok:
     POP 1;
     RETURN 0;
 nop_end:
-    RETURN 0;
+    EXIT;

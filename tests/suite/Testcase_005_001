@@ -10,4 +10,4 @@
     PUSHVAR "key";
     INSERT2;
     POP     1;
-    RETURN  0;
+    EXIT;

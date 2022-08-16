@@ -9,4 +9,4 @@
     PUSHFLT 7.0;
     DIV;
     POP 1;
-    RETURN 0;
+    EXIT;

@@ -13,4 +13,4 @@
     PUSHINT 4;
     ADD;
     POP     1;
-    RETURN  0;
+    EXIT;

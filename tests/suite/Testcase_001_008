@@ -5,4 +5,4 @@
 
 #bytecode
     
-    RETURN 0;
+    EXIT;

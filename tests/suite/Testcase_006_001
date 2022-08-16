@@ -9,4 +9,4 @@
     PUSHVAR "func";
     CALL 1, 1;
     POP 1;
-    RETURN 0;
+    EXIT;
