@@ -56,7 +56,7 @@
 ** |                       HOW ARE POINTERS UPDATED?                          |
 ** | Basically, when an object is moved from the old to the new heap, the     |
 ** | location of the object in the old heap is overwritten with a placeholder |
-** | object that holds the new location. Then all of it's references are      |
+** | object that holds the new location. Then all of its references are      |
 ** | iterated over and if they refer to placeholders they're updated with the |
 ** | new location of the object. If the references don't refer to placeholder |
 ** | objects, then the referred objects are moved too. This is a recursive    |

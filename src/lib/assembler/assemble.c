@@ -145,7 +145,7 @@ static bool parseIntegerOperand(Context *ctx, Error *error, Operand *op)
 
     long long int buffer = 0;
     do {
-        // Transform each digit into it's integer value.
+        // Transform each digit into its integer value.
         int d = ctx->str[ctx->cur] - '0';
         assert(d >= 0 && d <= 9);
 
@@ -179,7 +179,7 @@ static bool parseFloatingOperand(Context *ctx, Error *error, Operand *op)
 
     double buffer = 0;
     do {
-        // Transform each digit into it's integer value.
+        // Transform each digit into its integer value.
         int d = ctx->str[ctx->cur] - '0';
         assert(d >= 0 && d <= 9);
 
@@ -196,7 +196,7 @@ static bool parseFloatingOperand(Context *ctx, Error *error, Operand *op)
 
     double q = 1;
     do {
-        // Transform each digit into it's integer value.
+        // Transform each digit into its integer value.
         int d = ctx->str[ctx->cur] - '0';
         assert(d >= 0 && d <= 9);
 

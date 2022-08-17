@@ -1,5 +1,5 @@
 # Functions
-Function definition statements always start with the `fun` keyword, followed by it's name, argument list and then body.
+Function definition statements always start with the `fun` keyword, followed by its name, argument list and then body.
 
 Here are some examples of function definitions:
 ```py
@@ -46,7 +46,7 @@ abc = 10;
 ```
 
 ## Functions calls and return values
-To execute a function in an expression, it's name must be followed by an argument list enclosed in brackets `(..)`. All functions return at least one value, which may be `none` when a function has no useful value to be returned.
+To execute a function in an expression, its name must be followed by an argument list enclosed in brackets `(..)`. All functions return at least one value, which may be `none` when a function has no useful value to be returned.
 
 To specify the return value of a function, one must use the `return` statement
 ```py

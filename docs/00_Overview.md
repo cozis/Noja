@@ -4,7 +4,7 @@ Noja is a high level programming language implemented as a learning exercise. St
 The use-cases of Noja are the same as Python since their abstraction level is comparable. The syntax is more similar to the C-family of languages though (curly brackets to denote scope).
 
 ## A Noja program
-A Noja program is a sequence of statements separated by semi-colons (with some exceptions). The statements can be o various kinds: 
+A Noja program is a sequence of statements separated by semi-colons (with some exceptions). The statements can be of various kinds: 
 * expressions
 * function definitions
 * if-else branches

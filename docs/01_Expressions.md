@@ -128,12 +128,12 @@ Lists are defined as a comma-separated list of expressions between square bracke
 [none, 2 + 1, true];
 ```
 
-The `n`-th list can be accessed using the `[]` notation:
+The `n`-th list element can be accessed using the `[]` notation:
 ```py
 ls = [true, false, none];
 ls[1]; # false
 ```
-where the list value is followed by `[..]` which contain the index of the item to retrieve.
+where the list value is followed by `[..]` which contains the index of the item to retrieve.
 
 The index may be evaluated dynamically, but it will trigger a runtime error if it doesn't evaluate to an integer value
 ```py
@@ -142,7 +142,7 @@ ls[0 + 2]; # OK!
 ls[true or false]; # Runtime error!!
 ```
 
-To append a value to a list, increasing it's size, you can just insert the new value at the first unused position (which will have index equal to the current list size). As we'll see in the built-in chapter, to get the size of a list one can use the `count` function. Which means appending to a list can be done like this:
+To append a value to a list, increasing its size, you can just insert the new value at the first unused position (which will have index equal to the current list size). As we'll see in the built-in chapter, to get the size of a list one can use the `count` function. Which means appending to a list can be done like this:
 ```py
 ls = [1, 2, 3];
 ls[count(ls)] = 4;
@@ -170,7 +170,7 @@ a = {"name": "Francesco", "age": 25};
 b = {name: "Francesco", age: 25};
 ```
 
-If you don't want to use the identifier as key but evaluate it as a variable to use it's value as key, then you can explicitly tell the interpreter that it's an expression
+If you don't want to use the identifier's text as key but evaluate it as a variable to use it's value as key, then you must explicitly tell the interpreter that it's an expression
 ```py
 name = "x";
 
@@ -179,6 +179,7 @@ a = {   "x": "Francesco", "age": 25};
 b = {(name): "Francesco", age: 25};
 c = { +name: "Francesco", age: 25};
 ```
+Note that the `+` unary operator and the `(..)` are no-operations in this context.
 
 Because of compound statements (discussed in the next chapter), an expression can't start with the `{` of a map literal because the interpreter will assume it's a compount statement.
 The following statement is invalid

@@ -99,7 +99,7 @@ Source *Source_FromFile(const char *file, Error *error)
 		return NULL;
 	}
 
-	// Open the file and get it's size.
+	// Open the file and get its size.
 	// at the end of the block, the file
 	// cursor will point at the start of
 	// the file.

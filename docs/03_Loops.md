@@ -13,7 +13,7 @@ while condition: {
 ``` 
 as you can see, it doesn't need an ending `;`.
 
-when the interpreter encounters a while statement, it evaluates the condition. If the condition is true, it executes it's body. When the execution of the inner block of code is completed, the execution jumps back to the condition, evaluating it again. If it's again true, the inner code is executed again, else the execution jumps after the while statement. This mechanism can go on potentially for ever!
+When the interpreter encounters a while statement, it evaluates the condition. If the condition is true, it executes its body. When the execution of the inner block of code is completed, the execution jumps back to the condition, evaluating it again. If it's again true, the inner code is executed again, else the execution jumps after the while statement. This mechanism can go on potentially for ever!
 
 Like for if-else statements, when the inner block only has one statement, you can drop the `{}`
 ```py

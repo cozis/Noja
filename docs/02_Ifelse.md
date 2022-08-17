@@ -13,7 +13,7 @@ Unlike expressions statements, they don't end with a `;`.
 
 The condition may be any type of expression, but must evaluate to a boolean type. No implicit casts are performed. 
 
-When the `else` block is empty, in can me omitted:
+When the `else` block is empty, it can me omitted:
 ```py
 if condition: {
     # Executed when the condition is true

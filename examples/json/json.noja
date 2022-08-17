@@ -5,9 +5,10 @@ fun isSpace(c: String)
         or c == "\n";
 
 fun isDigit(c: String) {
-    u = unicode(c);
-    d = u - unicode("0");
-    return d >= 0 and d <= 9;
+    d = string.ord(c) 
+      - string.ord("0");
+    return d >= 0 
+       and d <= 9;
 }
 
 fun skipSpaces(context: Map) {
@@ -68,7 +69,8 @@ Func = type(dummy);
 
 fun skip(context: Map, test_callback: Func) {
     k = context.cur;
-    while k < count(context.str) and test_callback(context.str[k]):
+    while k < count(context.str) 
+      and test_callback(context.str[k]):
         k = k + 1;
     return k;
 }
@@ -80,7 +82,7 @@ fun parseInteger(context: Map) {
 
     do {
         c = context.str[context.cur];
-        d = unicode(c) - unicode('0');
+        d = string.ord(c) - string.ord('0');
         buffer = buffer * 10 + d;
         context.cur = context.cur + 1;
     } while context.cur < count(context.str) 
@@ -90,7 +92,8 @@ fun parseInteger(context: Map) {
 }
 
 fun parseFloating(context: Map) {
-    assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
+    assert(context.cur < count(context.str) 
+       and isDigit(context.str[context.cur]));
 
     # It's ensured by the caller (parseIntegerOrFloating)
     # that now the strings contains two sequences of
@@ -101,7 +104,7 @@ fun parseFloating(context: Map) {
     # Scan the integer part.
     do {
         c = context.str[context.cur];
-        d = unicode(c) - unicode('0');
+        d = string.ord(c) - string.ord('0');
         buffer = buffer * 10 + d;
         context.cur = context.cur + 1;
     } while context.str[context.cur] != ".";
@@ -112,18 +115,19 @@ fun parseFloating(context: Map) {
     q = 1;
     do {
         c = context.str[context.cur];
-        d = unicode(c) - unicode('0');
+        d = string.ord(c) - string.ord('0');
         q = q / 10;
         buffer = buffer + q * d;
         context.cur = context.cur + 1;
     } while context.cur < count(context.str)
-        and isDigit(context);
+        and isDigit(context.str[context.cur+1]);
 
     return buffer;
 }
 
 fun parseIntegerOrFloating(context: Map) {
-    assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
+    assert(context.cur < count(context.str) 
+       and isDigit(context.str[context.cur]));
 
     # Is the first digit sequence followed by a dot
     # and then one or more digits?
@@ -212,20 +216,13 @@ fun parseValue(context: Map) {
         return none, "Source ended where a value was expected";
 
     c = context.str[context.cur];
-    if c == "{":
-        val, err = parseObject(context);
-    else if c == "[":
-        val, err = parseArray(context);
-    else if c == '"':
-        val, err = parseString(context);
-    else if isDigit(c):
-        val, err = parseIntegerOrFloating(context);
-    else if c == 'n':
-        val, err = parseNull(context);
-    else if c == 't': 
-        val, err = parseTrue(context);
-    else if c == 'f':
-        val, err = parseFalse(context);
+    if c == "{":        val, err = parseObject(context);
+    else if c == "[":   val, err = parseArray(context);
+    else if c == '"':   val, err = parseString(context);
+    else if isDigit(c): val, err = parseIntegerOrFloating(context);
+    else if c == 'n':   val, err = parseNull(context);
+    else if c == 't':   val, err = parseTrue(context);
+    else if c == 'f':   val, err = parseFalse(context);
     else {
         val = none;
         err = string.cat("Unexepected character \"", c, "\" where a value was expected");
@@ -234,39 +231,8 @@ fun parseValue(context: Map) {
 }
 
 fun parse(str: String) {
-
     context = {str: str, cur: 0};
     skipSpaces(context);
     val, err = parseValue(context);
     return val, err;
-}
-
-fun compareAny(A, B) {
-    
-    fun compareLists(A: List, B: List) {
-        n = count(A);
-        if n != count(B):
-            return flase;
-
-        i = 0;
-        while i < n: {
-            if not compareAny(A[i], B[i]):
-                return false;
-            i = i + 1;
-        }
-        return true;
-    }
-
-    T = type(A);
-
-    if T != type(B):
-        return false;
-
-    if T == List:
-        return compareLists(A, B);
-
-    if T == Map:
-        error("Maps aren't supported yet!");
-
-    return A == B;
 }

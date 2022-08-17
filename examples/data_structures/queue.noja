@@ -1,5 +1,5 @@
 # This script implements a circular queue and
-# it's relative tests!
+# its relative tests!
 
 fun newCircularQueue(T: Type = int, max: int = 3) {
     

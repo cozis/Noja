@@ -103,7 +103,7 @@ CLI_SRCDIR = $(SRCDIR)/$(CLI_SUBDIR)
 TST_SRCDIR = $(SRCDIR)/$(TST_SUBDIR)
 
 # Each program that is being build uses as object
-# cache a subfolder of OBJDIR called like the it's
+# cache a subfolder of OBJDIR called like the its
 # source tree base folder in SRCDIR.
 LIB_OBJDIR = $(OBJDIR)/$(LIB_SUBDIR)
 CLI_OBJDIR = $(OBJDIR)/$(CLI_SUBDIR)

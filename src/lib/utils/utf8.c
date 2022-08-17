@@ -243,7 +243,7 @@ int utf8_sequence_to_utf32_codepoint(const char *utf8_data, int nbytes, uint32_t
 **       value is equal to [nbytes].
 **
 ** NOTE: You can check the validity of a UTF-8 string
-**       by calling this function and checking that it's
+**       by calling this function and checking that its
 **       return value is not negative.
 */
 int utf8_strlen(const char *utf8_data, int nbytes)

@@ -17,7 +17,7 @@ Executable *compile(Source *src, Error *error, CompilationErrorType *errtyp)
         return NULL;
     }
 
-    // NOTE: The AST is stored in the BPAlloc. It's
+    // NOTE: The AST is stored in the BPAlloc. Its
     //       lifetime is the same as the pool.
     AST *ast = parse(src, alloc, error);
 
