@@ -1,6 +1,8 @@
 
 fun isSpace(c: String)
-    return c == " " or c == "\t" or c == "\n";
+    return c == " " 
+        or c == "\t" 
+        or c == "\n";
 
 fun isDigit(c: String) {
     u = unicode(c);
@@ -125,7 +127,7 @@ fun parseIntegerOrFloating(context: Map) {
 
     # Is the first digit sequence followed by a dot
     # and then one or more digits?
-
+    
     k = skip(context, isDigit);
     if k+1 < count(context.str) and context.str[k] == "." and isDigit(context.str[k+1]):
         # It's a floating point value, then!
@@ -232,6 +234,7 @@ fun parseValue(context: Map) {
 }
 
 fun parse(str: String) {
+
     context = {str: str, cur: 0};
     skipSpaces(context);
     val, err = parseValue(context);

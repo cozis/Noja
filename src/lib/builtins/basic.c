@@ -56,10 +56,10 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
-
+	
 	Heap *heap = Runtime_GetHeap(runtime);
 	ASSERT(heap != NULL);
-
+	
 	Object *o_path = argv[0];
 	const char *path;
 	size_t path_len;
@@ -69,18 +69,18 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 			Error_Report(error, 0, "Argument #%d is not a string", 1);
 			return -1;
 		}
-
+		
 		int n;
 		path = Object_ToString(o_path, &n, Runtime_GetHeap(runtime), error);
 		if (path == NULL)
 			return -1;
-
+		
 		ASSERT(n >= 0);
 		path_len = (size_t) n;
 	}
-
+	
 	char full_path[1024];
-
+	
 	if(path[0] == '/') {
 		if(path_len >= sizeof(full_path)) {
 			Error_Report(error, 1, "Internal buffer is too small");
@@ -102,7 +102,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		memcpy(full_path + written, path, path_len);
 		full_path[written + path_len] = '\0';
 	}
-
+	
 	Error sub_error;
 	Error_Init(&sub_error);
 	Source *src = Source_FromFile(full_path, &sub_error);
@@ -121,7 +121,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		rets[1] = o_err;
 		return 2;
 	}
-
+	
 	CompilationErrorType errtyp;
     Executable *exe = compile(src, &sub_error, &errtyp);
     if(exe == NULL) {
@@ -149,29 +149,26 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
     }
 
 	Object *sub_rets[8];
+	int retc = run(runtime, &sub_error, exe, 0, NULL, NULL, 0, sub_rets);
+    if(retc < 0)
     {
-    	int retc = run(runtime, &sub_error, exe, 0, NULL, NULL, 0, sub_rets);
-	    if(retc < 0)
-	    {
-	    	const char *errname = "Runtime";
-	        // Snapshot?
-	        UNUSED(errname);
+    	const char *errname = "Runtime";
+        // Snapshot?
+        UNUSED(errname);
 
-			Object *o_none = Object_NewNone(heap, error);
-			if(o_none == NULL)
-				return -1;
+		Object *o_none = Object_NewNone(heap, error);
+		if(o_none == NULL) return -1;
 
-			Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-			if(o_err == NULL)
-				return -1;
+		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
+		if(o_err == NULL) return -1;
 
-			Error_Free(&sub_error);
-			rets[0] = o_none;
-			rets[1] = o_err;
-			return 2;
-	    }
-	    ASSERT(retc == 1);
-	}
+		Error_Free(&sub_error);
+		rets[0] = o_none;
+		rets[1] = o_err;
+		return 2;
+    }
+    ASSERT(retc == 1);
+	
 	Error_Free(&sub_error);
     rets[0] = sub_rets[0];
     return 1;
@@ -505,7 +502,6 @@ void bins_basic_init(StaticMapSlot slots[])
 }
 
 StaticMapSlot bins_basic[] = {
-
 	{ "Type",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "None",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "int",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
@@ -519,7 +515,6 @@ StaticMapSlot bins_basic[] = {
 
 	{ "math",  SM_SMAP, .as_smap = bins_math,  },
 	{ "files", SM_SMAP, .as_smap = bins_files, },
-//	{ "net",  SM_SMAP, .as_smap = bins_net, },
 
 	{ "import", SM_FUNCT, .as_funct = bin_import, .argc = 1, },
 	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },
