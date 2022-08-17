@@ -41,11 +41,10 @@
 #include "../compiler/compile.h"
 #include "../runtime/runtime.h"
 
-static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(runtime);
 	UNUSED(rets);
-	UNUSED(maxretc);
 	UNUSED(error);
 
 	for(int i = 0; i < (int) argc; i += 1)
@@ -53,7 +52,7 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	return 0;
 }
 
-static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
@@ -109,22 +108,15 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 	Source *src = Source_FromFile(full_path, &sub_error);
 	if(src == NULL) {
 
-		if(maxretc == 0)
-			return 0;
-
 		Object *o_none = Object_NewNone(heap, error);
 		if(o_none == NULL)
 			return -1;
 
-		if(maxretc == 1) {
-			rets[0] = o_none;
-			return 1;
-		}
 		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
 		if(o_err == NULL)
 			return -1;
-		Error_Free(&sub_error);
 
+		Error_Free(&sub_error);
 		rets[0] = o_none;
 		rets[1] = o_err;
 		return 2;
@@ -142,85 +134,61 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
         }
         UNUSED(errname);
         
-        {
-        	if(maxretc == 0)
-				return 0;
+		Object *o_none = Object_NewNone(heap, error);
+		if(o_none == NULL)
+			return -1;
 
-			Object *o_none = Object_NewNone(heap, error);
-			if(o_none == NULL)
-				return -1;
+		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
+		if(o_err == NULL)
+			return -1;
 
-			if(maxretc == 1) {
-				rets[0] = o_none;
-				return 1;
-			}
-			Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-			if(o_err == NULL)
-				return -1;
-			Error_Free(&sub_error);
-
-			rets[0] = o_none;
-			rets[1] = o_err;
-			return 2;
-        }
+		Error_Free(&sub_error);
+		rets[0] = o_none;
+		rets[1] = o_err;
+		return 2;
     }
 
+	Object *sub_rets[8];
     {
-    	Object *sub_rets[8];
-    	int sub_maxretc = sizeof(sub_rets)/sizeof(sub_rets[0]);
-	    int retc = run(runtime, &sub_error, exe, 0, NULL, NULL, 0, sub_rets, sub_maxretc);
+    	int retc = run(runtime, &sub_error, exe, 0, NULL, NULL, 0, sub_rets);
 	    if(retc < 0)
 	    {
 	    	const char *errname = "Runtime";
 	        // Snapshot?
 	        UNUSED(errname);
-	    	{
-        		if(maxretc == 0)
-					return 0;
 
-				Object *o_none = Object_NewNone(heap, error);
-				if(o_none == NULL)
-					return -1;
+			Object *o_none = Object_NewNone(heap, error);
+			if(o_none == NULL)
+				return -1;
 
-				if(maxretc == 1) {
-					rets[0] = o_none;
-					return 1;
-				}
+			Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
+			if(o_err == NULL)
+				return -1;
 
-				Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-				if(o_err == NULL)
-					return -1;
-				Error_Free(&sub_error);
-
-				rets[0] = o_none;
-				rets[1] = o_err;
-				return 2;
-	        }
+			Error_Free(&sub_error);
+			rets[0] = o_none;
+			rets[1] = o_err;
+			return 2;
 	    }
 	    ASSERT(retc == 1);
-
-	    if(maxretc == 0)
-	    	return 0;
-	    rets[0] = sub_rets[0];
-	    return 1;
 	}
-	return 0;
+	Error_Free(&sub_error);
+    rets[0] = sub_rets[0];
+    return 1;
 }
 
-static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	ASSERT(argc == 1);
 	UNUSED(runtime);
 	UNUSED(error);
 	UNUSED(argc);
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = (Object*) argv[0]->type;
 	return 1;
 }
 
-static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(runtime);
 	UNUSED(error);
@@ -257,13 +225,11 @@ static int bin_unicode(Runtime *runtime, Object **argv, unsigned int argc, Objec
 	if(temp == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = temp;
 	return 1;
 }
 
-static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
@@ -295,13 +261,11 @@ static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object **
 	if(temp == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = temp;
 	return 1;
 }
 
-static int bin_count(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_count(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
@@ -316,13 +280,11 @@ static int bin_count(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	if(temp == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = temp;
 	return 1;
 }
 
-static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argv);
 	UNUSED(argc);
@@ -368,17 +330,14 @@ static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	if(res == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = res;
 	return 1;
 }
 
-static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(runtime);
 	UNUSED(rets);
-	UNUSED(maxretc);
 
 	for(unsigned int i = 0; i < argc; i += 1)
 		if(!Object_ToBool(argv[i], error))
@@ -390,11 +349,10 @@ static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object
 	return 0;
 }
 
-static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	UNUSED(rets);
-	UNUSED(maxretc);
 	ASSERT(argc == 1);
 
 	int         length;
@@ -409,7 +367,7 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	return -1;
 }
 
-static int bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	unsigned int total_count = 0;
 
@@ -467,13 +425,11 @@ done:
 	if(result == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = result;
 	return 1;
 }
 
-static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
@@ -488,13 +444,11 @@ static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Obj
 	if(temp == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = temp;
 	return 1;
 }
 
-static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 3);
@@ -510,13 +464,11 @@ static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, O
 	if(temp == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = temp;
 	return 1;
 }
 
-static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error)
+static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
@@ -534,8 +486,6 @@ static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc
 	if(temp == NULL)
 		return -1;
 
-	if(maxretc == 0)
-		return 0;
 	rets[0] = temp;
 	return 1;
 }
@@ -567,8 +517,8 @@ StaticMapSlot bins_basic[] = {
 	{ "File",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "Dir",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 
-	{ "math",  SM_SMAP, .as_smap = bins_math, },
-//	{ "files", SM_SMAP, .as_smap = bins_files, },
+	{ "math",  SM_SMAP, .as_smap = bins_math,  },
+	{ "files", SM_SMAP, .as_smap = bins_files, },
 //	{ "net",  SM_SMAP, .as_smap = bins_net, },
 
 	{ "import", SM_FUNCT, .as_funct = bin_import, .argc = 1, },

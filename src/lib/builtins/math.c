@@ -33,7 +33,7 @@
 #include "../utils/defs.h"
 
 #define WRAP_FUNC(name) \
-	static int bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error) \
+	static int bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error) \
 	{											\
 		UNUSED(argc);							\
 		ASSERT(argc == 1);						\
@@ -45,14 +45,10 @@
 			if(error->occurred) 				\
 				return -1;						\
 												\
-			if(maxretc > 0)						\
-			{									\
-				rets[0] = Object_FromFloat(name(v), Runtime_GetHeap(runtime), error); \
-				if(rets[0] == NULL)				\
-					return -1;					\
-				return 1;						\
-			}									\
-			return 0;							\
+			rets[0] = Object_FromFloat(name(v), Runtime_GetHeap(runtime), error); \
+			if(rets[0] == NULL)					\
+				return -1;						\
+			return 1;							\
 		}										\
 		else 									\
 		{										\
@@ -62,7 +58,7 @@
 	}
 
 #define WRAP_FUNC_2(name) \
-	static int bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error) \
+	static int bin_ ## name(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error) \
 	{											\
 		UNUSED(argc);							\
 		ASSERT(argc == 2);						\
@@ -91,7 +87,6 @@
 												\
 		Object *res = Object_FromFloat(name(v1, v2), Runtime_GetHeap(runtime), error); \
 		if(res == NULL) return -1;				\
-		if(maxretc == 0) return 0;				\
 		rets[0] = res;							\
 		return 1;								\
 	}

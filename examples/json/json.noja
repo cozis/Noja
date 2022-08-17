@@ -105,7 +105,7 @@ fun parseFloating(context: Map) {
     } while context.str[context.cur] != ".";
     
     assert(isDigit(context.str[context.cur+1]));
-
+    
     # Scan the decimal part.
     q = 1;
     do {
@@ -137,7 +137,8 @@ fun parseIntegerOrFloating(context: Map) {
 
 fun parseString(context: Map) {
     
-    assert(context.cur < count(context.str) and context.str[context.cur] == '"');
+    assert(context.cur < count(context.str) 
+       and context.str[context.cur] == '"');
 
     context.cur = context.cur + 1;
 
@@ -204,7 +205,7 @@ fun parseArray(context: Map) {
 }
 
 fun parseValue(context: Map) {
-
+    
     if context.cur == count(context.str):
         return none, "Source ended where a value was expected";
 

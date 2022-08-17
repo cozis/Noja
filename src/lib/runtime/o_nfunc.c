@@ -43,11 +43,11 @@
 typedef struct {
 	Object base;
 	Runtime *runtime;
-	int (*callback)(Runtime *runtime, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Error *error);
+	int (*callback)(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[MAX_RETS], Error *error);
 	int argc;
 } NativeFunctionObject;
 
-static int call(Object *self, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc,  Heap *heap, Error *error)
+static int call(Object *self, Object **argv, unsigned int argc, Object *rets[static MAX_RETS],  Heap *heap, Error *error)
 {
 	assert(self != NULL);
 	assert(heap != NULL);
@@ -112,8 +112,8 @@ static int call(Object *self, Object **argv, unsigned int argc, Object **rets, u
 	}
 
 	assert(func->callback != NULL);
-	int retc = func->callback(func->runtime, argv2, argc2, rets, maxretc, error);
-
+	int retc = func->callback(func->runtime, argv2, argc2, rets, error);
+	
 	// NOTE: Since the callback may have executed some bytecode, a GC
 	//       cycle may have been triggered, therefore we must assume
 	//       every object reference that was locally saved is invalidated 
@@ -156,7 +156,7 @@ static TypeObject t_nfunc = {
  *   The newly created object. If an error occurred, NULL is returned
  *   and information about the error is stored in the [error] argument.
  */
-Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error)
+Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object*[static MAX_RETS], Error*), int argc, Heap *heap, Error *error)
 {
 	assert(callback != NULL);
 

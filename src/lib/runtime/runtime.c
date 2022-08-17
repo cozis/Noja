@@ -916,9 +916,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			ASSERT(error->occurred == 0);
 
 			Object *rets[8];
-			unsigned int maxrets = sizeof(rets)/sizeof(rets[0]);
-
-			int num_rets = Object_Call(callable, argv, argc, rets, maxrets, runtime->heap, error);
+			int num_rets = Object_Call(callable, argv, argc, rets, runtime->heap, error);
 
 			if(num_rets < 0)
 				return 0;
@@ -1278,6 +1276,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			int retc = ops[0].as_int;
 			UNUSED(retc);
 			ASSERT(retc >= 0);
+			ASSERT(retc <= MAX_RETS);
 			ASSERT(retc == runtime->frame->used);
 			return 0;
 		}
@@ -1400,7 +1399,7 @@ int run(Runtime *runtime, Error *error,
 	    Executable *exe, int index, 
 	    Object *closure, 
 	    Object **argv, int argc, 
-	    Object **rets, int maxretc)
+	    Object *rets[static MAX_RETS])
 {
 	ASSERT(runtime != NULL);
 	ASSERT(error != NULL);
@@ -1484,7 +1483,8 @@ int run(Runtime *runtime, Error *error,
 	// If an error occurred, we want to return NULL.
 	if(error->occurred == 0)
 	{
-		retc = MIN(frame.used, maxretc);
+		retc = frame.used;
+		ASSERT(retc <= MAX_RETS);
 
 		for(int i = 0; i < retc; i += 1)
 		{

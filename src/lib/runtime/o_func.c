@@ -57,7 +57,7 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 	callback(&func->closure, userp);
 }
 
-static int call(Object *self, Object **argv, unsigned int argc, Object **rets, unsigned int maxretc, Heap *heap, Error *error)
+static int call(Object *self, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *error)
 {
 	assert(self != NULL && heap != NULL && error != NULL);
 	
@@ -108,7 +108,7 @@ static int call(Object *self, Object **argv, unsigned int argc, Object **rets, u
 		// The right amount of arguments was provided.
 		argv2 = argv;
 
-	int retc = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc, rets, maxretc);
+	int retc = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc, rets);
 
 	// NOTE: Every object reference is invalidated from here.
 

@@ -125,7 +125,7 @@ Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 	return type->copy(obj, heap, err);
 }
 
-int Object_Call(Object *obj, Object **argv, unsigned int argc, Object **rets, unsigned int maxrets, Heap *heap, Error *err)
+int Object_Call(Object *obj, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err)
 {
 	ASSERT(err != NULL && obj != NULL);
 
@@ -138,7 +138,7 @@ int Object_Call(Object *obj, Object **argv, unsigned int argc, Object **rets, un
 		return -1;
 	}
 
-	return type->call(obj, argv, argc, rets, maxrets, heap, err);
+	return type->call(obj, argv, argc, rets, heap, err);
 }
 
 void Object_Print(Object *obj, FILE *fp)

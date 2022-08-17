@@ -70,9 +70,7 @@ static _Bool interpret(Executable *exe)
     Runtime_SetBuiltins(runt, bins);
 
     Object *rets[8];
-    unsigned int maxretc = sizeof(rets)/sizeof(rets[0]);
-
-    int retc = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0, rets, maxretc);
+    int retc = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0, rets);
 
     // NOTE: The pointer to the builtins object is invalidated
     //       now because it may be moved by the garbage collector.

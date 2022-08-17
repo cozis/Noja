@@ -27,11 +27,10 @@
 ** | with The Noja Interpreter. If not, see <http://www.gnu.org/licenses/>.   |
 ** +--------------------------------------------------------------------------+ 
 */
-#warning "Commented out whole file"
-/*
-#include <assert.h>
+
 #include <errno.h>
 #include "files.h"
+#include "../utils/defs.h"
 
 enum {
 	MD_READ = 0,
@@ -39,20 +38,21 @@ enum {
 	MD_APPEND = 2,
 };
 
-static Object *bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
-	assert(argc == 2);
+	UNUSED(argc);
+	ASSERT(argc == 2);
 
 	if(!Object_IsString(argv[0]))
 	{
 		Error_Report(error, 0, "Expected first argument to be a string, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	if(!Object_IsInt(argv[1]))
 	{
 		Error_Report(error, 0, "Expected second argument to be an int, but it's a %s", Object_GetName(argv[1]));
-		return NULL;
+		return -1;
 	}
 
 	Heap *heap = Runtime_GetHeap(runtime);
@@ -60,12 +60,12 @@ static Object *bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, 
 	const char *path = Object_ToString(argv[0], NULL, heap, error);
 
 	if(error->occurred)
-		return NULL;
+		return -1;
 
 	int mode = Object_ToInt(argv[1], error);
 
 	if(error->occurred)
-		return NULL;
+		return -1;
 
 	FILE *fp;
 	{
@@ -87,22 +87,27 @@ static Object *bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, 
 			break;
 
 			default:
-			assert(0);
+			UNREACHABLE;
+			mode2 = NULL;
 			break;
 		}
 
 		fp = fopen(path, mode2);
 
 		if(fp == NULL)
-			return Object_NewNone(heap, error);
+			return 0;
 	}
 
-	return Object_FromStream(fp, heap, error);
+	rets[0] = Object_FromStream(fp, heap, error);
+	if(rets[0] == NULL)
+		return -1;
+	return 1;
 }
 
-static Object *bin_read(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
-	assert(argc == 3);
+	UNUSED(argc);
+	ASSERT(argc == 3);
 
 	// Arg 0: file
 	// Arg 1: buffer
@@ -111,13 +116,13 @@ static Object *bin_read(Runtime *runtime, Object **argv, unsigned int argc, Erro
 	if(!Object_IsFile(argv[0]))
 	{
 		Error_Report(error, 0, "Expected first argument to be a file, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	if(!Object_IsBuffer(argv[1]))
 	{
 		Error_Report(error, 0, "Expected second argument to be a buffer, but it's a %s", Object_GetName(argv[1]));
-		return NULL;
+		return -1;
 	}
 
 	Heap *heap = Runtime_GetHeap(runtime);
@@ -138,7 +143,7 @@ static Object *bin_read(Runtime *runtime, Object **argv, unsigned int argc, Erro
 		long long int temp = Object_ToInt(argv[2], error);
 
 		if(error->occurred)
-			return NULL;
+			return -1;
 
 		read_size = temp; // TODO: Handle potential overflow.
 
@@ -148,22 +153,26 @@ static Object *bin_read(Runtime *runtime, Object **argv, unsigned int argc, Erro
 	else
 	{
 		Error_Report(error, 0, "Expected third argument to be an int or none, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	FILE *fp = Object_ToStream(argv[0], error);
 	
 	if(fp == NULL)
-		return NULL;
+		return -1;
 
 	size_t n = fread(buff_addr, 1, read_size, fp);
 
-	return Object_FromInt(n, heap, error);
+	rets[0] = Object_FromInt(n, heap, error);
+	if(rets[0] == NULL)
+		return -1;
+	return 1;
 }
 
-static Object *bin_write(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
-	assert(argc == 3);
+	UNUSED(argc);
+	ASSERT(argc == 3);
 
 	// Arg 0: file
 	// Arg 1: buffer
@@ -172,13 +181,13 @@ static Object *bin_write(Runtime *runtime, Object **argv, unsigned int argc, Err
 	if(!Object_IsFile(argv[0]))
 	{
 		Error_Report(error, 0, "Expected first argument to be a file, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	if(!Object_IsBuffer(argv[1]))
 	{
 		Error_Report(error, 0, "Expected second argument to be a buffer, but it's a %s", Object_GetName(argv[1]));
-		return NULL;
+		return -1;
 	}
 
 	Heap *heap = Runtime_GetHeap(runtime);
@@ -199,7 +208,7 @@ static Object *bin_write(Runtime *runtime, Object **argv, unsigned int argc, Err
 		long long int temp = Object_ToInt(argv[2], error);
 
 		if(error->occurred)
-			return NULL;
+			return -1;
 
 		write_size = temp; // TODO: Handle potential overflow.
 
@@ -209,29 +218,33 @@ static Object *bin_write(Runtime *runtime, Object **argv, unsigned int argc, Err
 	else
 	{
 		Error_Report(error, 0, "Expected third argument to be an int or none, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	FILE *fp = Object_ToStream(argv[0], error);
 	
 	if(fp == NULL)
-		return NULL;
+		return -1;
 
 	size_t n = fwrite(buff_addr, 1, write_size, fp);
 
-	return Object_FromInt(n, heap, error);
+	rets[0] = Object_FromInt(n, heap, error);
+	if(rets[0] == NULL)
+		return -1;
+	return 1;
 }
 
-static Object *bin_openDir(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_openDir(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
-	assert(argc == 1);
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
 	// Arg 0: path
 
 	if(!Object_IsString(argv[0]))
 	{
 		Error_Report(error, 0, "Expected first argument to be a string, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	Heap *heap = Runtime_GetHeap(runtime);
@@ -239,42 +252,44 @@ static Object *bin_openDir(Runtime *runtime, Object **argv, unsigned int argc, E
 	const char *path = Object_ToString(argv[0], NULL, heap, error);
 	
 	if(error->occurred)
-		return NULL;
+		return -1;
 
 	DIR *dir = opendir(path);
 
 	if(dir == NULL)
-		return Object_NewNone(heap, error);
+		return 0;
 
 	Object *dob = Object_FromDIR(dir, heap, error);
 
 	if(error->occurred)
 	{
 		(void) closedir(dir);
-		return NULL;
+		return -1;
 	}
 
-	return dob;
+	rets[0] = dob;
+	return 1;
 }
 
-static Object *bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, Error *error)
+static int bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
-	assert(argc == 1);
+	UNUSED(argc);
+	ASSERT(argc == 1);
 
 	// Arg 0: path
 
 	if(!Object_IsDir(argv[0]))
 	{
 		Error_Report(error, 0, "Expected first argument to be a directory, but it's a %s", Object_GetName(argv[0]));
-		return NULL;
+		return -1;
 	}
 
 	DIR *dir = Object_ToDIR(argv[0], error);
 
 	if(error->occurred)
-		return NULL;
+		return -1;
 
-	assert(dir != NULL);
+	ASSERT(dir != NULL);
 
 	Heap *heap = Runtime_GetHeap(runtime);
 
@@ -285,15 +300,17 @@ static Object *bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int arg
 	if(ent == NULL)
 	{
 		if(errno == 0)
-			// Nothing left to read.
-			return Object_NewNone(heap, error);
+			return 0; // Nothing left to read.
 
 		// An error occurred.
 		Error_Report(error, 1, "Failed to read directory item");
-		return NULL;
+		return -1;
 	}
 
-	return Object_FromString(ent->d_name, -1, heap, error);
+	rets[0] = Object_FromString(ent->d_name, -1, heap, error);
+	if(rets[0] == NULL)
+		return -1;
+	return 1;
 }
 
 StaticMapSlot bins_files[] = {
@@ -307,4 +324,3 @@ StaticMapSlot bins_files[] = {
 	{ "write",       SM_FUNCT, .as_funct = bin_write,    .argc = 3, },
 	{ NULL, SM_END, {}, {} },
 };
-*/

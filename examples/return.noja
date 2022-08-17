@@ -1,9 +1,0 @@
-
-fun hello()
-    return [1, 2, 3], "hello";
-
-print((a, b, c) = hello(), '\n');
-
-print('a = ', a, '\n');
-print('b = ', b, '\n');
-print('c = ', c, '\n');

@@ -56,7 +56,7 @@ const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime);
 Snapshot   *Snapshot_New(Runtime *runtime);
 void 	    Snapshot_Free(Snapshot *snapshot);
 void 	    Snapshot_Print(Snapshot *snapshot, FILE *fp);
-int         run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc, Object **rets, int maxretc);
+int         run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc, Object *rets[static MAX_RETS]);
 
 typedef enum {
     SM_END,
@@ -81,7 +81,7 @@ struct StaticMapSlot {
         _Bool          as_bool;
         long long int  as_int;
         double         as_float;
-        int          (*as_funct)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*);
+        int          (*as_funct)(Runtime*, Object**, unsigned int, Object*[static MAX_RETS], Error*);
         TypeObject    *as_type;
     };
     union { int argc; int length; };
@@ -89,7 +89,7 @@ struct StaticMapSlot {
 
 Object *Object_NewStaticMap(StaticMapSlot slots[], void (*initfn)(StaticMapSlot[]), Runtime *runt, Error *error);
 Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error);
-Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object**, unsigned int, Error*), int argc, Heap *heap, Error *error);
+Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object*[static MAX_RETS], Error*), int argc, Heap *heap, Error *error);
 typedef struct {
     Error base;
     Runtime *runtime;

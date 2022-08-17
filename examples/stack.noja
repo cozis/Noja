@@ -1,8 +1,12 @@
 # Implementation of a stack using a linked list.
 
-stack = {count: 0, head: none};
+fun Stack_New(T)
+	return { count: 0, head: none, type: T };
 
-fun push(stack, value) {
+fun Stack_Push(stack: Map, value) {
+	
+	if type(value) != stack.type:
+		error("Invalid type");
 
 	node = {prev: none, item: value};
 
@@ -11,7 +15,7 @@ fun push(stack, value) {
 	stack.count = stack.count + 1;
 }
 
-fun pop(stack) {
+fun Stack_Pop(stack: Map) {
 
 	if stack.head == none:
 		return none;
@@ -23,15 +27,36 @@ fun pop(stack) {
 	return value;
 }
 
-push(stack, 1);
-push(stack, 2);
-push(stack, 3);
-x = pop(stack);
-y = pop(stack);
-z = pop(stack);
-w = pop(stack);
+fun Stack_Print(stack: Map) {
+	print("[");
+	curr = stack.head;
+	while curr != none: {
+		print(curr.item);
+		curr = curr.prev;
+		if curr != none:
+			print(", ");
+	}
+	print("]");
+}
+
+stack = Stack_New(int);
+
+Stack_Push(stack, 1);
+Stack_Push(stack, 2);
+Stack_Push(stack, 3);
+
+Stack_Print(stack);
+print("\n");
+
+x = Stack_Pop(stack);
+y = Stack_Pop(stack);
+z = Stack_Pop(stack);
+w = Stack_Pop(stack);
 
 assert(x == 3);
 assert(y == 2);
 assert(z == 1);
 assert(w == none);
+
+Stack_Print(stack);
+print("\n");
