@@ -8,18 +8,20 @@ None
 
 print
 import
-unicode
 type
-unicode
-chr
 count
 input
 assert
 error
+
 string.cat
+string.ord
+string.chr
+
 buffer.new
 buffer.sliceUp
 buffer.toString
+
 math.PI
 math.E
 math.floor
@@ -36,6 +38,7 @@ math.log
 math.log10
 math.pow
 math.sqrt
+
 files.READ
 files.WRITE
 files.APPEND
