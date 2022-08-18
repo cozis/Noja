@@ -200,7 +200,7 @@ fun someFunction(optionalNumber: int | float | None) {
 }
 ```
 
-Default arguments are evaluated before the type hints, therefore when `none` is provided argument, no error is triggered even when it wasn't allowed as a type if a proper default argument was provided. If the default value doesn't result in a valid type, an error is triggered.
+Default arguments are evaluated before the type hints, therefore when `none` is provided as argument value, no error is triggered if a proper default argument was specified, even when it wasn't allowed as a type. If the default value doesn't result in a valid type, an error is triggered.
 
 ```py
 fun someFunction(a: int = 4) {}

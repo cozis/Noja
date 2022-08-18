@@ -16,8 +16,6 @@ A Noja program is a sequence of statements separated by semi-colons (with some e
 
 (You may note that there is no import statement! This is because the ability to import other files is exposed through a built-in function.)
 
-Whitespace doesn't matter.
-Comments starts with `#` and end with the line.
+If not in string literals, whitespace doesn't matter.
 
-## Notable features
-* No exceptions
+Comments starts with `#` and end with the line.
