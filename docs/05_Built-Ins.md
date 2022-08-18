@@ -3,6 +3,8 @@ int
 bool
 float
 String
+Type
+None
 
 print
 import
