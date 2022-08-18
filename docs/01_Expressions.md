@@ -29,7 +29,21 @@ Integers and floats correspond to C's `long long int` and `double` types, so the
 As in most languages, the boolean type of value is one that can only assume the `true` or `false` value. These values are such that the logical negation of one (`not`) gives the other.
 
 ### Strings
-Strings are immutable sequences of text encoded as UTF-8.
+Strings are immutable sequences of text encoded as UTF-8. To define a string, enclose the text in single or double quotes
+```py
+"This is a string";
+'This is another string';
+```
+
+It's possible to define strings with special characters using the `\x` notation. The available special characters are
+* `\t` tab
+* `\r` carriage return
+* `\n` newlines
+
+If you want to use `\`, `"` or `'` as characters, you must escape them using a `\`
+```py
+print("Hello, I'm \"Francesco\"!"); # This prints: Hello, I'm "Francesco"!
+```
 
 ### The none value
 The none value is a value that's used to represent the void of a value. The token for the none value is `none`, while the none type is `None` (with a capital letter). 
@@ -68,6 +82,7 @@ The logical operations in Noja are:
 * `and`
 * `or`
 * `not`
+
 They can only be applied to boolean values and always return a boolean value. 
 
 Note that this isn't always true for other languages. For example python allows operands of any kind. The return value in python also isn't always a boolean. It returns the left operand if it's considered to be equivalent to `True`, else the right operand is returned.
@@ -118,9 +133,9 @@ The `n`-th list can be accessed using the `[]` notation:
 ls = [true, false, none];
 ls[1]; # false
 ```
-where the list value is followed by `[]` which contain the index of the item to retrieve.
+where the list value is followed by `[..]` which contain the index of the item to retrieve.
 
-The index may be evaluated dynamically, but it will trigger a runtime error if it doesn't evaluate to an integer value, aborting the execution of the whole program
+The index may be evaluated dynamically, but it will trigger a runtime error if it doesn't evaluate to an integer value
 ```py
 ls = [true, false, none];
 ls[0 + 2]; # OK!
@@ -179,3 +194,19 @@ The `[ .. ]` is actually a `List` expression. You can provide more than one valu
 val = coll[key0, key1];
 ``` 
 in which case, the key will be a `List` containing the list of provided keys. Since `List`s only allow `int` keys, this only can be used on `Map`s.
+
+## Function calls
+We haven't seen how function definitions work yet, but you can imagine they work like other languages such as Python or JavaScript for now. Assuming we defined a function named `sayHello`, we can call it using the usual `()` notation:
+```py
+sayHello();
+sayHello(1);
+sayHello(1, 2, 3);
+```
+
+## The print function
+One function that's always available is `print`, which takes a variable number of arguments and prints them to the standard output. It doesn't add spaces between the argument prints or newlines at the end of the print, so a call such as
+```py
+print("A", "B");
+print("C", "D");
+```
+will output `ABCD`.

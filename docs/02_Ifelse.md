@@ -9,6 +9,7 @@ if condition: {
     # Executed when the condition is false
 }
 ```
+Unlike expressions statements, they don't end with a `;`.
 
 The condition may be any type of expression, but must evaluate to a boolean type. No implicit casts are performed. 
 
@@ -56,3 +57,18 @@ creating a chain of if-else statements.
 Actually the meaning of the curly brackets is to group multiple statements into one.
 
 The if-else statement expects only one statement for each branch, though it's possible to provide more than one statement each by wrapping them into curly brackets.
+
+## Scopes
+If-else and compound statements don't create new scopes, which means that variables defined inside one of those statements will be accessible outside of them:
+```py
+if 1 < 2:
+    a = 10;
+# Here "a" is still defined.
+print(a); # Prints 10
+```
+```py
+{
+    a = 1;
+}
+print(a); # Prints 1
+```
