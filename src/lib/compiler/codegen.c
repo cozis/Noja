@@ -790,6 +790,7 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break
 
 		case NODE_RETURN:
 		{
+#warning "What if this is in the global scope?"
 			ReturnNode *ret = (ReturnNode*) node;
 
 			ExprNode *tuple[32];
