@@ -79,14 +79,14 @@ fun iDontReturnExplicitly() {
 print(iDontReturnExplicitly(), '\n'); # Prints: none 
 ```
 
-## Multiple returns
+## Multiple return values
 Functions may return more than one value:
 ```py
 fun swap(a, b)
     return b, a;
 ```
 
-When a calling a function with more than one return value in an expression, only the first return value is considered.
+When calling a function with more than one return value in an expression, only the first return value is considered.
 
 ```py
 fun returnTwoThings()
@@ -103,7 +103,7 @@ print(first, '\n'); # Prints 5
 print(second, '\n'); # Prints "I'm ignored"
 ```
 
-An assignment to multiple variables is still an expression and it evaluates to the leftmost value
+An assignment to multiple variables is still an expression, and it evaluates to the leftmost value
 ```py
 fun combine(a, b) 
     return (a+b), (a-b);
@@ -111,11 +111,27 @@ fun combine(a, b)
 print((x,y = combine(3, 4))); # Prints 7.
 ```
 
+When assigning to more values than returned, the excess variables are set to none. If more values are returned than what were expected, the extra ones are ignored.
+
+## Function arguments and default values
+When a function is called with less arguments than it expected, the unprovided arguments will have the `none` value. If more arguments than what were expected are provided, the unexpected ones are ignored.
+
+It's possible to define default values for any argument. The default value will be used when the respective argument is `none`.
+
+```py
+fun sayHello(name = "unnamed person")
+    print("Hello, ", name, "!\n");
+
+sayHello("Francesc"); # Hello, Francesco!
+sayHello(none); # Hello, unnamed person!
+sayHello();     # Hello, unnamed person!
+```
+
 ## Scoping
 Functions are the only thing that creates a new scope. When variables are defined inside a function, they're relative to the function and the function only. When the function returns, the variable defined inside it are no longer available.
 
 ## Closures
-When defining a function, the scope of the parent context is captured and it's always accessible by the function's body. When functions are defined in the global scope, this means that they can always access global variables
+When defining a function, the scope of all the parent contexts are captured and are always accessible by the function's body. When functions are defined in the global scope, this means that they can always access global variables
 
 ```py
 name = "Francesco";
@@ -130,7 +146,7 @@ name = "Giovanni";
 printName(); # Prints "Giovanni"
 ```
 
-But this mechanism is cooler than that. Consider the case were a function is defined inside another one
+A function that's defined inside another one will be able to access both the scope of the parent function and the global scope
 ```py
 name1 = "Giovanni";
 fun outerFunc() {
@@ -142,9 +158,8 @@ fun outerFunc() {
 
 outerFunc(); # Prints: Giovanni and Francesco are friends!
 ```
-now the inner function can access both the variables of the outer function and the global scope.
 
-This also applies when the function is returned
+But this mechanism is cooler than that! This also applies when the function is returned
 ```py
 name1 = "Giovanni";
 fun outerFunc() {
@@ -162,4 +177,38 @@ innerFunc(); # Prints the same thing
 But functions may never modify the captures scopes. Variables can only be defined relative to the local scope.
 
 ## Type hints
-..
+Type hints are a lightweight way to check that a function is called with the proper arguments. All of the checks are done at runtime. Each argument may be associated to one or more types. If the function is called with a type other than the specified ones, a runtime error is triggered.
+
+```py
+fun add(a: int, b: int)
+    return a + b;
+
+c = add(2, 3.0); # Error!! Second argument is a float but an int was expected.
+```
+
+```py
+fun add(a: int, b: int | float)
+    return a + b;
+
+c = add(2, 3.0); # Now this is ok!
+```
+
+To allow a function to be `none` when using type hints, you can use the `None` type
+```py
+fun someFunction(optionalNumber: int | float | None) {
+    # ..do stuff..
+}
+```
+
+Default arguments are evaluated before the type hints, therefore when `none` is provided argument, no error is triggered even when it wasn't allowed as a type if a proper default argument was provided. If the default value doesn't result in a valid type, an error is triggered.
+
+```py
+fun someFunction(a: int = 4) {}
+someFunction(none); # No error. The argument value will be 4.
+
+fun someFunction2(a: int) {}
+someFunction2(none); # Error!
+
+fun someFunction(a: int = 1.3) {}
+someFunction(none); # Error!
+```
