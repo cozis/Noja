@@ -1,8 +1,15 @@
+# This script reads the contents of a file.
 
-buff = newBuffer(1024);
-name = 'examples/bubble_sort.noja';
-hdle = files.openFile(name, files.READ);
-n = files.read(hdle, buff);
-resl = bufferToString(sliceBuffer(buff, 0, n));
+name = 'examples/algorithms/bubble_sort.noja';
+buff = buffer.new(1024);
+
+handle, err = files.openFile(name, files.READ);
+if handle == none:
+    error(err);
+
+n = files.read(handle, buff);
+
+resl = buffer.toString(buffer.sliceUp(buff, 0, n));
+
 print('Read ', n, ' bytes.\n');
 print(resl);

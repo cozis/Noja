@@ -35,11 +35,13 @@
 #include "math.h"
 #include "basic.h"
 #include "files.h"
+#include "string.h"
+#include "buffer.h"
 #include "../utils/utf8.h"
 #include "../utils/defs.h"
 #include "../objects/objects.h"
-#include "../compiler/compile.h"
 #include "../runtime/runtime.h"
+#include "../compiler/compile.h"
 
 static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
@@ -364,129 +366,6 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	return -1;
 }
 
-static int bin_strcat(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
-{
-	unsigned int total_count = 0;
-
-	for(unsigned int i = 0; i < argc; i += 1)
-	{
-		if(!Object_IsString(argv[i]))
-		{
-			Error_Report(error, 0, "Argument #%d is not a string", i+1);
-			return -1;
-		}
-
-		total_count += Object_Count(argv[i], error);
-
-		if(error->occurred)
-			return -1;
-	}
-
-	char starting[128];
-	char *buffer = starting;
-
-	if(total_count > sizeof(starting)-1)
-	{
-		buffer = malloc(total_count+1);
-
-		if(buffer == NULL)
-		{
-			Error_Report(error, 1, "No memory");
-			return -1;
-		}
-	}
-
-	Object *result = NULL;
-
-	for(unsigned int i = 0, written = 0; i < argc; i += 1)
-	{
-		int n;
-		const char *s = Object_ToString(argv[i], &n, 
-			Runtime_GetHeap(runtime), error);
-
-		if(error->occurred)
-			goto done;
-
-		memcpy(buffer + written, s, n);
-		written += n;
-	}
-
-	buffer[total_count] = '\0';
-
-	result = Object_FromString(buffer, total_count, Runtime_GetHeap(runtime), error);
-
-done:
-	if(starting != buffer)
-		free(buffer);
-
-	if(result == NULL)
-		return -1;
-
-	rets[0] = result;
-	return 1;
-}
-
-static int bin_newBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
-{
-	UNUSED(argc);
-	ASSERT(argc == 1);
-
-	long long int size = Object_ToInt(argv[0], error);
-
-	if(error->occurred == 1)
-		return -1;
-
-	Object *temp = Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
-
-	if(temp == NULL)
-		return -1;
-
-	rets[0] = temp;
-	return 1;
-}
-
-static int bin_sliceBuffer(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
-{
-	UNUSED(argc);
-	ASSERT(argc == 3);
-
-	long long int offset = Object_ToInt(argv[1], error);
-	if(error->occurred == 1) return -1;
-
-	long long int length = Object_ToInt(argv[2], error);
-	if(error->occurred == 1) return -1;
-
-	Object *temp = Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
-
-	if(temp == NULL)
-		return -1;
-
-	rets[0] = temp;
-	return 1;
-}
-
-static int bin_bufferToString(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
-{
-	UNUSED(argc);
-	ASSERT(argc == 1);
-
-	void *buffaddr;
-	int   buffsize;
-
-	buffaddr = Object_GetBufferAddrAndSize(argv[0], &buffsize, error);
-
-	if(error->occurred)
-		return -1;
-
-	Object *temp =  Object_FromString(buffaddr, buffsize, Runtime_GetHeap(runtime), error);
-
-	if(temp == NULL)
-		return -1;
-
-	rets[0] = temp;
-	return 1;
-}
-
 void bins_basic_init(StaticMapSlot slots[])
 {
 	slots[0].as_type = Object_GetTypeType();
@@ -512,17 +391,13 @@ StaticMapSlot bins_basic[] = {
 	{ "Map",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "File",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ "Dir",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-
-	{ "math",  SM_SMAP, .as_smap = bins_math,  },
-	{ "files", SM_SMAP, .as_smap = bins_files, },
-
+	{ "math",   SM_SMAP, .as_smap = bins_math,   },
+	
+	{ "files",  SM_SMAP, .as_smap = bins_files,  },
+	{ "buffer", SM_SMAP, .as_smap = bins_buffer, },
+	{ "string", SM_SMAP, .as_smap = bins_string, },
+	
 	{ "import", SM_FUNCT, .as_funct = bin_import, .argc = 1, },
-	{ "newBuffer",   SM_FUNCT, .as_funct = bin_newBuffer, .argc = 1 },
-	{ "sliceBuffer", SM_FUNCT, .as_funct = bin_sliceBuffer, .argc = 3 },
-	{ "bufferToString", SM_FUNCT, .as_funct = bin_bufferToString, .argc = 1 },
-
-	{ "strcat", SM_FUNCT, .as_funct = bin_strcat, .argc = -1 },
-
 	{ "type", SM_FUNCT, .as_funct = bin_type, .argc = 1 },
 	{ "unicode", SM_FUNCT, .as_funct = bin_unicode, .argc = 1 },
 	{ "chr", SM_FUNCT, .as_funct = bin_chr, .argc = 1 },

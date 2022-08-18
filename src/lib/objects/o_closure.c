@@ -40,13 +40,13 @@ struct ClosureObject {
 };
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
-static Object *select(Object *self, Object *key, Heap *heap, Error *err);
+static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 
 static TypeObject t_closure = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "closure",
 	.size = sizeof(ClosureObject),
-	.select = select,
+	.select = select_,
 	.walk = walk,
 };
 
@@ -69,7 +69,7 @@ Object *Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *er
 	return (Object*) obj;
 }
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *err)
+static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
 {
 	ClosureObject *closure = (ClosureObject*) self;
 

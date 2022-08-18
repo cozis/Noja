@@ -1,0 +1,48 @@
+
+fun dummy() {}
+Func = type(dummy);
+NFunc = type(print); # The function type is not a build-in at the moment,
+                     # but we can define it manually.
+
+fun copyList(list: List) {
+
+	list2 = [];
+
+	i = 0;
+	while i < count(list): {
+		list2[i] = list[i];
+		i = i+1;
+	}
+
+	return list2;
+}
+
+fun numericLess(a: int | float, b: int | float) 
+	return a < b;
+
+fun bubbleSort(list: List, less: NFunc | Func = numericLess) {
+	
+	list2 = copyList(list);
+
+	do {
+		swapped = false;
+
+		i = 0;
+		while i < count(list2)-1 and not swapped: {
+			if less(list2[i+1], list2[i]): {
+				swapped = true;
+				tmp = list2[i+1];
+				list2[i+1] = list2[i];
+				list2[i] = tmp;
+			}
+			i = i + 1;
+		}
+	} while swapped;
+
+	return list2;
+}
+
+unordered_list = [3, 2, 1, 6, -2];
+  ordered_list = bubbleSort(unordered_list);
+
+print(ordered_list, '\n'); # [-2, 1, 2, 3, 6]

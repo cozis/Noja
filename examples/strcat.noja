@@ -1,6 +1,0 @@
-A = 'Hello';
-B = ', ';
-C = 'world';
-D = strcat(A, B, C);
-
-print(D, '\n');

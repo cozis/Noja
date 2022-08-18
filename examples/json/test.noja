@@ -1,5 +1,5 @@
 json  = import("json.noja");
-utils = import("utils.noja");
+utils = import("../utils.noja");
 
 assert(json.parse("null") == none);
 assert(json.parse("true") == true);

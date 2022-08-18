@@ -1,4 +1,10 @@
 
-vars, err = import("examples/imported.noja");
-print("vars=[", vars, "]\n");
-print("err=[", err, "]\n");
+vars, err = import("imported.noja");
+if vars == none: {
+    print("L'import è fallito!! (", err, ")\n");
+    return none;
+}
+
+me = {name: vars.myName, age: vars.myAge};
+
+print(me, "\n");

@@ -38,6 +38,8 @@ enum {
 	MD_APPEND = 2,
 };
 
+#include <errno.h>
+
 static int bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
@@ -94,8 +96,34 @@ static int bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Obje
 
 		fp = fopen(path, mode2);
 
-		if(fp == NULL)
-			return 0;
+		if(fp == NULL) {
+
+			Object *o_none = Object_NewNone(heap, error);
+			if(o_none == NULL)
+				return -1;
+
+			const char *errdesc;
+			switch(errno) {
+				case EACCES: errdesc = "Can't access file"; break;
+				case EPERM: errdesc = "Permission denied"; break;
+				case EEXIST: errdesc = "File or folder already exists"; break;
+				case EISDIR: errdesc = "Entity is a directory"; break;
+				case ENOTDIR: errdesc = "Entity is not a directory"; break;
+				case ELOOP: errdesc = "Too many symbolic links"; break;
+				case ENAMETOOLONG: errdesc = "Entity name is too long"; break;
+				case ENFILE: errdesc = "Open descriptors limit reached"; break;
+				case ENOENT: errdesc = "File or folder doesn't exist"; break;
+				default: errdesc = "Unexpected error"; break;
+			}
+
+			Object *o_error = Object_FromString(errdesc, -1, heap, error);
+			if(o_error == NULL)
+				return -1;
+
+			rets[0] = o_none;
+			rets[1] = o_error;
+			return 2;
+		}
 	}
 
 	rets[0] = Object_FromStream(fp, heap, error);

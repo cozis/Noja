@@ -38,7 +38,7 @@ typedef struct {
 	Object **vals;
 } ListObject;
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *err);
+static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
 static void	   print(Object *obj, FILE *fp);
@@ -53,7 +53,7 @@ static TypeObject t_list = {
 	.size = sizeof (ListObject),
 	.copy = copy,
 	.hash = hash,
-	.select = select,
+	.select = select_,
 	.insert = insert,
 	.count = count,
 	.print = print,
@@ -158,7 +158,7 @@ static void walkexts(Object *self, void (*callback)(void **referer, unsigned int
 	callback((void**) &list->vals, sizeof(Object) * list->capacity, userp);
 }
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *error)
+static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 {
 	UNUSED(heap);
 	ASSERT(self != NULL);

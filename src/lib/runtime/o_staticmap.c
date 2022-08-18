@@ -57,7 +57,7 @@ typedef struct {
 	const StaticMapSlot *slots;
 } StaticMapObject;
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *err);
+static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 static Object *copy(Object *self, Heap *heap, Error *err);
 static int hash(Object *self);
 
@@ -67,7 +67,7 @@ static TypeObject t_staticmap = {
 	.size = sizeof (StaticMapObject),
 	.copy = copy,
 	.hash = hash,
-	.select = select,
+	.select = select_,
 };
 
 static Object *copy(Object *self, Heap *heap, Error *err)
@@ -103,7 +103,7 @@ Object *Object_NewStaticMap(StaticMapSlot slots[], void (*initfn)(StaticMapSlot[
 	return (Object*) obj;
 }
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *error)
+static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 {
 	assert(self != NULL);
 	assert(self->type == &t_staticmap);

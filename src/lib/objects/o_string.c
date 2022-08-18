@@ -48,7 +48,7 @@ static void print(Object *obj, FILE *fp);
 static char *to_string(Object *self, int *size, Heap *heap, Error *err);
 static _Bool op_eql(Object *self, Object *other);
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
-static Object *select(Object *self, Object *key, Heap *heap, Error *error);
+static Object *select_(Object *self, Object *key, Heap *heap, Error *error);
 
 static TypeObject t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -59,7 +59,7 @@ static TypeObject t_string = {
 	.count = count,
 	.copy = copy,
 	.print = print,
-	.select = select,
+	.select = select_,
 	.to_string = to_string,
 	.op_eql = op_eql,
 	.walkexts = walkexts,
@@ -89,7 +89,7 @@ static int char_index_to_offset(StringObject *str, int idx)
 	return scanned_bytes;
 }
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *error)
+static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 {
 	ASSERT(self != NULL && self->type == &t_string);
 	ASSERT(key != NULL && heap != NULL && error != NULL);

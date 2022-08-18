@@ -39,7 +39,7 @@ typedef struct {
 	Object **vals;
 } MapObject;
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *err);
+static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 static int     count(Object *self);
 static void	print(Object *self, FILE *fp);
@@ -54,7 +54,7 @@ static TypeObject t_map = {
 	.size = sizeof (MapObject),
 	.copy = copy,
 	.hash = hash,
-	.select = select,
+	.select = select_,
 	.insert = insert,
 	.count = count,
 	.print = print,
@@ -174,7 +174,7 @@ static void walkexts(Object *self, void (*callback)(void **referer, unsigned int
 	callback((void**) &map->vals, sizeof(Object*) * capacity, userp);
 }
 
-static Object *select(Object *self, Object *key, Heap *heap, Error *error)
+static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 {
 	UNUSED(heap);
 	ASSERT(self != NULL);

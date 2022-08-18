@@ -1,10 +1,15 @@
 # Implementation of a stack using a linked list.
 
-fun Stack_New(T)
+fun Stack_New(T) {
+	if T == None:
+		return none, "The type can't be None";
 	return { count: 0, head: none, type: T };
+}
 
 fun Stack_Push(stack: Map, value) {
 	
+	assert(stack.type != None);
+
 	if type(value) != stack.type:
 		error("Invalid type");
 
@@ -19,7 +24,7 @@ fun Stack_Pop(stack: Map) {
 
 	if stack.head == none:
 		return none;
-
+	
 	value = stack.head.item;
 	stack.head = stack.head.prev;
 	stack.count = stack.count - 1;

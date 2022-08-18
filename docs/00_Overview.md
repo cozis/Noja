@@ -8,7 +8,7 @@ A Noja program is a sequence of statements separated by semi-colons (with some e
 * expressions
 * function definitions
 * if-else branches
-* while loops 
+* while loops
 * do-while loops
 * compound statements
 * `break` jumps

@@ -1,4 +1,6 @@
-
+# This script reads the contents of the specified
+# folder, and then prints all of the containd files.
+ 
 dirname = '.';
 dir = files.openDir(dirname);
 

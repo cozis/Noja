@@ -149,7 +149,7 @@ fun parseString(context: Map) {
     while context.cur < count(context.str) 
       and context.str[context.cur] != '"': {
         # TODO: Support special characters such as \n, \t ecc
-        buffer = strcat(buffer, context.str[context.cur]);
+        buffer = string.cat(buffer, context.str[context.cur]);
         context.cur = context.cur + 1;
     }
 
@@ -228,7 +228,7 @@ fun parseValue(context: Map) {
         val, err = parseFalse(context);
     else {
         val = none;
-        err = strcat("Unexepected character \"", c, "\" where a value was expected");
+        err = string.cat("Unexepected character \"", c, "\" where a value was expected");
     }
     return val, err;
 }

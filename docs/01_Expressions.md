@@ -142,6 +142,13 @@ ls[0 + 2]; # OK!
 ls[true or false]; # Runtime error!!
 ```
 
+To append a value to a list, increasing it's size, you can just insert the new value at the first unused position (which will have index equal to the current list size). As we'll see in the built-in chapter, to get the size of a list one can use the `count` function. Which means appending to a list can be done like this:
+```py
+ls = [1, 2, 3];
+ls[count(ls)] = 4;
+# Now ls is [1, 2, 3, 4]
+```
+
 ## Maps
 Maps are defined as a list of key-value pairs:
 ```py

@@ -27,6 +27,8 @@
 ** | with The Noja Interpreter. If not, see <http://www.gnu.org/licenses/>.   |
 ** +--------------------------------------------------------------------------+ 
 */
+#include <stdio.h>
+#include <stdlib.h> // just for [abort]
 
 #ifndef MAX
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -46,16 +48,14 @@
 #define ASSERT(X)       \
     do {                \
         if(!(X)) {      \
-            fprintf(stderr, "Assertion failure %s:%d (in %s): [" #X "] is false\n", __FILE__, __LINE__, __func__); \
+            fprintf(stderr, "Assertion failure %s:%d (in %s): [%s] is false\n", __FILE__, __LINE__, __func__, #X); \
             abort();    \
         }               \
     } while(0);
-#define UNREACHABLE     \
-    do {                \
-        if(!(x)) {      \
-            fprintf(stderr, "ABORT at %s:%d (in %s): Reached code assumed to be unreachable\n", __FILE__, __LINE__, __func__); \
-            abort();    \
-        }               \
+#define UNREACHABLE \
+    do {            \
+        fprintf(stderr, "ABORT at %s:%d (in %s): Reached code assumed to be unreachable\n", __FILE__, __LINE__, __func__); \
+        abort();    \
     } while(0);
 #else
 #define ASSERT(x)
