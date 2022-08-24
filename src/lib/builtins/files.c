@@ -59,15 +59,9 @@ static int bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Obje
 
 	Heap *heap = Runtime_GetHeap(runtime);
 
-	const char *path = Object_ToString(argv[0], NULL, heap, error);
-
-	if(error->occurred)
-		return -1;
-
-	int mode = Object_ToInt(argv[1], error);
-
-	if(error->occurred)
-		return -1;
+	int mode = Object_GetInt(argv[1]);
+	const char *path = Object_GetString(argv[0], NULL);
+	ASSERT(path != NULL); // We know argv[0] is a string.
 
 	FILE *fp;
 	{
@@ -155,12 +149,12 @@ static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *
 
 	Heap *heap = Runtime_GetHeap(runtime);
 
-	void *buff_addr;
-	int   buff_size;
+	void  *buff_addr;
+	size_t buff_size;
 	
-	buff_addr = Object_GetBufferAddrAndSize(argv[1], &buff_size, error);
+	buff_addr = Object_GetBuffer(argv[1], &buff_size);
 
-	int read_size;
+	size_t read_size;
 
 	if(Object_IsNone(argv[2]))
 	{
@@ -168,12 +162,14 @@ static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *
 	}
 	else if(Object_IsInt(argv[2]))
 	{
-		long long int temp = Object_ToInt(argv[2], error);
-
-		if(error->occurred)
+		long long int temp = Object_GetInt(argv[2]);
+		if(temp < 0) 
+		{
+			Error_Report(error, 0, "Expected third argument to be a positive integer");
 			return -1;
+		}
 
-		read_size = temp; // TODO: Handle potential overflow.
+		read_size = (size_t) temp; // TODO: Handle potential overflow.
 
 		if(read_size > buff_size)
 			read_size = buff_size;
@@ -184,7 +180,7 @@ static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *
 		return -1;
 	}
 
-	FILE *fp = Object_ToStream(argv[0], error);
+	FILE *fp = Object_GetStream(argv[0]);
 	
 	if(fp == NULL)
 		return -1;
@@ -220,12 +216,12 @@ static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 	Heap *heap = Runtime_GetHeap(runtime);
 
-	void *buff_addr;
-	int   buff_size;
+	void  *buff_addr;
+	size_t buff_size;
 	
-	buff_addr = Object_GetBufferAddrAndSize(argv[1], &buff_size, error);
+	buff_addr = Object_GetBuffer(argv[1], &buff_size);
 
-	int write_size;
+	size_t write_size;
 
 	if(Object_IsNone(argv[2]))
 	{
@@ -233,12 +229,14 @@ static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	}
 	else if(Object_IsInt(argv[2]))
 	{
-		long long int temp = Object_ToInt(argv[2], error);
-
-		if(error->occurred)
+		long long int temp = Object_GetInt(argv[2]);
+		if(temp < 0) 
+		{
+			Error_Report(error, 0, "Expected third argument to be a positive integer");
 			return -1;
+		}
 
-		write_size = temp; // TODO: Handle potential overflow.
+		write_size = (size_t) temp; // TODO: Handle potential overflow.
 
 		if(write_size > buff_size)
 			write_size = buff_size;
@@ -249,7 +247,7 @@ static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object 
 		return -1;
 	}
 
-	FILE *fp = Object_ToStream(argv[0], error);
+	FILE *fp = Object_GetStream(argv[0]);
 	
 	if(fp == NULL)
 		return -1;
@@ -277,10 +275,8 @@ static int bin_openDir(Runtime *runtime, Object **argv, unsigned int argc, Objec
 
 	Heap *heap = Runtime_GetHeap(runtime);
 
-	const char *path = Object_ToString(argv[0], NULL, heap, error);
-	
-	if(error->occurred)
-		return -1;
+	const char *path = Object_GetString(argv[0], NULL);
+	ASSERT(path != NULL);
 
 	DIR *dir = opendir(path);
 
@@ -312,11 +308,7 @@ static int bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, O
 		return -1;
 	}
 
-	DIR *dir = Object_ToDIR(argv[0], error);
-
-	if(error->occurred)
-		return -1;
-
+	DIR *dir = Object_GetDIR(argv[0]);
 	ASSERT(dir != NULL);
 
 	Heap *heap = Runtime_GetHeap(runtime);

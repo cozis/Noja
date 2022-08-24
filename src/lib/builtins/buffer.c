@@ -7,10 +7,13 @@ static int bin_new(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     UNUSED(argc);
     ASSERT(argc == 1);
 
-    long long int size = Object_ToInt(argv[0], error);
-
-    if(error->occurred == 1)
+    if(!Object_IsInt(argv[0]))
+    {
+        Error_Report(error, 0, "Argument is not an int");
         return -1;
+    }
+
+    long long int size = Object_GetInt(argv[0]);
 
     Object *temp = Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
 
@@ -26,11 +29,20 @@ static int bin_sliceUp(Runtime *runtime, Object **argv, unsigned int argc, Objec
     UNUSED(argc);
     ASSERT(argc == 3);
 
-    long long int offset = Object_ToInt(argv[1], error);
-    if(error->occurred == 1) return -1;
+    if(!Object_IsInt(argv[1]))
+    {
+        Error_Report(error, 0, "Argument 1 is not an int");
+        return -1;
+    }
 
-    long long int length = Object_ToInt(argv[2], error);
-    if(error->occurred == 1) return -1;
+    if(!Object_IsInt(argv[2]))
+    {
+        Error_Report(error, 0, "Argument 2 is not an int");
+        return -1;
+    }
+
+    long long int offset = Object_GetInt(argv[1]);
+    long long int length = Object_GetInt(argv[2]);
 
     Object *temp = Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
 
@@ -46,15 +58,19 @@ static int bin_toString(Runtime *runtime, Object **argv, unsigned int argc, Obje
     UNUSED(argc);
     ASSERT(argc == 1);
 
-    void *buffaddr;
-    int   buffsize;
-
-    buffaddr = Object_GetBufferAddrAndSize(argv[0], &buffsize, error);
-
-    if(error->occurred)
+    if(!Object_IsBuffer(argv[0]))
+    {
+        Error_Report(error, 0, "Argument is not a buffer");
         return -1;
+    }
 
-    Object *temp =  Object_FromString(buffaddr, buffsize, Runtime_GetHeap(runtime), error);
+    void  *buffaddr;
+    size_t buffsize;
+
+    buffaddr = Object_GetBuffer(argv[0], &buffsize);
+    ASSERT(buffaddr != NULL);
+
+    Object *temp = Object_FromString(buffaddr, buffsize, Runtime_GetHeap(runtime), error);
 
     if(temp == NULL)
         return -1;

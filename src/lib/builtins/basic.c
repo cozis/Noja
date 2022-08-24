@@ -72,7 +72,7 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		}
 		
 		int n;
-		path = Object_ToString(o_path, &n, Runtime_GetHeap(runtime), error);
+		path = Object_GetString(o_path, &n);
 		if (path == NULL)
 			return -1;
 		
@@ -259,14 +259,21 @@ static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object
 {
 	UNUSED(runtime);
 	UNUSED(rets);
-
+	
 	for(unsigned int i = 0; i < argc; i += 1)
-		if(!Object_ToBool(argv[i], error))
+	{
+		if(!Object_IsBool(argv[i]))
 		{
-			if(!error->occurred)
-				Error_Report(error, 0, "Assertion failed");
+			Error_Report(error, 0, "Argument %d isn't a boolean", i);
 			return -1;
 		}
+
+		if(!Object_GetBool(argv[i]))
+		{
+			Error_Report(error, 0, "Assertion failed");
+			return -1;
+		}
+	}
 	return 0;
 }
 
@@ -274,15 +281,21 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 {
 	UNUSED(argc);
 	UNUSED(rets);
+	UNUSED(runtime);
+
 	ASSERT(argc == 1);
 
-	int         length;
+	if(!Object_IsString(argv[0])) 
+	{
+		Error_Report(error, 0, "Argument is not a string");
+		return -1;
+	}
+
+	int length;
 	const char *string;
 
-	string = Object_ToString(argv[0], &length, Runtime_GetHeap(runtime), error);
-
-	if(string == NULL)
-		return -1;
+	string = Object_GetString(argv[0], &length);
+	ASSERT(string != NULL);
 
 	Error_Report(error, 0, "%s", string);
 	return -1;

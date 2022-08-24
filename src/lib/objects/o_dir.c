@@ -51,7 +51,7 @@ TypeObject *Object_GetDirType()
 
 _Bool Object_IsDir(Object *obj)
 {
-	return obj->type == &t_dir;
+	return Object_GetType(obj) == Object_GetDirType();
 }
 
 Object *Object_FromDIR(DIR *handle, Heap *heap, Error *error)
@@ -66,11 +66,12 @@ Object *Object_FromDIR(DIR *handle, Heap *heap, Error *error)
 	return (Object*) dob;
 }
 
-DIR *Object_ToDIR(Object *obj, Error *error)
+
+DIR *Object_GetDIR(Object *obj)
 {
-	if(!Object_IsDir(obj))
-	{
-		Error_Report(error, 0, "Object is not a directory");
+	if(!Object_IsDir(obj)) {
+		Error_Panic("%s expected a directory object, but an %s "
+			        "was provided", __func__,  Object_GetName(obj));
 		return NULL;
 	}
 

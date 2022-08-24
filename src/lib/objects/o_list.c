@@ -50,7 +50,7 @@ static int hash(Object *self);
 static TypeObject t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "list",
-	.size = sizeof (ListObject),
+	.size = sizeof(ListObject),
 	.copy = copy,
 	.hash = hash,
 	.select = select_,
@@ -173,8 +173,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 		return NULL;
 	}
 
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
+	int idx = Object_GetInt(key);
 
 	ListObject *list = (ListObject*) self;
 
@@ -228,8 +227,7 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 		return NULL;
 	}
 
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
+	int idx = Object_GetInt(key);
 
 	if(idx < 0 || idx > list->count)
 	{

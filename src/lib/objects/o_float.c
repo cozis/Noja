@@ -30,9 +30,9 @@
 
 #include <assert.h>
 #include "objects.h"
+#include "../utils/defs.h"
 #include "../utils/hash.h"
 
-static double to_float(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
 static int     hash(Object *self);
@@ -47,10 +47,8 @@ static TypeObject t_float = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "float",
 	.size = sizeof (FloatObject),
-	.atomic = ATMTP_FLOAT,
 	.hash = hash,
 	.copy = copy,
-	.to_float = to_float,
 	.print = print,
 	.op_eql = op_eql
 };
@@ -67,17 +65,15 @@ static int hash(Object *self)
 
 static Object *copy(Object *self, Heap *heap, Error *err)
 {
-	(void) heap;
-	(void) err;
-	return self;
+	UNUSED(heap);
+	UNUSED(err);
+	return self; /* Float objects are immutable */
 }
 
 static _Bool op_eql(Object *self, Object *other)
 {
-	assert(self != NULL);
-	assert(self->type == &t_float);
-	assert(other != NULL);
-	assert(other->type == &t_float);
+	assert(self  != NULL && self->type  == &t_float);
+	assert(other != NULL && other->type == &t_float);
 
 	FloatObject *i1, *i2;
 
@@ -87,13 +83,14 @@ static _Bool op_eql(Object *self, Object *other)
 	return i1->val == i2->val;
 }
 
-static double to_float(Object *obj, Error *err)
+double Object_GetFloat(Object *obj)
 {
-	assert(obj);
-	assert(err);
-	assert(Object_GetType(obj) == &t_float);
-
-	(void) err;
+	if(!Object_IsFloat(obj)) {
+		Error_Panic("%s expected a float object, but "
+				    "an %s was provided", __func__, 
+			        Object_GetName(obj));
+		return 0.0;
+	}
 
 	return ((FloatObject*) obj)->val;
 }
@@ -106,9 +103,8 @@ TypeObject *Object_GetFloatType()
 Object *Object_FromFloat(double val, Heap *heap, Error *error)
 {
 	FloatObject *obj = (FloatObject*) Heap_Malloc(heap, &t_float, error);
-
-	if(obj == 0)
-		return 0;
+	if(obj == NULL)
+		return NULL;
 
 	obj->val = val;
 
@@ -118,8 +114,7 @@ Object *Object_FromFloat(double val, Heap *heap, Error *error)
 static void print(Object *obj, FILE *fp)
 {
 	assert(fp != NULL);
-	assert(obj != NULL);
-	assert(obj->type == &t_float);
+	assert(obj != NULL && obj->type == &t_float);
 
 	fprintf(fp, "%2.2f", ((FloatObject*) obj)->val);
 }

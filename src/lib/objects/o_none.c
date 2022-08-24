@@ -40,7 +40,7 @@ static Object *copy(Object *self, Heap *heap, Error *err);
 static TypeObject t_none = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "none",
-	.size = sizeof (Object),
+	.size = sizeof(Object),
 	.hash = hash,
 	.copy = copy,
 	.print = print,
@@ -59,7 +59,7 @@ TypeObject *Object_GetNoneType()
 
 _Bool Object_IsNone(Object *obj)
 {
-	return obj == &the_none_object;
+	return Object_GetType(obj) == Object_GetNoneType();
 }
 
 static int hash(Object *self)

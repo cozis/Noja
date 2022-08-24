@@ -69,7 +69,8 @@ Object *Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *er
 	return (Object*) obj;
 }
 
-static Object *select_(Object *self, Object *key, Heap *heap, Error *err)
+static Object *select_(Object *self, Object *key, 
+	                   Heap *heap, Error *err)
 {
 	ClosureObject *closure = (ClosureObject*) self;
 

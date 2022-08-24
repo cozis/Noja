@@ -34,17 +34,15 @@
 #include "objects.h"
 
 typedef struct {
-	Object         base;
-	int            size;
-	unsigned char *body;
-} BufferObject;
+	size_t refs, size;
+	unsigned char body[];
+} Payload;
 
 typedef struct {
-	Object        base;
-	BufferObject *sliced;
-	int           offset, 
-	              length;
-} BufferSliceObject;
+	Object base;
+	Payload *payload;
+	size_t offset, length;
+} BufferObject;
 
 static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *err);
 static _Bool   buffer_insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
@@ -52,31 +50,15 @@ static int     buffer_count(Object *self);
 static void	   buffer_print(Object *obj, FILE *fp);
 static _Bool   buffer_free(Object *self, Error *error);
 
-static Object *slice_select(Object *self, Object *key, Heap *heap, Error *err);
-static _Bool   slice_insert(Object *self, Object *key, Object *val, Heap *heap, Error *err);
-static int     slice_count(Object *self);
-static void	   slice_print(Object *obj, FILE *fp);
-
-
 static TypeObject t_buffer = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "buffer",
-	.size = sizeof (BufferObject),
+	.size = sizeof(BufferObject),
 	.select = buffer_select,
 	.insert = buffer_insert,
 	.count = buffer_count,
 	.print = buffer_print,
 	.free  = buffer_free,
-};
-
-static TypeObject t_buffer_slice = {
-	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "buffer slice",
-	.size = sizeof (BufferSliceObject),
-	.select = slice_select,
-	.insert = slice_insert,
-	.count = slice_count,
-	.print = slice_print,
 };
 
 #define THRESHOLD 128
@@ -88,44 +70,31 @@ TypeObject *Object_GetBufferType()
 
 _Bool Object_IsBuffer(Object *obj)
 {
-	return obj->type == &t_buffer_slice || obj->type == &t_buffer;
+	return Object_GetType(obj) == Object_GetBufferType();
 }
 
-Object *Object_NewBuffer(int size, Heap *heap, Error *error)
+Object *Object_NewBuffer(size_t size, Heap *heap, Error *error)
 {
-	ASSERT(size >= 0);
-
 	// Make the thing.
 	BufferObject *obj;
 	{
-		obj = (BufferObject*) Heap_Malloc(heap, &t_buffer, error);
+		Payload *payload = malloc(sizeof(Payload) + size);
+		if(payload == NULL)
+		{
+			Error_Report(error, 1, "No memory");
+			return NULL;
+		}
+		payload->refs = 1;
+		payload->size = size;
+		memset(payload->body, 0, size);
 
+		obj = (BufferObject*) Heap_Malloc(heap, &t_buffer, error);
 		if(obj == NULL)
 			return NULL;
 
-		unsigned char *body;
-
-		if(size > THRESHOLD)
-		{
-			body = malloc(sizeof(unsigned char) * size);
-
-			if(body == NULL)
-			{
-				Error_Report(error, 1, "No memory");
-				return NULL;
-			}
-		}
-		else
-		{
-			body = Heap_RawMalloc(heap, sizeof(unsigned char) * size, error);
-				
-			if(body == NULL)
-				return NULL;
-		}
-
-		obj->size = size;
-		obj->body = body;
-		memset(obj->body, 0, size);
+		obj->payload = payload;
+		obj->offset = 0;
+		obj->length = size;
 	}
 
 	return (Object*) obj;
@@ -133,124 +102,63 @@ Object *Object_NewBuffer(int size, Heap *heap, Error *error)
 
 static _Bool buffer_free(Object *self, Error *error)
 {
-	(void) error;
+	UNUSED(error);
 
 	BufferObject *buffer = (BufferObject*) self;
-	
-	if(buffer->size > THRESHOLD)
-		free(buffer->body);
+
+	Payload *payload = buffer->payload;
+	ASSERT(payload != NULL && payload->refs > 0);
+
+	payload->refs -= 1;
+	if(payload->refs == 0)
+		free(payload);
 	return 1;
 }
 
-Object *Object_SliceBuffer(Object *buffer, int offset, int length, Heap *heap, Error *error)
+Object *Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap, Error *error)
 {
-	if(buffer->type != &t_buffer && buffer->type != &t_buffer_slice)
+	if(!Object_IsBuffer(obj))
 	{
-		Error_Report(error, 0, "Not a buffer or a buffer slice");
+		Error_Report(error, 0, "Not a buffer");
 		return NULL;
 	}
 
-	BufferSliceObject *slice;
+	Payload *payload = ((BufferObject*) obj)->payload;
 
-	if(buffer->type == &t_buffer)
-	{
-		BufferObject *original = (BufferObject*) buffer;
-
-		if(offset == 0 && length == original->size)
-			return buffer;
-
-		slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
-
-		if(slice == NULL)
-			return NULL;
-
-		if(offset < 0 || offset >= original->size)
-		{
-			Error_Report(error, 0, "offset out of range");
-			return NULL;
-		}
-
-		if(length < 0 || length >= original->size)
-		{
-			Error_Report(error, 0, "length out of range");
-			return NULL;
-		}
-
-		if(offset + length > original->size)
-		{
-			Error_Report(error, 0, "slice out of range");
-			return NULL;
-		}
-
-		slice->sliced = original;
-		slice->offset = offset;
-		slice->length = length;
+	if(offset >= payload->size) {
+		Error_Report(error, 0, "Offset out of range");
+		return NULL;
 	}
-	else
-	{
-		ASSERT(buffer->type == &t_buffer_slice);
 
-		slice = (BufferSliceObject*) Heap_Malloc(heap, &t_buffer_slice, error);
-
-		if(slice == NULL)
-			return NULL;
-
-		BufferSliceObject *original = (BufferSliceObject*) buffer;
-
-		if(offset < 0 || offset >= original->length)
-		{
-			Error_Report(error, 0, "offset out of range");
-			return NULL;
-		}
-
-		if(length < 0 || length >= original->length)
-		{
-			Error_Report(error, 0, "length out of range");
-			return NULL;
-		}
-
-		if(offset + length > original->length)
-		{
-			Error_Report(error, 0, "slice out of range");
-			return NULL;
-		}
-
-		slice->sliced = original->sliced;
-		slice->offset = original->offset + offset;
-		slice->length = length;
+	if(offset + length > payload->size) {
+		Error_Report(error, 0, "Length out of range");
+		return NULL;
 	}
+
+	BufferObject *slice = (BufferObject*) Heap_Malloc(heap, &t_buffer, error);
+	if(slice == NULL)
+		return NULL;
+
+	slice->payload = payload;
+	slice->offset = offset;
+	slice->length = length;
 
 	return (Object*) slice;
 }
 
-void *Object_GetBufferAddrAndSize(Object *obj, int *size, Error *error)
+void *Object_GetBuffer(Object *obj, size_t *size)
 {
-	if(obj->type != &t_buffer && obj->type != &t_buffer_slice)
+	if(!Object_IsBuffer(obj))
 	{
-		Error_Report(error, 0, "Not a buffer or a buffer slice");
+		Error_Panic("Not a buffer");
 		return NULL;
 	}
 
-	if(obj->type == &t_buffer)
-	{
-		BufferObject *buffer = (BufferObject*) obj;
-		
-		if(size)
-			*size = buffer->size;
+	BufferObject *buffer = (BufferObject*) obj;
+	Payload *payload = buffer->payload;
 
-		return buffer->body;
-	}
-	else
-	{
-		ASSERT(obj->type == &t_buffer_slice);
-
-		BufferSliceObject *slice = (BufferSliceObject*) obj;
-
-		if(size)
-			*size = slice->length;
-
-		return slice->sliced->body + slice->offset;
-	}
+	if(size) *size = buffer->length;
+	return payload->body + buffer->offset;
 }
 
 static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error)
@@ -267,48 +175,19 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 		return NULL;
 	}
 
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
+	int idx = Object_GetInt(key);
 
 	BufferObject *buffer = (BufferObject*) self;
 
-	if(idx < 0 || idx >= buffer->size)
+	if(idx < 0 || (size_t) idx >= buffer->length)
 	{
-		Error_Report(error, 0, "Out of range index");
+		Error_Report(error, 0, "Index out of range");
 		return NULL;
 	}
 
-	unsigned char byte = buffer->body[idx];
+	Payload *payload = buffer->payload;
 
-	return Object_FromInt(byte, heap, error);
-}
-
-static Object *slice_select(Object *self, Object *key, Heap *heap, Error *error)
-{
-	ASSERT(self != NULL);
-	ASSERT(self->type == &t_buffer_slice);
-	ASSERT(key != NULL);
-	ASSERT(heap != NULL);
-	ASSERT(error != NULL);
-
-	if(!Object_IsInt(key))
-	{
-		Error_Report(error, 0, "Non integer key");
-		return NULL;
-	}
-
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
-
-	BufferSliceObject *slice = (BufferSliceObject*) self;
-
-	if(idx < 0 || idx >= slice->length)
-	{
-		Error_Report(error, 0, "Out of range index");
-		return NULL;
-	}
-
-	unsigned char byte = slice->sliced->body[slice->offset + idx];
+	unsigned char byte = payload->body[buffer->offset + idx];
 
 	return Object_FromInt(byte, heap, error);
 }
@@ -330,18 +209,18 @@ static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, E
 		Error_Report(error, 0, "Non integer key");
 		return NULL;
 	}
-
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
-
-	if(idx < 0 || idx >= buffer->size)
+	if(!Object_IsInt(val))
+	{
+		Error_Report(error, 0, "Non integer value");
+		return NULL;
+	}
+	int idx = Object_GetInt(key);
+	long long int qword = Object_GetInt(val);
+	if(idx < 0 || (size_t) idx >= buffer->length)
 	{
 		Error_Report(error, 0, "Out of range index");
 		return NULL;
 	}
-
-	long long int qword = Object_ToInt(val, error);
-
 	if(qword > 255 || qword < 0)
 	{
 		Error_Report(error, 0, "Not in range [0, 255]");
@@ -350,54 +229,8 @@ static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, E
 
 	unsigned char byte = qword & 0xff;
 
-	if(error->occurred == 1)
-		return 0;
-
-	buffer->body[idx] = byte;
-	return 1;
-}
-
-static _Bool slice_insert(Object *self, Object *key, Object *val, Heap *heap, Error *error)
-{
-	UNUSED(heap);
-	ASSERT(error != NULL);
-	ASSERT(key != NULL);
-	ASSERT(val != NULL);
-	ASSERT(heap != NULL);
-	ASSERT(self != NULL);
-	ASSERT(self->type == &t_buffer_slice);
-
-	BufferSliceObject *slice = (BufferSliceObject*) self;
-
-	if(!Object_IsInt(key))
-	{
-		Error_Report(error, 0, "Non integer key");
-		return NULL;
-	}
-
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
-
-	if(idx < 0 || idx >= slice->length)
-	{
-		Error_Report(error, 0, "Out of range index");
-		return NULL;
-	}
-
-	long long int qword = Object_ToInt(val, error);
-
-	if(qword > 255 || qword < 0)
-	{
-		Error_Report(error, 0, "Not in range [0, 255]");
-		return NULL;
-	}
-
-	unsigned char byte = qword & 0xff;
-
-	if(error->occurred == 1)
-		return 0;
-
-	slice->sliced->body[slice->offset + idx] = byte;
+	Payload *payload = buffer->payload;
+	payload->body[buffer->offset + idx] = byte;
 	return 1;
 }
 
@@ -405,14 +238,7 @@ static int buffer_count(Object *self)
 {
 	BufferObject *buffer = (BufferObject*) self;
 
-	return buffer->size;
-}
-
-static int slice_count(Object *self)
-{
-	BufferSliceObject *slice = (BufferSliceObject*) self;
-
-	return slice->length;
+	return buffer->length;
 }
 
 static void print_bytes(FILE *fp, unsigned char *addr, int size)
@@ -446,11 +272,5 @@ static void print_bytes(FILE *fp, unsigned char *addr, int size)
 static void buffer_print(Object *self, FILE *fp)
 {
 	BufferObject *buffer = (BufferObject*) self;
-	print_bytes(fp, buffer->body, buffer->size);
-}
-
-static void slice_print(Object *self, FILE *fp)
-{
-	BufferSliceObject *slice = (BufferSliceObject*) self;
-	print_bytes(fp, slice->sliced->body + slice->offset, slice->length);
+	print_bytes(fp, buffer->payload->body + buffer->offset, buffer->length);
 }

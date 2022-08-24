@@ -23,10 +23,9 @@ static int bin_ord(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     const char  *string;
     int n;
-    string = Object_ToString(argv[0],&n,Runtime_GetHeap(runtime),error);
-    if (string == NULL)
-        return -1;
-        
+    string = Object_GetString(argv[0], &n);
+    ASSERT(string != NULL);
+
     if(n == 0)
     {
         Error_Report(error, 0, "Argument #%d is an empty string", 1);
@@ -38,7 +37,7 @@ static int bin_ord(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     UNUSED(k);
     ASSERT(k >= 0);
 
-    Object *temp = Object_FromInt(ret,Runtime_GetHeap(runtime),error);
+    Object *temp = Object_FromInt(ret, Runtime_GetHeap(runtime), error);
 
     if(temp == NULL)
         return -1;
@@ -60,11 +59,7 @@ static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     char buff[32];
     
-    int value = Object_ToInt(argv[0],error);
-
-    if(error->occurred)
-        return -1;
-
+    int value = Object_GetInt(argv[0]);
     
     int k = utf8_sequence_from_utf32_codepoint(buff,sizeof(buff),value);
 
@@ -120,11 +115,7 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     for(unsigned int i = 0, written = 0; i < argc; i += 1)
     {
         int n;
-        const char *s = Object_ToString(argv[i], &n, 
-            Runtime_GetHeap(runtime), error);
-
-        if(error->occurred)
-            goto done;
+        const char *s = Object_GetString(argv[i], &n);
 
         memcpy(buffer + written, s, n);
         written += n;
@@ -133,8 +124,7 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     buffer[total_count] = '\0';
 
     result = Object_FromString(buffer, total_count, Runtime_GetHeap(runtime), error);
-
-done:
+    
     if(starting != buffer)
         free(buffer);
 

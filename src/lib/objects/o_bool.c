@@ -32,7 +32,6 @@
 #include "objects.h"
 #include "../utils/defs.h"
 
-static _Bool to_bool(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
 static int hash(Object *self);
@@ -41,11 +40,9 @@ static Object *copy(Object *self, Heap *heap, Error *err);
 static TypeObject t_bool = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "bool",
-	.size = sizeof (Object),
-	.atomic = ATMTP_BOOL,
+	.size = sizeof(Object),
 	.hash = hash,
 	.copy = copy,
-	.to_bool = to_bool,
 	.print = print,
 	.op_eql = op_eql,
 };
@@ -89,12 +86,15 @@ static _Bool op_eql(Object *self, Object *other)
 	return self == other;
 }
 
-static _Bool to_bool(Object *obj, Error *err)
+bool Object_GetBool(Object *obj)
 {
-	UNUSED(err);
-	ASSERT(obj);
-	ASSERT(err);
-	ASSERT(Object_GetType(obj) == &t_bool);
+	if(!Object_IsBool(obj)) {
+		Error_Panic("%s expected a bool object, but "
+				    "an %s was provided", __func__, 
+			        Object_GetName(obj));
+		return -1;
+	}
+
 	return obj == &the_true_object;
 }
 

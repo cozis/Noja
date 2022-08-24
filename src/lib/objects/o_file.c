@@ -54,11 +54,11 @@ _Bool Object_IsFile(Object *obj)
 	return obj->type == &t_file;
 }
 
-FILE *Object_ToStream(Object *obj, Error *error)
+FILE *Object_GetStream(Object *obj)
 {
-	if(!Object_IsFile(obj))
-	{
-		Error_Report(error, 0, "Object is not a file");
+	if(!Object_IsDir(obj)) {
+		Error_Panic("%s expected a file object, but an %s "
+			        "was provided", __func__,  Object_GetName(obj));
 		return NULL;
 	}
 

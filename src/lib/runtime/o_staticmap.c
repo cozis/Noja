@@ -116,7 +116,8 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 	if(!Object_IsString(key))
 		return NULL;
 
-	const char *name = Object_ToString(key, NULL, heap, error);
+	const char *name = Object_GetString(key, NULL);
+	assert(name != NULL);
 
 	if(map->slots == NULL)
 		return NULL;

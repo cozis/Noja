@@ -209,6 +209,6 @@ someFunction(none); # No error. The argument value will be 4.
 fun someFunction2(a: int) {}
 someFunction2(none); # Error!
 
-fun someFunction(a: int = 1.3) {}
-someFunction(none); # Error!
+fun someFunction3(a: int = 1.3) {}
+someFunction3(none); # Error!
 ```

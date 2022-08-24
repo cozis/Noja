@@ -1,7 +1,7 @@
 
 vars, err = import("imported.noja");
 if vars == none: {
-    print("L'import è fallito!! (", err, ")\n");
+    print("Import failed!! (", err, ")\n");
     return none;
 }
 

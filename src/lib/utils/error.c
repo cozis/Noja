@@ -30,9 +30,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <stdio.h>
 #include "error.h"
+#include "defs.h"
 
 void Error_Init(Error *err)
 {
@@ -66,18 +66,18 @@ void _Error_Report2(Error *err, _Bool internal,
 	const char *file, const char *func, int line, 
 	const char *fmt, va_list va)
 {
-	assert(err);
-	assert(file);
-	assert(func);
-	assert(line > 0);
-	assert(fmt);
+	ASSERT(err);
+	ASSERT(file);
+	ASSERT(func);
+	ASSERT(line > 0);
+	ASSERT(fmt);
 
 #ifdef DEBUG
 	if(err->occurred != 0) {
 		fprintf(stderr, "Error previously reported at %s:%d (in %s) :: %s\n", err->file, err->line, err->func, err->message);
 	}
 #endif
-	assert(err->occurred == 0);
+	ASSERT(err->occurred == 0);
 
 	err->occurred = 1;
 	err->internal = internal;
@@ -90,7 +90,7 @@ void _Error_Report2(Error *err, _Bool internal,
 
 	int p = vsnprintf(err->message2, sizeof(err->message2), fmt, va);
 
-	assert(p > -1);
+	ASSERT(p > -1);
 
 	if((unsigned int) p > sizeof(err->message2)-1)
 	{
@@ -121,4 +121,18 @@ void _Error_Report2(Error *err, _Bool internal,
 
 	if(err->on_report)
 		err->on_report(err);
+}
+
+void Error_Panic_(const char *file, int line, 
+	              const char *fmt, ...)
+{
+	FILE *fp = stderr;
+
+	va_list args;
+	va_start(args, fmt);
+	fprintf(fp, "Panic: ");
+	vfprintf(fp, fmt, args);
+	fprintf(fp, " (reported in %s:%d)", file, line);
+	va_end(args);
+	abort();
 }

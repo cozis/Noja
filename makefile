@@ -59,8 +59,8 @@ BUILD_MODE = RELEASE
 # following set of flags to the CFLAGS and 
 # LFLAGS. If the BUILD_MODE is COVERAGE, then 
 # the flags are also determined based on the CC.
-CFLAGS_DEBUG = -DDEBUG -g
-LFLAGS_DEBUG =
+CFLAGS_DEBUG = -DDEBUG -g 
+LFLAGS_DEBUG = 
 
 CFLAGS_RELEASE = -DNDEBUG -O3
 LFLAGS_RELEASE =
@@ -149,15 +149,6 @@ $(CLI): $(CLI_OFILES) $(LIB)
 
 $(TST): $(TST_OFILES) $(LIB)
 	gcc $^ -o $@ $(LFLAGS)
-
-#$(REPORTDIR)/%.gcov: src/%.c
-#	@ mkdir -p $(@D)
-#	gcov --stdout $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.c, $^) > $@
-#
-#report: $(patsubst $(SRCDIR)/%.c, $(REPORTDIR)/%.gcov, $(ALL_CFILES))
-#	lcov --capture --directory $(OBJDIR) --output-file coverage.info
-#	genhtml coverage.info --output-directory .
-#
 
 report: 
 	lcov --capture --directory $(OBJDIR) --output-file $(OBJDIR)/coverage.info

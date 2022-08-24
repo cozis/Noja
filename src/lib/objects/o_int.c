@@ -28,12 +28,11 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <assert.h>
 #include <string.h>
 #include "objects.h"
+#include "../utils/defs.h"
 #include "../utils/hash.h"
 
-static long long int to_int(Object *obj, Error *err);
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
 static int hash(Object *self);
@@ -47,19 +46,16 @@ typedef struct {
 static TypeObject t_int = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "int",
-	.size = sizeof (IntObject),
-	.atomic = ATMTP_INT,
+	.size = sizeof(IntObject),
 	.hash = hash,
 	.copy = copy,
-	.to_int = to_int,
 	.print = print,
 	.op_eql = op_eql,
 };
 
 static int hash(Object *self)
 {
-	assert(self != NULL);
-	assert(self->type == &t_int);
+	ASSERT(self != NULL && self->type == &t_int);
 
 	IntObject *iobj = (IntObject*) self;
 
@@ -68,20 +64,9 @@ static int hash(Object *self)
 
 static Object *copy(Object *self, Heap *heap, Error *err)
 {
-	(void) heap;
-	(void) err;
+	UNUSED(heap);
+	UNUSED(err);
 	return self;
-}
-
-static long long int to_int(Object *obj, Error *err)
-{
-	assert(obj != NULL);
-	assert(err != NULL);
-	assert(Object_GetType(obj) == &t_int);
-
-	(void) err;
-
-	return ((IntObject*) obj)->val;
 }
 
 TypeObject *Object_GetIntType()
@@ -91,8 +76,8 @@ TypeObject *Object_GetIntType()
 
 Object *Object_FromInt(long long int val, Heap *heap, Error *error)
 {
-	assert(heap != NULL);
-	assert(error != NULL);
+	ASSERT(heap != NULL);
+	ASSERT(error != NULL);
 
 	IntObject *obj = (IntObject*) Heap_Malloc(heap, &t_int, error);
 
@@ -104,21 +89,33 @@ Object *Object_FromInt(long long int val, Heap *heap, Error *error)
 	return (Object*) obj;
 }
 
+long long int Object_GetInt(Object *obj)
+{
+	if(!Object_IsInt(obj)) {
+		Error_Panic("%s expected an int object, but "
+					"an %s was provided", __func__, 
+			        Object_GetName(obj));
+		return 0;
+	}
+
+	return ((IntObject*) obj)->val;
+}
+
 static void print(Object *obj, FILE *fp)
 {
-	assert(fp != NULL);
-	assert(obj != NULL);
-	assert(obj->type == &t_int);
+	ASSERT(fp != NULL);
+	ASSERT(obj != NULL);
+	ASSERT(obj->type == &t_int);
 
 	fprintf(fp, "%lld", ((IntObject*) obj)->val);
 }
 
 static _Bool op_eql(Object *self, Object *other)
 {
-	assert(self != NULL);
-	assert(self->type == &t_int);
-	assert(other != NULL);
-	assert(other->type == &t_int);
+	ASSERT(self != NULL);
+	ASSERT(self->type == &t_int);
+	ASSERT(other != NULL);
+	ASSERT(other->type == &t_int);
 
 	IntObject *i1, *i2;
 

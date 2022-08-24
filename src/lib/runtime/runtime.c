@@ -409,37 +409,22 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 
 	if(Object_IsInt(lop))
 	{
-		long long int raw_lop = Object_ToInt(lop, error);
-
-		if(error->occurred)
-			return NULL;
+		long long int raw_lop = Object_GetInt(lop);
 
 		if(Object_IsInt(rop))
 		{
 			// int + int
-			long long int raw_rop = Object_ToInt(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			long long int raw_rop = Object_GetInt(rop);
 			long long int raw_res = 0;
-
 			APPLY(raw_lop, raw_rop, raw_res, id)
-
 			res = Object_FromInt(raw_res, heap, error);
 		}
 		else if(Object_IsFloat(rop))
 		{
 			// int + float
-			double raw_rop = Object_ToFloat(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			double raw_rop = Object_GetFloat(rop);
 			double raw_res = 0;
-
 			APPLY((double) raw_lop, raw_rop, raw_res, id)
-
 			res = Object_FromFloat(raw_res, heap, error);
 		}
 		else
@@ -450,37 +435,22 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 	}
 	else if(Object_IsFloat(lop))
 	{
-		double raw_lop = Object_ToFloat(lop, error);
-
-		if(error->occurred)
-			return NULL;
+		double raw_lop = Object_GetFloat(lop);
 
 		if(Object_IsInt(rop))
 		{
 			// float + int
-			long long int raw_rop = Object_ToInt(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			long long int raw_rop = Object_GetInt(rop);
 			double raw_res = 0;
-
 			APPLY(raw_lop, (double) raw_rop, raw_res, id)
-
 			res = Object_FromFloat(raw_res, heap, error);
 		}
 		else if(Object_IsFloat(rop))
 		{
 			// float + float
-			double raw_rop = Object_ToFloat(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			double raw_rop = Object_GetFloat(rop);
 			double raw_res = 0;
-
 			APPLY(raw_lop, raw_rop, raw_res, id)
-
 			res = Object_FromFloat(raw_res, heap, error);
 		}
 		else
@@ -519,29 +489,17 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 
 	if(Object_IsInt(lop))
 	{
-		long long int raw_lop = Object_ToInt(lop, error);
-
-		if(error->occurred)
-			return NULL;
-
+		long long int raw_lop = Object_GetInt(lop);
 		if(Object_IsInt(rop))
 		{
 			// int + int
-			long long int raw_rop = Object_ToInt(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			long long int raw_rop = Object_GetInt(rop);
 			APPLY(raw_lop, raw_rop, res, id)
 		}
 		else if(Object_IsFloat(rop))
 		{
 			// int + float
-			double raw_rop = Object_ToFloat(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			double raw_rop = Object_GetFloat(rop);
 			APPLY((double) raw_lop, raw_rop, res, id)
 		}
 		else
@@ -552,29 +510,17 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 	}
 	else if(Object_IsFloat(lop))
 	{
-		double raw_lop = Object_ToFloat(lop, error);
-
-		if(error->occurred)
-			return NULL;
-
+		double raw_lop = Object_GetFloat(lop);
 		if(Object_IsInt(rop))
 		{
 			// float + int
-			long long int raw_rop = Object_ToInt(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			long long int raw_rop = Object_GetInt(rop);
 			APPLY(raw_lop, (double) raw_rop, res, id)
 		}
 		else if(Object_IsFloat(rop))
 		{
 			// float + float
-			double raw_rop = Object_ToFloat(rop, error);
-
-			if(error->occurred)
-				return NULL;
-
+			double raw_rop = Object_GetFloat(rop);
 			APPLY(raw_lop, raw_rop, res, id)
 		}
 		else
@@ -651,20 +597,12 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(Object_IsInt(top))
 			{
-				long long n = Object_ToInt(top, error);
-
-				if(error->occurred)
-					return 0;
-
+				long long n = Object_GetInt(top);
 				top = Object_FromInt(-n, heap, error);
 			}
 			else if(Object_IsFloat(top))
 			{
-				double f = Object_ToFloat(top, error);
-
-				if(error->occurred)
-					return 0;
-
+				double f = Object_GetFloat(top);
 				top = Object_FromFloat(-f, heap, error);
 			}
 			else
@@ -698,13 +636,15 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			ASSERT(top != NULL);
 
-			_Bool v = Object_ToBool(top, error);
-
-			if(error->occurred)
+			if(!Object_IsBool(top))
+			{
+				Error_Report(error, 0, "NOT operand isn't a boolean");
 				return 0;
+			}
+
+			_Bool v = Object_GetBool(top);
 
 			Object *negated = Object_FromBool(!v, runtime->heap, error);
-
 			if(negated == NULL)
 				return 0;
 
@@ -794,47 +734,6 @@ static _Bool step(Runtime *runtime, Error *error)
 			ASSERT(lop != NULL);
 
 			Object *res = do_relational_op(lop, rop, opcode, runtime->heap, error);
-
-			if(res == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, res))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_AND:
-		case OPCODE_OR:
-		{
-			ASSERT(opc == 0);
-
-			Object *rop = Stack_Top(runtime->stack,  0);
-			Object *lop = Stack_Top(runtime->stack, -1);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			// We managed to pop rop and lop,
-			// so we know they're not NULL.
-			ASSERT(rop != NULL);
-			ASSERT(lop != NULL);
-
-			_Bool raw_rop, raw_lop, raw_res;
-			raw_lop = Object_ToBool(lop, error);
-			raw_rop = Object_ToBool(rop, error);
-			if(error->occurred) return 0;
-
-			switch(opcode)
-			{
-				case OPCODE_AND: raw_res = raw_lop && raw_rop; break;
-				case OPCODE_OR:  raw_res = raw_lop || raw_rop; break;
-				default: 
-				UNREACHABLE; 
-				raw_res = 0;
-				break;
-			}
-
-			Object *res = Object_FromBool(raw_res, runtime->heap, error);
 
 			if(res == NULL)
 				return 0;
@@ -1322,7 +1221,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 0;
 			}
 
-			if(Object_ToBool(top, error)) // This can't fail because we know it's a bool.
+			if(Object_GetBool(top))
 				runtime->frame->index = target;
 
 			return 1;
@@ -1354,7 +1253,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 0;
 			}
 
-			if(!Object_ToBool(top, error)) // This can't fail because we know it's a bool.
+			if(!Object_GetBool(top))
 				runtime->frame->index = target;
 
 			return 1;

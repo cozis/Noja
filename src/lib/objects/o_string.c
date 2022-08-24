@@ -45,7 +45,6 @@ static int hash(Object *self);
 static int count(Object *self);
 static Object *copy(Object *self, Heap *heap, Error *err);
 static void print(Object *obj, FILE *fp);
-static char *to_string(Object *self, int *size, Heap *heap, Error *err);
 static _Bool op_eql(Object *self, Object *other);
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
 static Object *select_(Object *self, Object *key, Heap *heap, Error *error);
@@ -53,14 +52,12 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error);
 static TypeObject t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "string",
-	.atomic = ATMTP_STRING,
 	.size = sizeof(StringObject),
 	.hash = hash,
 	.count = count,
 	.copy = copy,
 	.print = print,
 	.select = select_,
-	.to_string = to_string,
 	.op_eql = op_eql,
 	.walkexts = walkexts,
 };
@@ -99,9 +96,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 		Error_Report(error, 0, "Non integer key");
 		return NULL;
 	}
-
-	int idx = Object_ToInt(key, error);
-	ASSERT(error->occurred == 0);
+	int idx = Object_GetInt(key);
 
 	StringObject *str = (StringObject*) self;
 
@@ -117,19 +112,17 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 	return Object_FromString(str->body + byteoffset, codelength, heap, error);
 }
 
-static char *to_string(Object *self, int *size, Heap *heap, Error *err)
+const char *Object_GetString(Object *obj, int *size)
 {
-	ASSERT(self != NULL);
-	ASSERT(self->type == &t_string);
+	if(!Object_IsString(obj)) {
+		Error_Panic("%s expected a string object, but "
+						 "an %s was provided", __func__, 
+			             Object_GetName(obj));
+		return NULL;
+	}
 
-	(void) heap;
-	(void) err;
-
-	StringObject *s = (StringObject*) self;
-
-	if(size)
-		*size = s->bytes;
-
+	StringObject *s = (StringObject*) obj;
+	if(size) *size = s->bytes;
 	return s->body;
 }
 

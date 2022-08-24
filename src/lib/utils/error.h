@@ -53,4 +53,6 @@ void 	Error_Free(Error *err);
 #define Error_Report(err, internal, fmt, ...) _Error_Report(err, internal, __FILE__, __func__, __LINE__, fmt, ## __VA_ARGS__)
 void   _Error_Report (Error *err, _Bool internal, const char *file, const char *func, int line, const char *fmt, ...);
 void   _Error_Report2(Error *err, _Bool internal, const char *file, const char *func, int line, const char *fmt, va_list va);
+void    Error_Panic_(const char *file, int line, const char *fmt, ...);
+#define Error_Panic(fmt, ...) Error_Panic_(__FILE__, __LINE__, fmt, ## __VA_ARGS__)
 #endif

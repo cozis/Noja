@@ -51,7 +51,7 @@ static int hash(Object *self);
 static TypeObject t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = "map",
-	.size = sizeof (MapObject),
+	.size = sizeof(MapObject),
 	.copy = copy,
 	.hash = hash,
 	.select = select_,
