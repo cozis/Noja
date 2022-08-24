@@ -29,6 +29,7 @@
 */
 
 #include "objects.h"
+#include "../common/defs.h"
 
 typedef struct {
 	Object base;
@@ -39,7 +40,7 @@ static _Bool dir_free(Object *obj, Error *error);
 
 static TypeObject t_dir = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "Directory",
+	.name = TYPENAME_DIRECTORY,
 	.size = sizeof(DirObject),
 	.free = dir_free,
 };
@@ -70,8 +71,9 @@ Object *Object_FromDIR(DIR *handle, Heap *heap, Error *error)
 DIR *Object_GetDIR(Object *obj)
 {
 	if(!Object_IsDir(obj)) {
-		Error_Panic("%s expected a directory object, but an %s "
-			        "was provided", __func__,  Object_GetName(obj));
+		Error_Panic("%s expected a " TYPENAME_DIRECTORY
+		            " object, but an %s was provided", 
+		            __func__,  Object_GetName(obj));
 		return NULL;
 	}
 

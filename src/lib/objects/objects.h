@@ -56,10 +56,8 @@ struct TypeObject {
 
 	Object base;
 	
-	// Any.	
-	const char  *name;
-	unsigned int size;
-	//AtomicType   atomic;
+	const char *name;
+	size_t      size;
 
 	bool  	(*init)(Object *self, Error *err);
 	bool  	(*free)(Object *self, Error *err);
@@ -67,7 +65,6 @@ struct TypeObject {
 	Object*	(*copy)(Object *self, Heap *heap, Error *err);
 	int     (*call)(Object *self, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err);
 	void 	(*print)(Object *self, FILE *fp);
-	unsigned int (*deepsize)(const Object *self);
 
 	// Collections.
 	Object *(*select)(Object *self, Object *key, Heap *heap, Error *err);
@@ -75,9 +72,7 @@ struct TypeObject {
 	bool    (*insert)(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 	int 	(*count)(Object *self);
 
-	bool  (*op_eql)(Object *self, Object *other);
-
-	// All.
+	bool (*op_eql)(Object *self, Object *other);
 	void (*walk)    (Object *self, void (*callback)(Object **referer,                    void *userp), void *userp);
 	void (*walkexts)(Object *self, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
 };
@@ -100,11 +95,11 @@ void        *Heap_GetPointer(Heap *heap);
 unsigned int Heap_GetSize(Heap *heap);
 
 const TypeObject* Object_GetType(const Object *obj);
-const char*	 Object_GetName(const Object *obj);
-int 		 Object_Hash  (Object *obj);
-Object*		 Object_Copy  (Object *obj, Heap *heap, Error *err);
-int          Object_Call  (Object *obj, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err);
-void 		 Object_Print (Object *obj, FILE *fp);
+const char*	      Object_GetName(const Object *obj);
+int 		 Object_Hash (Object *obj);
+Object*		 Object_Copy (Object *obj, Heap *heap, Error *err);
+int          Object_Call (Object *obj, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err);
+void 		 Object_Print(Object *obj, FILE *fp);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);
 bool 		 Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *err);
@@ -151,7 +146,7 @@ bool  Object_IsDir(Object *obj);
 long long int Object_GetInt  (Object *obj);
 bool  		  Object_GetBool (Object *obj);
 double		  Object_GetFloat(Object *obj);
-const char	 *Object_GetString(Object *obj, int *size);
+const char	 *Object_GetString(Object *obj, size_t *size);
 DIR    		 *Object_GetDIR(Object *obj);
 FILE   		 *Object_GetStream(Object *obj);
 void         *Object_GetBuffer(Object *obj, size_t *size);

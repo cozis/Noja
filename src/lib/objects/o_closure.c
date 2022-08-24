@@ -44,7 +44,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *err);
 
 static TypeObject t_closure = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "closure",
+	.name = "Closure",
 	.size = sizeof(ClosureObject),
 	.select = select_,
 	.walk = walk,
@@ -59,7 +59,7 @@ Object *Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *er
 
 	if(parent != NULL && parent->type != &t_closure)
 	{
-		Error_Report(error, 0, "Object is not a closure");
+		Error_Report(error, 0, "Object is not a Closure");
 		return NULL;
 	}
 

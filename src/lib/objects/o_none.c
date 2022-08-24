@@ -31,6 +31,7 @@
 #include <string.h>
 #include "objects.h"
 #include "../utils/defs.h"
+#include "../common/defs.h"
 
 static _Bool op_eql(Object *self, Object *other);
 static void   print(Object *obj, FILE *fp);
@@ -39,7 +40,7 @@ static Object *copy(Object *self, Heap *heap, Error *err);
 
 static TypeObject t_none = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "none",
+	.name = TYPENAME_NONE,
 	.size = sizeof(Object),
 	.hash = hash,
 	.copy = copy,

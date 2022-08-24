@@ -32,6 +32,7 @@
 #include "objects.h"
 #include "../utils/defs.h"
 #include "../utils/hash.h"
+#include "../common/defs.h"
 
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
@@ -45,7 +46,7 @@ typedef struct {
 
 static TypeObject t_float = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "float",
+	.name = TYPENAME_FLOAT,
 	.size = sizeof (FloatObject),
 	.hash = hash,
 	.copy = copy,
@@ -86,9 +87,9 @@ static _Bool op_eql(Object *self, Object *other)
 double Object_GetFloat(Object *obj)
 {
 	if(!Object_IsFloat(obj)) {
-		Error_Panic("%s expected a float object, but "
-				    "an %s was provided", __func__, 
-			        Object_GetName(obj));
+		Error_Panic("%s expected a " TYPENAME_FLOAT
+			        " object, but an %s was provided", 
+			        __func__, Object_GetName(obj));
 		return 0.0;
 	}
 

@@ -31,10 +31,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "runtime.h"
 #include "../utils/path.h"
 #include "../utils/defs.h"
 #include "../utils/stack.h"
-#include "runtime.h"
 
 #define MAX_FRAME_STACK 16
 #define MAX_FRAMES 16

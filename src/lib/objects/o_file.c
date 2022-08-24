@@ -29,6 +29,7 @@
 */
 
 #include "objects.h"
+#include "../common/defs.h"
 
 typedef struct {
 	Object base;
@@ -39,7 +40,7 @@ static _Bool file_free(Object *self, Error *error);
 
 static TypeObject t_file = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "File",
+	.name = TYPENAME_FILE,
 	.size = sizeof(FileObject),
 	.free = file_free,
 };
@@ -57,8 +58,9 @@ _Bool Object_IsFile(Object *obj)
 FILE *Object_GetStream(Object *obj)
 {
 	if(!Object_IsDir(obj)) {
-		Error_Panic("%s expected a file object, but an %s "
-			        "was provided", __func__,  Object_GetName(obj));
+		Error_Panic("%s expected a " TYPENAME_FILE
+			        "object, but an %s was provided", 
+			        __func__,  Object_GetName(obj));
 		return NULL;
 	}
 

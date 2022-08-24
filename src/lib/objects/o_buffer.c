@@ -30,8 +30,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "../utils/defs.h"
 #include "objects.h"
+#include "../utils/defs.h"
+#include "../common/defs.h"
 
 typedef struct {
 	size_t refs, size;
@@ -52,7 +53,7 @@ static _Bool   buffer_free(Object *self, Error *error);
 
 static TypeObject t_buffer = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "buffer",
+	.name = TYPENAME_BUFFER,
 	.size = sizeof(BufferObject),
 	.select = buffer_select,
 	.insert = buffer_insert,
@@ -119,7 +120,7 @@ Object *Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap
 {
 	if(!Object_IsBuffer(obj))
 	{
-		Error_Report(error, 0, "Not a buffer");
+		Error_Report(error, 0, "Not a " TYPENAME_BUFFER);
 		return NULL;
 	}
 
@@ -150,7 +151,7 @@ void *Object_GetBuffer(Object *obj, size_t *size)
 {
 	if(!Object_IsBuffer(obj))
 	{
-		Error_Panic("Not a buffer");
+		Error_Panic("Not a " TYPENAME_BUFFER);
 		return NULL;
 	}
 

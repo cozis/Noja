@@ -28,8 +28,9 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include "../utils/defs.h"
 #include "objects.h"
+#include "../utils/defs.h"
+#include "../common/defs.h"
 
 typedef struct {
 	Object base;
@@ -50,7 +51,7 @@ static int hash(Object *self);
 
 static TypeObject t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "map",
+	.name = TYPENAME_MAP,
 	.size = sizeof(MapObject),
 	.copy = copy,
 	.hash = hash,

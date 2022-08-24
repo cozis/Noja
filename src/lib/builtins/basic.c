@@ -38,6 +38,7 @@
 #include "string.h"
 #include "buffer.h"
 #include "../utils/defs.h"
+#include "../common/defs.h"
 #include "../objects/objects.h"
 #include "../runtime/runtime.h"
 #include "../compiler/compile.h"
@@ -71,13 +72,10 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 			return -1;
 		}
 		
-		int n;
-		path = Object_GetString(o_path, &n);
+		path = Object_GetString(o_path, &path_len);
 		if (path == NULL)
 			return -1;
 		
-		ASSERT(n >= 0);
-		path_len = (size_t) n;
 	}
 	
 	char full_path[1024];
@@ -291,7 +289,7 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 		return -1;
 	}
 
-	int length;
+	size_t length;
 	const char *string;
 
 	string = Object_GetString(argv[0], &length);
@@ -316,18 +314,18 @@ void bins_basic_init(StaticMapSlot slots[])
 }
 
 StaticMapSlot bins_basic[] = {
-	{ "Type",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "None",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "int",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "bool",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "float",  SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "String", SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "List",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "Map",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "File",   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "Dir",    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
-	{ "math",   SM_SMAP, .as_smap = bins_math,   },
+	{ TYPENAME_TYPE,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_NONE,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_INT,    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_BOOL,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_FLOAT,  SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_STRING, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_LIST,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_MAP,    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_FILE,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_DIRECTORY, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	
+	{ "math",   SM_SMAP, .as_smap = bins_math,   },
 	{ "files",  SM_SMAP, .as_smap = bins_files,  },
 	{ "buffer", SM_SMAP, .as_smap = bins_buffer, },
 	{ "string", SM_SMAP, .as_smap = bins_string, },

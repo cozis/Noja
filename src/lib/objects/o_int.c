@@ -32,6 +32,7 @@
 #include "objects.h"
 #include "../utils/defs.h"
 #include "../utils/hash.h"
+#include "../common/defs.h"
 
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
@@ -45,7 +46,7 @@ typedef struct {
 
 static TypeObject t_int = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "int",
+	.name = TYPENAME_INT,
 	.size = sizeof(IntObject),
 	.hash = hash,
 	.copy = copy,
@@ -92,9 +93,9 @@ Object *Object_FromInt(long long int val, Heap *heap, Error *error)
 long long int Object_GetInt(Object *obj)
 {
 	if(!Object_IsInt(obj)) {
-		Error_Panic("%s expected an int object, but "
-					"an %s was provided", __func__, 
-			        Object_GetName(obj));
+		Error_Panic("%s expected an " TYPENAME_INT
+			        " object, but an %s was provided", 
+			        __func__, Object_GetName(obj));
 		return 0;
 	}
 

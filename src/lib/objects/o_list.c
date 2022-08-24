@@ -29,8 +29,9 @@
 */
 
 #include <string.h>
-#include "../utils/defs.h"
 #include "objects.h"
+#include "../utils/defs.h"
+#include "../common/defs.h"
 
 typedef struct {
 	Object base;
@@ -49,7 +50,7 @@ static int hash(Object *self);
 
 static TypeObject t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "list",
+	.name = TYPENAME_LIST,
 	.size = sizeof(ListObject),
 	.copy = copy,
 	.hash = hash,

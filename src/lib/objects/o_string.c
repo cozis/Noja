@@ -29,10 +29,11 @@
 */
 
 #include <string.h>
+#include "objects.h"
 #include "../utils/defs.h"
 #include "../utils/hash.h"
 #include "../utils/utf8.h"
-#include "objects.h"
+#include "../common/defs.h"
 
 typedef struct {
 	Object  base;
@@ -51,7 +52,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error);
 
 static TypeObject t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "string",
+	.name = TYPENAME_STRING,
 	.size = sizeof(StringObject),
 	.hash = hash,
 	.count = count,
@@ -112,12 +113,12 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 	return Object_FromString(str->body + byteoffset, codelength, heap, error);
 }
 
-const char *Object_GetString(Object *obj, int *size)
+const char *Object_GetString(Object *obj, size_t *size)
 {
 	if(!Object_IsString(obj)) {
-		Error_Panic("%s expected a string object, but "
-						 "an %s was provided", __func__, 
-			             Object_GetName(obj));
+		Error_Panic("%s expected a " TYPENAME_STRING
+			        " object, but an %s was provided", 
+			        __func__, Object_GetName(obj));
 		return NULL;
 	}
 

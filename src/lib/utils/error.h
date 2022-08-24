@@ -33,7 +33,6 @@
 #include <stdarg.h>
 
 typedef struct Error Error;
-
 struct Error {
 	void 		(*on_report)(Error *err);
 	_Bool  		occurred, 

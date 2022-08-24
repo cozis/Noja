@@ -31,6 +31,7 @@
 #include <string.h>
 #include "objects.h"
 #include "../utils/defs.h"
+#include "../common/defs.h"
 
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
@@ -39,7 +40,7 @@ static Object *copy(Object *self, Heap *heap, Error *err);
 
 static TypeObject t_bool = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
-	.name = "bool",
+	.name = TYPENAME_BOOL,
 	.size = sizeof(Object),
 	.hash = hash,
 	.copy = copy,
@@ -89,9 +90,9 @@ static _Bool op_eql(Object *self, Object *other)
 bool Object_GetBool(Object *obj)
 {
 	if(!Object_IsBool(obj)) {
-		Error_Panic("%s expected a bool object, but "
-				    "an %s was provided", __func__, 
-			        Object_GetName(obj));
+		Error_Panic("%s expected a " TYPENAME_BOOL 
+			        " object, but an %s was provided",
+			        __func__, Object_GetName(obj));
 		return -1;
 	}
 
