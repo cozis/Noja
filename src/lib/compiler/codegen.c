@@ -174,6 +174,7 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 {
 	switch(kind)
 	{
+		case EXPR_NULLABLETYPE: return OPCODE_NLB;
 		case EXPR_NOT: return OPCODE_NOT;
 		case EXPR_POS: return OPCODE_POS;
 		case EXPR_NEG: return OPCODE_NEG;
@@ -475,10 +476,13 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 	switch(expr->kind)
 	{
 		case EXPR_PAIR:
-		CodegenContext_ReportErrorAndJump(ctx, 0, "Tuple outside of assignment or return statement");
+		CodegenContext_ReportErrorAndJump(
+			ctx, 0, "Tuple outside of "
+			"assignment or return statement");
 		UNREACHABLE;
 		return; // For the compiler warning.
 
+		case EXPR_NULLABLETYPE:
 		case EXPR_NOT:
 		case EXPR_POS: case EXPR_NEG:
 		case EXPR_ADD: case EXPR_SUB:

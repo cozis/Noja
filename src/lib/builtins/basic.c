@@ -299,6 +299,25 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	return -1;
 }
 
+static int bin_istypeof(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+{
+	UNUSED(argc);
+	UNUSED(rets);
+	UNUSED(runtime);
+
+	ASSERT(argc == 2);
+
+	bool yes = Object_IsTypeOf(argv[0], argv[1]);
+
+	Heap *heap = Runtime_GetHeap(runtime);
+	Object *o_yes = Object_FromBool(yes, heap, error);
+	if (o_yes == NULL)
+		return -1;
+
+	rets[0] = o_yes;
+	return 1;
+}
+
 void bins_basic_init(StaticMapSlot slots[])
 {
 	slots[0].as_type = Object_GetTypeType();
@@ -311,6 +330,7 @@ void bins_basic_init(StaticMapSlot slots[])
 	slots[7].as_type = Object_GetMapType();
 	slots[8].as_type = Object_GetFileType();
 	slots[9].as_type = Object_GetDirType();
+	slots[10].as_type = Object_GetNullableType();
 }
 
 StaticMapSlot bins_basic[] = {
@@ -324,6 +344,7 @@ StaticMapSlot bins_basic[] = {
 	{ TYPENAME_MAP,    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_FILE,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_DIRECTORY, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_NULLABLE,  SM_TYPE, .as_type = NULL },
 	
 	{ "math",   SM_SMAP, .as_smap = bins_math,   },
 	{ "files",  SM_SMAP, .as_smap = bins_files,  },
@@ -331,11 +352,12 @@ StaticMapSlot bins_basic[] = {
 	{ "string", SM_SMAP, .as_smap = bins_string, },
 	
 	{ "import", SM_FUNCT, .as_funct = bin_import, .argc = 1, },
-	{ "type", SM_FUNCT, .as_funct = bin_type, .argc = 1 },
-	{ "print", SM_FUNCT, .as_funct = bin_print, .argc = -1 },
-	{ "input", SM_FUNCT, .as_funct = bin_input, .argc = 0 },
-	{ "count", SM_FUNCT, .as_funct = bin_count, .argc = 1 },
-	{ "error", SM_FUNCT, .as_funct = bin_error, .argc = 1 },
+	{ "type",   SM_FUNCT, .as_funct = bin_type, .argc = 1 },
+	{ "print",  SM_FUNCT, .as_funct = bin_print, .argc = -1 },
+	{ "input",  SM_FUNCT, .as_funct = bin_input, .argc = 0 },
+	{ "count",  SM_FUNCT, .as_funct = bin_count, .argc = 1 },
+	{ "error",  SM_FUNCT, .as_funct = bin_error, .argc = 1 },
 	{ "assert", SM_FUNCT, .as_funct = bin_assert, .argc = -1 },
+	{ "istypeof", SM_FUNCT, .as_funct = bin_istypeof, .argc = 2, },
 	{ NULL, SM_END, {}, {} },
 };

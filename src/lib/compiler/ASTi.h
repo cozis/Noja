@@ -77,6 +77,9 @@ typedef enum {
 	EXPR_STRING,
 	EXPR_IDENT,
 	EXPR_SELECT,
+
+	EXPR_NULLABLETYPE,
+	EXPR_SUMTYPE,
 } ExprKind;
 
 typedef struct Node Node;

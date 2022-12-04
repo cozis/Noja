@@ -13,3 +13,5 @@
 
 #define TYPENAME_FILE      "File"
 #define TYPENAME_DIRECTORY "Directory"
+
+#define TYPENAME_NULLABLE "NullableType"

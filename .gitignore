@@ -10,3 +10,5 @@ test
 vgcore.*
 *.gcov
 lib*.a
+
+*.noja

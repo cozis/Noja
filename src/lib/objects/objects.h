@@ -72,6 +72,9 @@ struct TypeObject {
 	bool    (*insert)(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 	int 	(*count)(Object *self);
 
+	// Types.
+	bool (*istypeof)(Object *self, Object *other);
+
 	bool (*op_eql)(Object *self, Object *other);
 	void (*walk)    (Object *self, void (*callback)(Object **referer,                    void *userp), void *userp);
 	void (*walkexts)(Object *self, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
@@ -100,6 +103,7 @@ int 		 Object_Hash (Object *obj);
 Object*		 Object_Copy (Object *obj, Heap *heap, Error *err);
 int          Object_Call (Object *obj, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err);
 void 		 Object_Print(Object *obj, FILE *fp);
+bool 		 Object_IsTypeOf(Object *typ, Object *obj);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);
 bool 		 Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *err);
@@ -114,6 +118,7 @@ Object*		 Object_NewNone(Heap *heap, Error *error);
 Object*      Object_NewBuffer(size_t size, Heap *heap, Error *error);
 Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);
 Object*      Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap, Error *error);
+Object*      Object_NewNullable(Object *item, Heap *heap, Error *error);
 
 Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);
 Object*		 Object_FromBool  (bool 		 val, Heap *heap, Error *error);
@@ -133,6 +138,7 @@ TypeObject *Object_GetMapType();
 TypeObject *Object_GetBufferType();
 TypeObject *Object_GetFileType();
 TypeObject *Object_GetDirType();
+TypeObject *Object_GetNullableType();
 
 bool  Object_IsNone(Object *obj);
 bool  Object_IsInt(Object *obj);

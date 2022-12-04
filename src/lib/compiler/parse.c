@@ -63,6 +63,7 @@
 
 typedef enum {
 	
+	TOPT = '?',
 	TPOS = '+',
 	TNEG = '-',
 	
@@ -556,6 +557,7 @@ static Node *parse_statement(Context *ctx)
 		case '[':
 		case '+':
 		case '-':
+		case '?':
 		case TINT:
 		case TFLOAT:
 		case TSTRING:
@@ -1544,6 +1546,7 @@ static Node *parse_prefix_expression(Context *ctx)
 
 		case '+':
 		case '-':
+		case '?':
 		case TKWNOT:
 		{
 			Token *unary_operator = current_token(ctx);
@@ -1569,6 +1572,7 @@ static Node *parse_prefix_expression(Context *ctx)
 
 				switch(unary_operator->kind)
 				{
+					case '?': temp->base.kind = EXPR_NULLABLETYPE; break;
 					case '+': temp->base.kind = EXPR_POS; break;
 					case '-': temp->base.kind = EXPR_NEG; break;
 					case TKWNOT: temp->base.kind = EXPR_NOT; break;

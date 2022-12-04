@@ -33,13 +33,20 @@
 #include "../common/defs.h"
 
 static _Bool op_eql(Object *self, Object *other);
+static bool istypeof(Object *self, Object *other);
 
 TypeObject t_type = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = TYPENAME_TYPE,
 	.size = sizeof(TypeObject),
+	.istypeof = istypeof,
 	.op_eql = op_eql,
 };
+
+static bool istypeof(Object *self, Object *other)
+{
+    return other->type == (TypeObject*) self;
+}
 
 TypeObject *Object_GetTypeType()
 {
@@ -69,6 +76,13 @@ const TypeObject *Object_GetType(const Object *obj)
 	ASSERT(obj != NULL);
 	ASSERT(obj->type != NULL);
 	return obj->type;
+}
+
+bool Object_IsTypeOf(Object *typ, Object *obj)
+{
+	if (typ->type->istypeof == NULL)
+		return false;
+	return typ->type->istypeof(typ, obj);
 }
 
 int Object_Hash(Object *obj)
