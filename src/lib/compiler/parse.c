@@ -1919,29 +1919,14 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 				return 0;
 			}
 
-			int   typec;
-			Node *typev = NULL;
-
+			Node *type;
 			if(next(ctx) == ':') {
 				next(ctx); // Skip the ':'.
-
-				Node *type = parse_expression(ctx, 0, 0);
+				type = parse_expression(ctx, 0, 0);
 				if(type == NULL)
 					return 0;
-				typev = type;
-				typec = 1;
-				Node *tail = type;
-				while(current(ctx) == '|') {
-					next(ctx);
-					type = parse_expression(ctx, 0, 0);
-					if(type == NULL)
-						return 0;
-					tail->next = type;
-					tail = type;
-					typec += 1;
-				}
 			} else
-				typec = 0;
+				type = NULL;
 
 			Node *defarg; // Default argument (or NULL if there isn't one)
 			if(current(ctx) == '=') {
@@ -1968,8 +1953,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 				arg->base.offset = current_token(ctx)->offset;
 				arg->base.length = current_token(ctx)->length;
 				arg->name = arg_name;
-				arg->typev = typev;
-				arg->typec = typec;
+				arg->type = type;
 				arg->value = defarg;
 			}
 

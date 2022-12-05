@@ -68,6 +68,7 @@ static TypeObject t_staticmap = {
 	.copy = copy,
 	.hash = hash,
 	.select = select_,
+#warning "Need to walk the references"
 };
 
 static Object *copy(Object *self, Heap *heap, Error *err)
@@ -137,6 +138,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 				case SM_SMAP: return Object_NewStaticMap(slot.as_smap, NULL, map->runt, error);
 				case SM_NONE: return Object_NewNone(heap, error);
 				case SM_TYPE: return (Object*) slot.as_type;
+				case SM_OBJECT: return slot.as_object;
 				default: assert(0); break;
 			}
 			return obj;

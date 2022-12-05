@@ -81,8 +81,9 @@ struct TypeObject {
 };
 
 enum {
-	Object_STATIC = 1,
-	Object_MOVED  = 2,
+	Object_STATIC = 1 << 0,
+	Object_MOVED  = 1 << 1,
+	Object_PRINT  = 1 << 2,
 };
 
 Heap*		 Heap_New(int size);
@@ -120,6 +121,7 @@ Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *
 Object*      Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap, Error *error);
 Object*      Object_NewNullable(Object *item, Heap *heap, Error *error);
 Object*		 Object_NewSum(Object *item0, Object *item1, Heap *heap, Error *error);
+Object*		 Object_NewAny();
 
 Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);
 Object*		 Object_FromBool  (bool 		 val, Heap *heap, Error *error);
@@ -141,6 +143,7 @@ TypeObject *Object_GetFileType();
 TypeObject *Object_GetDirType();
 TypeObject *Object_GetNullableType();
 TypeObject *Object_GetSumType();
+TypeObject *Object_GetAnyType();
 
 bool  Object_IsNone(Object *obj);
 bool  Object_IsInt(Object *obj);

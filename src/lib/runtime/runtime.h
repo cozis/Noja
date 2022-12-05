@@ -68,6 +68,7 @@ typedef enum {
     SM_SMAP,
     SM_NONE,
     SM_TYPE,
+    SM_OBJECT,
 } StaticMapSlotKind;
 
 typedef struct StaticMapSlot StaticMapSlot;
@@ -83,6 +84,7 @@ struct StaticMapSlot {
         double         as_float;
         int          (*as_funct)(Runtime*, Object**, unsigned int, Object*[static MAX_RETS], Error*);
         TypeObject    *as_type;
+        Object        *as_object;
     };
     union { int argc; int length; };
 };

@@ -40,7 +40,7 @@ struct Error {
 				truncated;
 	int    		length;
 	char*		message;
-	char   		message2[256];
+	char   		message2[512];
 	const char *file,
 			   *func;
 	int 		line;

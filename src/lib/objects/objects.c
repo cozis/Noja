@@ -34,14 +34,22 @@
 
 static _Bool op_eql(Object *self, Object *other);
 static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
+static void print(Object *self, FILE *fp);
 
 TypeObject t_type = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
 	.name = TYPENAME_TYPE,
 	.size = sizeof(TypeObject),
+	.print = print,
 	.istypeof = istypeof,
 	.op_eql = op_eql,
 };
+
+static void print(Object *self, FILE *fp)
+{
+	ASSERT(self->type == &t_type);
+	fprintf(fp, "%s", ((TypeObject*) self)->name);
+}
 
 static bool istypeof(Object *self, Object *other, Heap *heap, Error *error)
 {
@@ -80,10 +88,7 @@ const TypeObject *Object_GetType(const Object *obj)
 	return obj->type;
 }
 
-bool Object_IsTypeOf(Object *typ, 
-					 Object *obj, 
-					 Heap *heap, 
-					 Error *error)
+bool Object_IsTypeOf(Object *typ, Object *obj, Heap *heap, Error *error)
 {
 	if (typ->type->istypeof == NULL)
 		return false;
@@ -135,13 +140,22 @@ void Object_Print(Object *obj, FILE *fp)
 {
 	ASSERT(obj != NULL);
 
-	const TypeObject *type = Object_GetType(obj);
-	ASSERT(type);
+	if (obj->flags & Object_PRINT) {
+		fprintf(fp, "...");
+	} else {
+		
+		obj->flags |= Object_PRINT;
 
-	if(type->print == NULL)
-		fprintf(fp, "<%s is unprintable>", Object_GetName(obj));
-	else
-		type->print(obj, fp);
+		const TypeObject *type = Object_GetType(obj);
+		ASSERT(type);
+
+		if(type->print == NULL)
+			fprintf(fp, "<%s is unprintable>", Object_GetName(obj));
+		else
+			type->print(obj, fp);
+		
+		obj->flags  &= ~Object_PRINT;
+	}
 }
 
 Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)

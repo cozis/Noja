@@ -143,6 +143,15 @@ static void emitInstr_ERROR(CodegenContext *ctx, const char *msg, int off, int l
 	CodegenContext_EmitInstr(ctx, OPCODE_ERROR, opv, 1, off, len);
 }
 
+static void emitInstr_CHECKTYPE(CodegenContext *ctx, int arg_index, const char *arg_name, int off, int len)
+{
+	Operand opv[2] = {
+		{ .type = OPTP_INT, .as_int = arg_index },
+		{ .type = OPTP_STRING, .as_string = arg_name },
+	};
+	CodegenContext_EmitInstr(ctx, OPCODE_CHECKTYPE, opv, 2, off, len);
+}
+
 static void emitInstr_PUSHTRU(CodegenContext *ctx, int off, int len)
 {
 	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTRU, NULL, 0, off, len);
@@ -216,64 +225,11 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 	CodegenContext_EmitInstr(ctx, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
 }
 
+static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, 
+	                             Label *label_break);
+
 static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int argidx)
 {
-	/*
-	 *   // If a default value for the argument was specified
-	 *   PUSHTYP;
-	 *   PUSHNNETYP;
-	 *   EQL;
-	 *   JUMPIFNOTANDPOP default_handled;
-	 *   POP 1;
-	 *   <default-value>
-	 * default_handled:
-	 *   // Push the type of the argument
-	 *   PUSHTYP;
-	 *   
-	 *   // Evaluate the type annotation and make
-	 *   // sure that it evaluated to a type.
-	 *   <arg-type-0>
-	 *   PUSHTYP;
-	 *   PUSHTYPTYP;
-	 *   EQL;
-	 *   JUMPIFANDPOP argument_annotation_0_not_type;
-     *
-	 *   // If the annotated type and the argument's
-	 *   // type match, jump to the argument assignment.
-	 *   EQL;
-	 *   JUMPIFANDPOP argument_type_ok;
-	 *
-	 *   // To the same for the next annotation.
-	 *
-	 *   PUSHTYP;
-	 *   <arg-type-1>
-	 *   PUSHTYP;
-	 *   PUSHTYPTYP;
-	 *   EQL;
-	 *   JUMPIFANDPOP argument_annotation_1_not_type;
-	 *   EQL;
-	 *   JUMPIFANDPOP argument_type_ok;
-	 *
-	 *   PUSHTYP;
-	 *   <arg-type-2>
-	 *   PUSHTYP;
-	 *   PUSHTYPTYP;
-	 *   EQL;
-	 *   JUMPIFANDPOP argument_annotation_2_not_type;
-	 *   EQL;
-	 *   JUMPIFANDPOP argument_type_ok;
-	 *
-	 *   ERROR "Bad type of argument N";
-	 * argument_annotation_0_not_a_type:
-	 *   ERROR "Argument N annotation M isn't a type";
-	 * argument_type_ok:
-	 *
-	 *   // At this point we know that the argument has
-	 *   // a valid type.
-	 *   ASS <arg-name>;
-	 *   POP 1;
-	 */
-
 	if(arg->value != NULL) {
 		/* Emit bytecode for the default argument */
 		Label *label_default_handled = Label_New(ctx);
@@ -287,61 +243,11 @@ static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int
 		Label_Free(label_default_handled);
 	}
 
-	if(arg->typev != NULL) {
-
-		/* Emit checks for the argument type */
-
-		Node *typev = arg->typev;
-		int   typec = arg->typec;
-		assert(typec > 0);
-
-		Label *maybe[8];
-		Label **label_annotation_not_a_type;
-		if((size_t) typec > sizeof(maybe)/sizeof(maybe[0])) {
-			label_annotation_not_a_type = malloc(typec * sizeof(Label*));
-			if(label_annotation_not_a_type == NULL)
-				CodegenContext_ReportErrorAndJump(ctx, 1, "No memory");
-		} else
-			label_annotation_not_a_type = maybe;
-
-		for(int i = 0; i < typec; i += 1)
-			label_annotation_not_a_type[i] = Label_New(ctx);
-
-		Label *label_argument_type_ok = Label_New(ctx);
-
-		Node *type = typev;
-		for(int i = 0; i < typec; i += 1) {
-			assert(type != NULL);
-			emitInstr_PUSHTYP(ctx, arg->base.offset, arg->base.length); // The source slice should refer only to the name label, not the whole operand
-			emitInstrForNode(ctx, type, NULL);
-			{
-				emitInstr_PUSHTYP(ctx, type->offset, type->length);
-				emitInstr_PUSHTYPTYP(ctx, type->offset, type->length);
-				emitInstr_EQL(ctx, type->offset, type->length);
-				emitInstr_JUMPIFNOTANDPOP(ctx, label_annotation_not_a_type[i], type->offset, type->length);
-			}
-			emitInstr_EQL(ctx, type->offset, type->length);
-			emitInstr_JUMPIFANDPOP_2(ctx, label_argument_type_ok, type->offset, type->length);
-			type = type->next;
-		}
-
-		char msg[256];
-		snprintf(msg, sizeof(msg), "Bad type for argument %d", argidx);
-		emitInstr_ERROR(ctx, msg, arg->base.offset, arg->base.length);
-		for(int i = 0; i < typec; i += 1) {
-			Label_SetHere(label_annotation_not_a_type[i], ctx);
-			snprintf(msg, sizeof(msg), "Argument %d type annotation %d is not a type", argidx, i);
-			emitInstr_ERROR(ctx, msg, arg->base.offset, arg->base.length);
-		}
-
-		Label_SetHere(label_argument_type_ok, ctx);
-		
-		Label_Free(label_argument_type_ok);
-		for(int i = 0; i < typec; i += 1)
-			Label_Free(label_annotation_not_a_type[i]);
-		if(label_annotation_not_a_type != maybe)
-			free(label_annotation_not_a_type);
+	if (arg->type != NULL) {
+		emitInstrForNode(ctx, arg->type, NULL);
+		emitInstr_CHECKTYPE(ctx, argidx, arg->name, arg->type->offset, arg->type->length);
 	}
+
 	emitInstr_ASS(ctx, arg->name, arg->base.offset, arg->base.length);
 	emitInstr_POP1(ctx, arg->base.offset, arg->base.length);
 }

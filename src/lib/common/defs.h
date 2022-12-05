@@ -16,3 +16,4 @@
 
 #define TYPENAME_NULLABLE "NullableType"
 #define TYPENAME_SUM      "SumType"
+#define TYPENAME_ANY      "Any"

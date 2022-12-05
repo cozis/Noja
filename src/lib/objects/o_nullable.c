@@ -2,6 +2,7 @@
 #include "objects.h"
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
+static void print(Object *obj, FILE *fp);
 static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
 
 typedef struct {
@@ -18,7 +19,7 @@ static TypeObject t_nullable = {
     .hash = NULL,
     .copy = NULL,
     .call = NULL,
-    .print = NULL,
+    .print = print,
 
     .select = NULL,
     .delete = NULL,
@@ -61,4 +62,12 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 {
     NullableObject *nullable = (NullableObject*) self;
     callback(&nullable->item, userp);
+}
+
+static void print(Object *obj, FILE *fp)
+{
+    NullableObject *nullable = (NullableObject*) obj;
+
+    fprintf(fp, "?");
+    Object_Print(nullable->item, fp);
 }

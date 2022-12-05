@@ -826,6 +826,50 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 		}
 
+		case OPCODE_CHECKTYPE:
+		{
+			ASSERT(opc == 2);
+			ASSERT(ops[0].type == OPTP_INT);
+			ASSERT(ops[1].type == OPTP_STRING);
+			
+			const char *arg_name; 
+			int arg_index;
+			
+			arg_index = ops[0].as_int;
+			arg_name  = ops[1].as_string;
+
+			if(runtime->frame->used < 2)
+			{
+				Error_Report(error, 1, "Frame doesn't own enough objects to execute CHECKTYPE");
+				return 0;
+			}
+
+			Object *typ = Stack_Top(runtime->stack,  0);
+			Object *arg = Stack_Top(runtime->stack, -1);
+			ASSERT(typ != NULL);
+			ASSERT(arg != NULL);
+
+			// Pop type
+			if(!Runtime_Pop(runtime, error, 1))
+				return 0;
+
+			if (!Object_IsTypeOf(typ, arg, runtime->heap, error)) {
+				char provided[512];
+				char allowed[512];
+				FILE *provided_fp = fmemopen(provided, sizeof(provided), "wb");
+				FILE  *allowed_fp = fmemopen(allowed, sizeof(allowed), "wb");
+				// TODO: Check for errors from [fmemopen]
+				Object_Print(typ, allowed_fp);
+				Object_Print(arg, provided_fp);
+				fclose(allowed_fp);
+				fclose(provided_fp);
+				Error_Report(error, 0, "Argument %d \"%s\" has an unallowed type. Was expected something with type %s but was provided %s", 
+							 arg_index+1, arg_name, allowed, provided);
+				return 0;
+			}
+			return 1;
+		}
+
 		case OPCODE_CALL:
 		{
 			ASSERT(opc == 2);

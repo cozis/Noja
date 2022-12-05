@@ -331,6 +331,7 @@ void bins_basic_init(StaticMapSlot slots[])
 	slots[9].as_type = Object_GetDirType();
 	slots[10].as_type = Object_GetNullableType();
 	slots[11].as_type = Object_GetSumType();
+	slots[12].as_object = Object_NewAny();
 }
 
 StaticMapSlot bins_basic[] = {
@@ -346,7 +347,7 @@ StaticMapSlot bins_basic[] = {
 	{ TYPENAME_DIRECTORY, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_NULLABLE,  SM_TYPE, .as_type = NULL },
 	{ TYPENAME_SUM,       SM_TYPE, .as_type = NULL },
-	
+	{ "any",    SM_OBJECT, .as_object = NULL },
 	{ "math",   SM_SMAP, .as_smap = bins_math,   },
 	{ "files",  SM_SMAP, .as_smap = bins_files,  },
 	{ "buffer", SM_SMAP, .as_smap = bins_buffer, },

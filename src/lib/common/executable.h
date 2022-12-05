@@ -94,6 +94,7 @@ typedef enum {
 	OPCODE_JUMPIFANDPOP,
 	OPCODE_JUMPIFNOTANDPOP,
 	OPCODE_JUMP,
+	OPCODE_CHECKTYPE,
 } Opcode;
 
 typedef struct xExecutable Executable;
