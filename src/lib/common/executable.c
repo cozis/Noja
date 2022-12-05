@@ -83,6 +83,7 @@ static const InstrInfo instr_table[] = {
 	[OPCODE_LEQ]     = {"LEQ",  0, NULL},
 	[OPCODE_GEQ]     = {"GEQ",  0, NULL},
 	[OPCODE_NLB]     = {"NLB",  0, NULL},
+	[OPCODE_STP] 	 = {"STP",  0, NULL},
 	[OPCODE_ASS]     = {"ASS",  1, (OperandType[]) {OPTP_STRING}},
 	[OPCODE_POP]     = {"POP",  1, (OperandType[]) {OPTP_INT}},
 	[OPCODE_CALL]    = {"CALL", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},

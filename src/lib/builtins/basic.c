@@ -306,10 +306,9 @@ static int bin_istypeof(Runtime *runtime, Object **argv, unsigned int argc, Obje
 	UNUSED(runtime);
 
 	ASSERT(argc == 2);
-
-	bool yes = Object_IsTypeOf(argv[0], argv[1]);
-
+	
 	Heap *heap = Runtime_GetHeap(runtime);
+	bool yes = Object_IsTypeOf(argv[0], argv[1], heap, error);
 	Object *o_yes = Object_FromBool(yes, heap, error);
 	if (o_yes == NULL)
 		return -1;
@@ -331,6 +330,7 @@ void bins_basic_init(StaticMapSlot slots[])
 	slots[8].as_type = Object_GetFileType();
 	slots[9].as_type = Object_GetDirType();
 	slots[10].as_type = Object_GetNullableType();
+	slots[11].as_type = Object_GetSumType();
 }
 
 StaticMapSlot bins_basic[] = {
@@ -345,6 +345,7 @@ StaticMapSlot bins_basic[] = {
 	{ TYPENAME_FILE,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_DIRECTORY, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_NULLABLE,  SM_TYPE, .as_type = NULL },
+	{ TYPENAME_SUM,       SM_TYPE, .as_type = NULL },
 	
 	{ "math",   SM_SMAP, .as_smap = bins_math,   },
 	{ "files",  SM_SMAP, .as_smap = bins_files,  },

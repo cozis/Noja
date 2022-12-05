@@ -73,7 +73,7 @@ struct TypeObject {
 	int 	(*count)(Object *self);
 
 	// Types.
-	bool (*istypeof)(Object *self, Object *other);
+	bool (*istypeof)(Object *self, Object *other, Heap *heap, Error *error);
 
 	bool (*op_eql)(Object *self, Object *other);
 	void (*walk)    (Object *self, void (*callback)(Object **referer,                    void *userp), void *userp);
@@ -103,7 +103,7 @@ int 		 Object_Hash (Object *obj);
 Object*		 Object_Copy (Object *obj, Heap *heap, Error *err);
 int          Object_Call (Object *obj, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err);
 void 		 Object_Print(Object *obj, FILE *fp);
-bool 		 Object_IsTypeOf(Object *typ, Object *obj);
+bool 		 Object_IsTypeOf(Object *typ, Object *obj, Heap *heap, Error *error);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);
 bool 		 Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *err);
@@ -119,6 +119,7 @@ Object*      Object_NewBuffer(size_t size, Heap *heap, Error *error);
 Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);
 Object*      Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap, Error *error);
 Object*      Object_NewNullable(Object *item, Heap *heap, Error *error);
+Object*		 Object_NewSum(Object *item0, Object *item1, Heap *heap, Error *error);
 
 Object*		 Object_FromInt   (long long int val, Heap *heap, Error *error);
 Object*		 Object_FromBool  (bool 		 val, Heap *heap, Error *error);
@@ -139,6 +140,7 @@ TypeObject *Object_GetBufferType();
 TypeObject *Object_GetFileType();
 TypeObject *Object_GetDirType();
 TypeObject *Object_GetNullableType();
+TypeObject *Object_GetSumType();
 
 bool  Object_IsNone(Object *obj);
 bool  Object_IsInt(Object *obj);
@@ -148,6 +150,8 @@ bool  Object_IsString(Object *obj);
 bool  Object_IsBuffer(Object *obj);
 bool  Object_IsFile(Object *obj);
 bool  Object_IsDir(Object *obj);
+bool  Object_IsMap(Object *obj);
+bool  Object_IsList(Object *obj);
 
 long long int Object_GetInt  (Object *obj);
 bool  		  Object_GetBool (Object *obj);

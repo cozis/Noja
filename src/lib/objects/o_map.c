@@ -48,6 +48,7 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
 static Object *copy(Object *self, Heap *heap, Error *err);
 static int hash(Object *self);
+static bool istypeof(Object *self, Object *other, Heap   *heap, Error  *error);
 
 static TypeObject t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -59,9 +60,35 @@ static TypeObject t_map = {
 	.insert = insert,
 	.count = count,
 	.print = print,
+	.istypeof = istypeof,
 	.walk = walk,
 	.walkexts = walkexts,
 };
+
+static bool 
+istypeof(Object *self, 
+         Object *other,
+         Heap   *heap,
+         Error  *error)
+{
+    MapObject *map = (MapObject*) self;
+    if (!Object_IsMap(other))
+        return false;
+
+    for (int i = 0; i < map->count; i++) {
+    	
+    	Object *key = map->keys[i];
+    	Object *val = map->vals[i];
+    	
+    	Object *val2 = Object_Select(other, key, heap, error);
+    	if (val2 == NULL)
+    		return false;
+    	
+    	if (!Object_IsTypeOf(val, val2, heap, error))
+    		return false;
+    }
+    return true;
+}
 
 static inline int calc_capacity(int mapper_size)
 {

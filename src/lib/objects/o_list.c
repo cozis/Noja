@@ -47,6 +47,7 @@ static void    walk(Object *self, void (*callback)(Object **referer, void *userp
 static void    walkexts(Object *self, void (*callback)(void   **referer, unsigned int size, void *userp), void *userp);
 static Object *copy(Object *self, Heap *heap, Error *err);
 static int hash(Object *self);
+static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
 
 static TypeObject t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -58,9 +59,38 @@ static TypeObject t_list = {
 	.insert = insert,
 	.count = count,
 	.print = print,
+	.istypeof = istypeof,
 	.walk = walk,
 	.walkexts = walkexts,
 };
+
+static bool 
+istypeof(Object *self, 
+         Object *other,
+         Heap   *heap,
+         Error  *error)
+{
+    ListObject *list = (ListObject*) self;
+    if (!Object_IsList(other))
+        return false;
+
+    for (int i = 0; i < list->count; i++) {
+    	
+    	Object *key = Object_FromInt(i, heap, error);
+    	if (key == NULL)
+    		return false;
+
+    	Object *val = list->vals[i];
+    	
+    	Object *val2 = Object_Select(other, key, heap, error);
+    	if (val2 == NULL)
+    		return false;
+    	
+    	if (!Object_IsTypeOf(val, val2, heap, error))
+    		return false;
+    }
+    return true;
+}
 
 static int hash(Object *self)
 {

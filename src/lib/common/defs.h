@@ -15,3 +15,4 @@
 #define TYPENAME_DIRECTORY "Directory"
 
 #define TYPENAME_NULLABLE "NullableType"
+#define TYPENAME_SUM      "SumType"

@@ -175,6 +175,7 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 	switch(kind)
 	{
 		case EXPR_NULLABLETYPE: return OPCODE_NLB;
+		case EXPR_SUMTYPE: return OPCODE_STP;
 		case EXPR_NOT: return OPCODE_NOT;
 		case EXPR_POS: return OPCODE_POS;
 		case EXPR_NEG: return OPCODE_NEG;
@@ -483,6 +484,7 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 		return; // For the compiler warning.
 
 		case EXPR_NULLABLETYPE:
+		case EXPR_SUMTYPE:
 		case EXPR_NOT:
 		case EXPR_POS: case EXPR_NEG:
 		case EXPR_ADD: case EXPR_SUB:

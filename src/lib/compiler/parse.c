@@ -76,6 +76,7 @@ typedef enum {
 	TGRT = '>',
 
 	TASS = '=',
+	TSMT = '|',
 
 	TLBRK = '(',
 	TRBRK = ')',
@@ -144,7 +145,7 @@ static inline _Bool isoper(char c)
 			c == '*' || c == '/' || 
 			c == '<' || c == '>' ||
 			c == '!' || c == '=' ||
-			c == ',';
+			c == ',' || c == '|';
 }
 
 /* Symbol: tokenize
@@ -326,6 +327,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 				{   TGEQ, 2, ">=" },
 				{   TASS, 1, "="  },
 				{ TCOMMA, 1, ","  },
+				{   TSMT, 1, "|"  },
 			};
 
 			_Bool found = 0;
@@ -1600,7 +1602,8 @@ static inline _Bool isbinop(Token *tok)
 			tok->kind == TLEQ || tok->kind == TGEQ ||
 			tok->kind == TEQL || tok->kind == TNQL ||
 			tok->kind == TKWAND || tok->kind == TKWOR ||
-			tok->kind == '=' || tok->kind == ',';
+			tok->kind == '=' || tok->kind == ',' ||
+			tok->kind == '|';
 }
 
 static inline _Bool isrightassoc(Token *tok)
@@ -1619,11 +1622,14 @@ static inline int precedenceof(Token *tok)
 		case '=':
 		return 0;
 
-		case TKWOR:
+		case '|':
 		return 1;
 
-		case TKWAND:
+		case TKWOR:
 		return 2;
+
+		case TKWAND:
+		return 3;
 
 		case '<':
 		case '>':
@@ -1631,18 +1637,18 @@ static inline int precedenceof(Token *tok)
 		case TGEQ:
 		case TEQL:
 		case TNQL:
-		return 3;
+		return 4;
 
 		case '+':
 		case '-':
-		return 4;
+		return 5;
 
 		case '*':
 		case '/':
-		return 5;
-
-		case ',':
 		return 6;
+		
+		case ',':
+		return 7;
 		
 		default:
 		return -100000000;
@@ -1710,6 +1716,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 				case TKWAND: temp->base.kind = EXPR_AND; break;
 				case TKWOR: temp->base.kind = EXPR_OR; break;
 				case '=': temp->base.kind = EXPR_ASS; break;
+				case '|': temp->base.kind = EXPR_SUMTYPE; break;
 				case ',': temp->base.kind = EXPR_PAIR; break;
 				
 				default:

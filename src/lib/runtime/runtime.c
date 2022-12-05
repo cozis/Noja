@@ -667,7 +667,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(!Runtime_Pop(runtime, error, 1))
 				return 0;
-			
+
 			ASSERT(top != NULL);
 
 			Object *nullable = Object_NewNullable(top, runtime->heap, error);
@@ -675,6 +675,30 @@ static _Bool step(Runtime *runtime, Error *error)
 				return 0;
 
 			if(!Runtime_Push(runtime, error, nullable))
+				return 0;
+			return 1;
+		}
+
+		case OPCODE_STP:
+		{
+			ASSERT(opc == 0);
+
+			Object *rop = Stack_Top(runtime->stack,  0);
+			Object *lop = Stack_Top(runtime->stack, -1);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			// We managed to pop rop and lop,
+			// so we know they're not NULL.
+			ASSERT(rop != NULL);
+			ASSERT(lop != NULL);
+
+			Object *res = Object_NewSum(lop, rop, runtime->heap, error);
+			if(res == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, res))
 				return 0;
 			return 1;
 		}

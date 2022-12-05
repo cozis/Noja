@@ -6,13 +6,13 @@ static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
 
 typedef struct {
     Object  base;
-    Object *item;
-} NullableObject;
+    Object *items[2];
+} SumObject;
 
-static TypeObject t_nullable = {
+static TypeObject t_sum = {
     .base = (Object) { .type = &t_type, .flags = Object_STATIC },
-    .name = TYPENAME_NULLABLE,
-    .size = sizeof(NullableObject),
+    .name = TYPENAME_SUM,
+    .size = sizeof(SumObject),
     .init = NULL,
     .free = NULL,
     .hash = NULL,
@@ -32,17 +32,19 @@ static TypeObject t_nullable = {
     .walkexts = NULL,
 };
 
-TypeObject *Object_GetNullableType()
+TypeObject *Object_GetSumType()
 {
-    return &t_nullable;
+    return &t_sum;
 }
 
-Object *Object_NewNullable(Object *item, Heap *heap, Error *error)
+Object *Object_NewSum(Object *item0, Object *item1, Heap *heap, Error *error)
 {
-    NullableObject *nullable = (NullableObject*) Heap_Malloc(heap, &t_nullable, error);
-    if (nullable != NULL)
-        nullable->item = item;
-    return (Object*) nullable;
+    SumObject *sum = (SumObject*) Heap_Malloc(heap, &t_sum, error);
+    if (sum != NULL) {
+        sum->items[0] = item0;
+        sum->items[1] = item1;
+    }
+    return (Object*) sum;
 }
 
 static bool 
@@ -51,14 +53,14 @@ istypeof(Object *self,
          Heap   *heap, 
          Error  *error)
 {
-    NullableObject *nullable = (NullableObject*) self;
-    if (Object_IsNone(other))
-        return true;
-    return Object_IsTypeOf(nullable->item, other, heap, error);
+    SumObject *sum = (SumObject*) self;
+    return Object_IsTypeOf(sum->items[0], other, heap, error)
+        || Object_IsTypeOf(sum->items[1], other, heap, error);
 }
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp)
 {
-    NullableObject *nullable = (NullableObject*) self;
-    callback(&nullable->item, userp);
+    SumObject *sum = (SumObject*) self;
+    callback(sum->items + 0, userp);
+    callback(sum->items + 1, userp);
 }

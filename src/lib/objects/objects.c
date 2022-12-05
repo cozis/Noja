@@ -33,7 +33,7 @@
 #include "../common/defs.h"
 
 static _Bool op_eql(Object *self, Object *other);
-static bool istypeof(Object *self, Object *other);
+static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
 
 TypeObject t_type = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -43,8 +43,10 @@ TypeObject t_type = {
 	.op_eql = op_eql,
 };
 
-static bool istypeof(Object *self, Object *other)
+static bool istypeof(Object *self, Object *other, Heap *heap, Error *error)
 {
+	UNUSED(heap);
+	UNUSED(error);
     return other->type == (TypeObject*) self;
 }
 
@@ -78,11 +80,14 @@ const TypeObject *Object_GetType(const Object *obj)
 	return obj->type;
 }
 
-bool Object_IsTypeOf(Object *typ, Object *obj)
+bool Object_IsTypeOf(Object *typ, 
+					 Object *obj, 
+					 Heap *heap, 
+					 Error *error)
 {
 	if (typ->type->istypeof == NULL)
 		return false;
-	return typ->type->istypeof(typ, obj);
+	return typ->type->istypeof(typ, obj, heap, error);
 }
 
 int Object_Hash(Object *obj)
@@ -228,6 +233,16 @@ _Bool Object_IsFloat(Object *obj)
 _Bool Object_IsString(Object *obj)
 {
 	return Object_GetType(obj) == Object_GetStringType();
+}
+
+bool Object_IsMap(Object *obj)
+{
+	return Object_GetType(obj) == Object_GetMapType();
+}
+
+bool Object_IsList(Object *obj)
+{
+	return Object_GetType(obj) == Object_GetListType();
 }
 
 _Bool Object_Compare(Object *obj1, Object *obj2, Error *error)
