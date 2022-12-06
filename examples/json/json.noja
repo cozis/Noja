@@ -1,3 +1,4 @@
+
 Scanner = {src: String, i: int};
 
 fun newScanner(src: String) {
@@ -300,21 +301,4 @@ fun parse(src: String) {
     scan = newScanner(src);
     val, err = parseValue(scan);
     return val, err;
-}
-
-fun parseFile(file: String | File) {
-
-    if type(file) == String: {
-        file, err = files.open(file, files.READ);
-        if err != none:
-            return none, err;
-    }
-
-    src, err = files.read(file);
-    if err != none:
-        return none, err;
-    assert(type(src) == String);
-
-    val, err = parse(src);
-    return val, err; 
 }

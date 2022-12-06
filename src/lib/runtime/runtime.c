@@ -65,9 +65,17 @@ size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffs
 {
 	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
 	if(path == NULL) {
-		if(getcwd(buff, sizeof(buffsize)) == NULL)
+		if(getcwd(buff, buffsize) == NULL)
 			return 0;
-		return strlen(buff);
+		size_t cwdlen = strlen(buff);
+		if (buff[cwdlen-1] == '/')
+			return cwdlen;
+		else {
+			if (cwdlen+1 >= buffsize)
+				return 0;
+			buff[cwdlen] = '/';
+			return cwdlen+1;
+		}
 	}
 	
 	// This following block is a custom implementation

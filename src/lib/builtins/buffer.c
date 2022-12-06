@@ -16,7 +16,7 @@ static int bin_new(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     long long int size = Object_GetInt(argv[0]);
 
     Object *temp = Object_NewBuffer(size, Runtime_GetHeap(runtime), error);
-
+    
     if(temp == NULL)
         return -1;
 
