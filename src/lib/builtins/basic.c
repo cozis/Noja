@@ -317,6 +317,20 @@ static int bin_istypeof(Runtime *runtime, Object **argv, unsigned int argc, Obje
 	return 1;
 }
 
+static int bin_keysof(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+{
+	UNUSED(argc);
+	UNUSED(rets);
+	UNUSED(runtime);
+	ASSERT(argc == 1);
+	Heap   *heap = Runtime_GetHeap(runtime);
+	Object *keys = Object_KeysOf(argv[0], heap, error);
+	if (keys == NULL)
+		return -1;
+	rets[0] = keys;
+	return 1;
+}
+
 void bins_basic_init(StaticMapSlot slots[])
 {
 	slots[0].as_type = Object_GetTypeType();
@@ -361,5 +375,6 @@ StaticMapSlot bins_basic[] = {
 	{ "error",  SM_FUNCT, .as_funct = bin_error, .argc = 1 },
 	{ "assert", SM_FUNCT, .as_funct = bin_assert, .argc = -1 },
 	{ "istypeof", SM_FUNCT, .as_funct = bin_istypeof, .argc = 2, },
+	{ "keysof", SM_FUNCT, .as_funct = bin_keysof, .argc = 1, },
 	{ NULL, SM_END, {}, {} },
 };

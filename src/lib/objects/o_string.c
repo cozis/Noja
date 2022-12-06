@@ -49,6 +49,7 @@ static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
 static Object *select_(Object *self, Object *key, Heap *heap, Error *error);
+static Object *keysof(Object *self, Heap *heap, Error *error);
 
 static TypeObject t_string = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -60,6 +61,7 @@ static TypeObject t_string = {
 	.print = print,
 	.select = select_,
 	.op_eql = op_eql,
+	.keysof = keysof,
 	.walkexts = walkexts,
 };
 
@@ -231,4 +233,14 @@ static void walkexts(Object *self, void (*callback)(void **referer, unsigned int
 	StringObject *str = (StringObject*) self;
 	
 	callback((void**) &str->body, str->bytes+1, userp);
+}
+
+static Object*
+keysof(Object *self, 
+	   Heap   *heap, 
+	   Error  *error)
+{
+	StringObject *str = (StringObject*) self;
+	int count = str->count;
+	return Object_NewListOfConsecutiveIntegers(0, count-1, heap, error);
 }

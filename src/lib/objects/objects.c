@@ -88,6 +88,16 @@ const TypeObject *Object_GetType(const Object *obj)
 	return obj->type;
 }
 
+Object*
+Object_KeysOf(Object *self, 
+			  Heap *heap, 
+			  Error *error)
+{
+	if (self->type->keysof == NULL)
+		return Object_NewNone(heap, error);
+	return self->type->keysof(self, heap, error);
+}
+
 bool Object_IsTypeOf(Object *typ, Object *obj, Heap *heap, Error *error)
 {
 	if (typ->type->istypeof == NULL)

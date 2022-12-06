@@ -1,240 +1,320 @@
+Scanner = {src: String, i: int};
+
+fun newScanner(src: String) {
+    scan = {src: src, i: 0};
+    assert(istypeof(Scanner, scan));
+    return scan;
+}
+
+fun isDigit(char: ?String) {
+    if char == none:
+        return false;
+    return string.ord(char) >= string.ord('0')
+       and string.ord(char) <= string.ord('9');
+}
 
 fun isSpace(c: String)
-    return c == " " 
-        or c == "\t" 
-        or c == "\n";
+    return c == ' '
+        or c == '\t'
+        or c == '\n';
 
-fun isDigit(c: String) {
-    d = string.ord(c) 
-      - string.ord("0");
-    return d >= 0 
-       and d <= 9;
+fun min(x, y) {
+    if x < y:
+        return x;
+    return y;
 }
 
-ParsingContext = {str: String, cur: int};
-
-fun skipSpaces(context: ParsingContext) {
-    # Skip zero or more whitespace characters.
-    while context.cur < count(context.str) 
-      and isSpace(context.str[context.cur]):
-      context.cur = context.cur + 1;
-}
-
-fun parseNull(context: ParsingContext) {
-    
-    assert(context.cur < count(context.str) 
-       and context.str[context.cur] == 'n');
-    
-    if context.cur+3 > count(context.str)
-    or context.str[context.cur+1] != 'u' 
-    or context.str[context.cur+2] != 'l'
-    or context.str[context.cur+3] != 'l':
-        return none, "Unexpected token starting with \"n\"";
-    
-    context.cur = context.cur + count("null");
+fun hint(scan: Scanner, n: int = 1) {
+    k = scan.i + n;
+    if k < count(scan.src):
+        return scan.src[k];
     return none;
 }
 
-fun parseTrue(context: ParsingContext) {
-    
-    assert(context.cur < count(context.str) 
-       and context.str[context.cur] == 't');
-    
-    if context.cur+3 > count(context.str)
-    or context.str[context.cur+1] != 'r' 
-    or context.str[context.cur+2] != 'u'
-    or context.str[context.cur+3] != 'e':
-        return none, "Unexpected token starting with \"t\"";
-    
-    context.cur = context.cur + count("true");
-    return true;
+fun current(scan: Scanner)
+    return hint(scan, 0);
+
+fun consume(scan: Scanner, n: int = 1) {
+    assert(n > 0);
+    limit = count(scan.src);
+    scan.i = min(scan.i + n, limit);
 }
 
-fun parseFalse(context: ParsingContext) {
-    
-    assert(context.cur < count(context.str) 
-       and context.str[context.cur] == 'f');
-    
-    if context.cur+3 > count(context.str)
-    or context.str[context.cur+1] != 'a' 
-    or context.str[context.cur+2] != 'l'
-    or context.str[context.cur+3] != 's'
-    or context.str[context.cur+4] != 'e':
-        return none, "Unexpected token starting with \"f\"";
-    
-    context.cur = context.cur + count("false");
-    return false;
-}
+fun consumeSpaces(scan: Scanner)
+    while isSpace(current(scan)):
+        consume(scan);
 
-fun dummy() {}
-Func = type(dummy);
+fun parseString(scan: Scanner) {
 
-fun skip(context: ParsingContext, test_callback: Func) {
-    k = context.cur;
-    while k < count(context.str) 
-      and test_callback(context.str[k]):
-        k = k + 1;
-    return k;
-}
+    assert(current(scan) == '"');
+    consume(scan); # Consume the opening "
 
-fun parseInteger(context: ParsingContext) {
-    assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
-
-    buffer = 0;
-
-    do {
-        c = context.str[context.cur];
-        d = string.ord(c) - string.ord('0');
-        buffer = buffer * 10 + d;
-        context.cur = context.cur + 1;
-    } while context.cur < count(context.str) 
-        and isDigit(context.str[context.cur]);
-    
-    return buffer;
-}
-
-fun parseFloating(context: ParsingContext) {
-    assert(context.cur < count(context.str) 
-       and isDigit(context.str[context.cur]));
-
-    # It's ensured by the caller (parseIntegerOrFloating)
-    # that now the strings contains two sequences of
-    # digits with a dot in the middle.
-
-    buffer = 0.0;
-
-    # Scan the integer part.
-    do {
-        c = context.str[context.cur];
-        d = string.ord(c) - string.ord('0');
-        buffer = buffer * 10 + d;
-        context.cur = context.cur + 1;
-    } while context.str[context.cur] != ".";
-    
-    assert(isDigit(context.str[context.cur+1]));
-    
-    # Scan the decimal part.
-    q = 1;
-    do {
-        c = context.str[context.cur];
-        d = string.ord(c) - string.ord('0');
-        q = q / 10;
-        buffer = buffer + q * d;
-        context.cur = context.cur + 1;
-    } while context.cur < count(context.str)
-        and isDigit(context.str[context.cur+1]);
-
-    return buffer;
-}
-
-fun parseIntegerOrFloating(context: ParsingContext) {
-    assert(context.cur < count(context.str) 
-       and isDigit(context.str[context.cur]));
-
-    # Is the first digit sequence followed by a dot
-    # and then one or more digits?
-    
-    k = skip(context, isDigit);
-    if k+1 < count(context.str) and context.str[k] == "." and isDigit(context.str[k+1]):
-        # It's a floating point value, then!
-        return parseFloating(context);
-    else
-        # It's good old integer!
-        return parseInteger(context);
-}
-
-fun parseString(context: ParsingContext) {
-    
-    assert(context.cur < count(context.str) 
-       and context.str[context.cur] == '"');
-
-    context.cur = context.cur + 1;
-
-    buffer = "";
-
-    while context.cur < count(context.str) 
-      and context.str[context.cur] != '"': {
-        # TODO: Support special characters such as \n, \t ecc
-        buffer = string.cat(buffer, context.str[context.cur]);
-        context.cur = context.cur + 1;
+    temp = "";
+    char = current(scan);
+    while char != '"' and char != none: {
+        temp = string.cat(temp, char);
+        consume(scan);
+        char = current(scan);
     }
 
-    if context.cur == count(context.str):
-        return none, "Source string ended inside a string literal";
+    if char == none: {
+        val = none;
+        err = "Source ended inside a string literal";
+    } else {
+        assert(char == '"');
+        consume(scan);
+        val = temp;
+        err = none;
+    }
 
-    context.cur = context.cur + 1;
-    return buffer;
+    return val, err;
 }
 
-fun parseArray(context: ParsingContext) {
-    assert(context.cur < count(context.str) 
-       and context.str[context.cur] == '[');
+fun parseObject(scan: Scanner) {
+    
+    assert(current(scan) == '{');
+    consume(scan); 
 
-    context.cur = context.cur + 1;
+    obj = {};
+    consumeSpaces(scan);
+    if current(scan) != '}': do {
+        key, err = parseValue(scan);
+        if err != none: 
+            return none, err;
+        if type(key) != String:
+            return none, "Object key isn't a string";
 
-    skipSpaces(context);
+        consumeSpaces(scan);
+        if current(scan) != ':':
+            return none, "Missing ':' separator after key";
+        consume(scan);
 
-    if context.cur == count(context.str):
-        return none, "Source string ended inside an array";
-
-    if context.str[context.cur] == ']':
-        return [];
-
-    list = [];
-
-    while true: {
-
-        item, err = parseValue(context);
+        val, err = parseValue(scan);
         if err != none:
             return none, err;
 
-        list[count(list)] = item;
+        if obj[key] != none:
+            return none, "Duplicate key in object";
+        obj[key] = val;
 
-        skipSpaces(context);
-
-        if context.cur == count(context.str):
-            return none, "Source string ended inside an array";
-
-        if context.str[context.cur] == ']':
-            break;
-
-        if context.str[context.cur] != ',':
-            return none, "Unexpected token inside an array, where either ',' or ']' were expected";
-
-        context.cur = context.cur + 1;
-
-        skipSpaces(context);
-    }
-    assert(context.cur < count(context.str)
-       and context.str[context.cur] == ']');
-
-    context.cur = context.cur + 1;
-    return list;
+        consumeSpaces(scan);
+        if current(scan) == '}':
+            done = true;
+        else {
+            if current(scan) != ',':
+                return none, "Invalid character where either ',' or '}' were expected";
+            consume(scan); # Consume the ","
+            done = false;
+        }
+    } while not done;
+    assert(current(scan) == '}');
+    consume(scan);
+    return obj;
 }
 
-fun parseValue(context: ParsingContext) {
+fun parseArray(scan: Scanner) {
     
-    if context.cur == count(context.str):
-        return none, "Source ended where a value was expected";
+    assert(current(scan) == '[');
+    consume(scan); # Consume the [
+    
+    array = [];
+    
+    consumeSpaces(scan);
+    if current(scan) != ']': do {
 
-    c = context.str[context.cur];
-    if c == "{":        val, err = parseObject(context);
-    else if c == "[":   val, err = parseArray(context);
-    else if c == '"':   val, err = parseString(context);
-    else if isDigit(c): val, err = parseIntegerOrFloating(context);
-    else if c == 'n':   val, err = parseNull(context);
-    else if c == 't':   val, err = parseTrue(context);
-    else if c == 'f':   val, err = parseFalse(context);
-    else {
-        val = none;
-        err = string.cat("Unexepected character \"", c, "\" where a value was expected");
+        val, err = parseValue(scan);
+        if err != none:
+            return none, err;
+        array[count(array)] = val;
+
+        consumeSpaces(scan);
+        if current(scan) == ']':
+            done = true;
+        else {
+            if current(scan) != ',':
+                return none, "Invalid character where either ',' or ']' were expected";
+            consume(scan); # Consume the ","
+            done = false;
+        }
+    } while not done;
+    assert(current(scan) == ']');
+    consume(scan);
+    return array;
+}
+
+fun parseFalse(scan: Scanner) {
+    
+    assert(current(scan) == 'f');
+    consume(scan);
+
+    if current(scan) != 'a':
+        return none, "Invalid character after 'f'";
+    consume(scan);
+
+    if current(scan) != 'l':
+        return none, "Invalid character after 'fa'";
+    consume(scan);
+
+    if current(scan) != 's':
+        return none, "Invalid character after 'fal'";
+    consume(scan);
+
+    if current(scan) != 'e':
+        return none, "Invalid character after 'fals'";
+    consume(scan);
+
+    return false;
+}
+
+fun parseTrue(scan: Scanner) {
+    
+    assert(current(scan) == 't');
+    consume(scan);
+
+    if current(scan) != 'r':
+        return none, "Invalid character after 't'";
+    consume(scan);
+
+    if current(scan) != 'u':
+        return none, "Invalid character after 'tr'";
+    consume(scan);
+
+    if current(scan) != 'e':
+        return none, "Invalid character after 'tru'";
+    consume(scan);
+
+    return true;
+}
+
+fun parseNull(scan: Scanner) {
+    
+    assert(current(scan) == 'n');
+    consume(scan);
+
+    if current(scan) != 'u':
+        return none, "Invalid character after 'n'";
+    consume(scan);
+
+    if current(scan) != 'l':
+        return none, "Invalid character after 'nu'";
+    consume(scan);
+
+    if current(scan) != 'l':
+        return none, "Invalid character after 'nul'";
+    consume(scan);
+
+    return none;
+}
+
+fun integerFromDigit(char: String) {
+    assert(count(char) == 1);
+    return string.ord(char) 
+         - string.ord('0');
+}
+
+fun parseNumber(scan: Scanner) {
+
+    char = current(scan);
+    
+    sign = 1;
+    if char == '+' or char == '-': {
+        
+        sign = {'+': 1, '-': -1}[char];
+        consume(scan);
+
+        char = current(scan);
+        if not isDigit(char):
+            return none, "Invalid character after +/-";
     }
+
+    temp = 0.0;
+    do {
+        assert(isDigit(char));
+
+        n = integerFromDigit(char);
+        temp = temp * 10 + n;
+
+        consume(scan);
+        char = current(scan);
+
+    } while isDigit(char);
+
+    if char == '.' and isDigit(hint(scan, 1)): {
+        
+        consume(scan); # Consume the dot
+        char = current(scan);
+        
+        q = 1.0;
+        do {
+            q = q / 10;
+            n = integerFromDigit(char);
+            temp = temp + q * n;
+            consume(scan);
+            char = current(scan);
+        } while isDigit(char);
+    }
+
+    return sign * temp;
+}
+
+fun parseValue(scan: Scanner) {
+
+    table = {
+        '"': parseString,
+        '{': parseObject,
+        '[': parseArray,
+        'f': parseFalse,
+        't': parseTrue,
+        'n': parseNull,
+        '+': parseNumber,
+        '-': parseNumber,
+        '0': parseNumber,
+        '1': parseNumber,
+        '2': parseNumber,
+        '3': parseNumber,
+        '4': parseNumber,
+        '5': parseNumber,
+        '6': parseNumber,
+        '7': parseNumber,
+        '8': parseNumber,
+        '9': parseNumber
+    };
+
+    consumeSpaces(scan);
+    char = current(scan);
+    if char == none: {
+        val = none;
+        err = "Source ended where a value was expected";
+    } else {
+        callback = table[char];
+        if callback == none: {
+            val = none;
+            err = "Invalid character where a value was expected";
+        } else
+            (val, err) = callback(scan);
+    }
+    return (val, err);
+}
+
+fun parse(src: String) {
+    scan = newScanner(src);
+    val, err = parseValue(scan);
     return val, err;
 }
 
-fun parse(str: String) {
-    context = {str: str, cur: 0};
-    skipSpaces(context);
-    val, err = parseValue(context);
-    return val, err;
+fun parseFile(file: String | File) {
+
+    if type(file) == String: {
+        file, err = files.open(file, files.READ);
+        if err != none:
+            return none, err;
+    }
+
+    src, err = files.read(file);
+    if err != none:
+        return none, err;
+    assert(type(src) == String);
+
+    val, err = parse(src);
+    return val, err; 
 }

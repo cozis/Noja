@@ -275,3 +275,13 @@ static void buffer_print(Object *self, FILE *fp)
 	BufferObject *buffer = (BufferObject*) self;
 	print_bytes(fp, buffer->payload->body + buffer->offset, buffer->length);
 }
+
+static Object*
+keysof(Object *self, 
+	   Heap   *heap, 
+	   Error  *error)
+{
+	BufferObject *buffer = (BufferObject*) self;
+	int count = buffer->length;
+	return Object_NewListOfConsecutiveIntegers(0, count-1, heap, error);
+}

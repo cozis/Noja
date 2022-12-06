@@ -71,6 +71,7 @@ struct TypeObject {
 	Object *(*delete)(Object *self, Object *key, Heap *heap, Error *err);
 	bool    (*insert)(Object *self, Object *key, Object *val, Heap *heap, Error *err);
 	int 	(*count)(Object *self);
+	Object *(*keysof)(Object *self, Heap *heap, Error *error);
 
 	// Types.
 	bool (*istypeof)(Object *self, Object *other, Heap *heap, Error *error);
@@ -104,6 +105,7 @@ int 		 Object_Hash (Object *obj);
 Object*		 Object_Copy (Object *obj, Heap *heap, Error *err);
 int          Object_Call (Object *obj, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Heap *heap, Error *err);
 void 		 Object_Print(Object *obj, FILE *fp);
+Object* 	 Object_KeysOf(Object *self, Heap *heap, Error *error);
 bool 		 Object_IsTypeOf(Object *typ, Object *obj, Heap *heap, Error *error);
 Object*		 Object_Select(Object *coll, Object *key, Heap *heap, Error *err);
 Object*		 Object_Delete(Object *coll, Object *key, Heap *heap, Error *err);
@@ -115,6 +117,7 @@ void 		 Object_WalkExtensions(Object *parent, void (*callback)(void   **referer,
 Object*		 Object_NewMap(int num, Heap *heap, Error *error);
 Object*		 Object_NewList(int capacity, Heap *heap, Error *error);
 Object*		 Object_NewList2(int num, Object **items, Heap *heap, Error *error);
+Object*		 Object_NewListOfConsecutiveIntegers(int first, int last, Heap *heap, Error *error);
 Object*		 Object_NewNone(Heap *heap, Error *error);
 Object*      Object_NewBuffer(size_t size, Heap *heap, Error *error);
 Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);

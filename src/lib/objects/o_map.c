@@ -48,7 +48,8 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 static void walkexts(Object *self, void (*callback)(void **referer, unsigned int size, void *userp), void *userp);
 static Object *copy(Object *self, Heap *heap, Error *err);
 static int hash(Object *self);
-static bool istypeof(Object *self, Object *other, Heap   *heap, Error  *error);
+static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
+static Object *keysof(Object *self, Heap *heap, Error *error);
 
 static TypeObject t_map = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -60,10 +61,20 @@ static TypeObject t_map = {
 	.insert = insert,
 	.count = count,
 	.print = print,
+	.keysof = keysof,
 	.istypeof = istypeof,
 	.walk = walk,
 	.walkexts = walkexts,
 };
+
+static Object*
+keysof(Object *self, 
+	   Heap   *heap, 
+	   Error  *error)
+{
+	MapObject *map = (MapObject*) self;
+	return Object_NewList2(map->count, map->keys, heap, error);
+}
 
 static bool 
 istypeof(Object *self, 

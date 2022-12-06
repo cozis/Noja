@@ -2,6 +2,7 @@
 #include "objects.h"
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
+static void print(Object *self, FILE *fp);
 static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
 
 typedef struct {
@@ -18,7 +19,7 @@ static TypeObject t_sum = {
     .hash = NULL,
     .copy = NULL,
     .call = NULL,
-    .print = NULL,
+    .print = print,
 
     .select = NULL,
     .delete = NULL,
@@ -63,4 +64,12 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
     SumObject *sum = (SumObject*) self;
     callback(sum->items + 0, userp);
     callback(sum->items + 1, userp);
+}
+
+static void print(Object *self, FILE *fp)
+{
+    SumObject *sum = (SumObject*) self;
+    Object_Print(sum->items[0], fp);
+    fprintf(fp, " | ");
+    Object_Print(sum->items[1], fp);
 }

@@ -1,11 +1,122 @@
-json  = import("json.noja");
-utils = import("../utils.noja");
+json = import("json.noja");
 
-assert(json.parse("null") == none);
-assert(json.parse("true") == true);
-assert(json.parse("false") == false);
-assert(json.parse('"Hello, world!"') == "Hello, world!");
-assert(utils.compareAny(json.parse('[]'), []));
-assert(utils.compareAny(json.parse('[1, 2, 3]'), [1, 2, 3]));
+Error = String;
+JSONValueType = (bool | float | String | Map | List | None);
+TestCase = [String, ?JSONValueType, ?Error];
 
-print("No assertions fired!\n");
+fun compareLists(a: List, b: List) {
+    len = count(a);
+    if len != count(b):
+        return false;
+    i = 0;
+    while i < len: {
+        if a[i] != b[i]:
+            return false;
+        i = i+1;
+    }
+    return true;
+}
+
+fun compareMaps(a: Map, b: Map) {
+    keys = keysof(a);
+    len  = count(keys);
+    if len != count(b):
+        return false;
+    i = 0;
+    while i < len: {
+        k = keys[i];
+        if a[k] != b[k]:
+            return false;
+        i = i+1;
+    }
+    return true;
+}
+
+fun compareAny(a, b) {
+    Ta = type(a);
+    Tb = type(b);
+
+    if Ta != Tb:
+        return false;
+    if Ta == List:
+        return compareLists(a, b);
+    if Ta == Map:
+        return compareMaps(a, b);
+    return a == b;
+}
+
+fun runTestCase(test_case: TestCase) {
+    res, err = json.parse(test_case[0]);
+    return compareAny(res, test_case[1])
+       and compareAny(err, test_case[2]);
+}
+
+fun runAllTestCases(test_cases: List) {
+    total  = count(test_cases);
+    passed = 0;
+    evaluated = 0;
+    while evaluated < total: {
+        
+        test_case = test_cases[evaluated];
+        input  = test_case[0];
+        expres = test_case[1]; # Expected result
+        experr = test_case[2]; # Expected error
+
+        res, err = json.parse(input);
+        
+        #print("res=", res, ", err=", err, "\n");
+        #print("expres=", expres, ", experr=", experr, "\n");
+        
+        result = compareAny(res, expres)
+             and compareAny(err, experr);
+
+        if result: {
+            print("Test ", evaluated, ": PASSED\n");
+            passed = passed+1;
+        } else {
+
+            print("Test ", evaluated, ": FAILED\n");
+            print("\tInput:\n");
+            print("\t\t", input, "\n");
+
+            if experr == none: {
+                if err == none:
+                    print("\tGot result ", res, " but was expected ", expres, "\n");
+                else
+                    print("\tFailed unexpectedly [", err, "]\n");
+            } else if err == none:
+                print("\tSucceded unexpectedly. Was expected error [", experr, "]\n");
+            else
+                print("\tWas expected error [", experr, "], but got [", err, "]\n");
+        }
+        evaluated = evaluated+1;
+    }
+    return passed, (total-passed), total;
+}
+
+fun newPassingTestCase(src: String, res: JSONValueType)
+    return [src, res, none];
+
+fun newFailingTestCase(src: String, err: String)
+    return [src, none, err];
+
+test_cases = [
+    newPassingTestCase("null", none),
+    newPassingTestCase("true", true),
+    newPassingTestCase("false", false),
+    newPassingTestCase("\"Hello, world!\"", "Hello, world!"),
+    newPassingTestCase("1", 1.0),
+    newPassingTestCase("2.3", 2.3),
+    newPassingTestCase("[]", []),
+    newPassingTestCase("[1]", [1.0]),
+    newPassingTestCase("[1, 2]", [1.0, 2.0]),
+    newPassingTestCase("[1, 2, 3]", [1.0, 2.0, 3.0]),
+    newPassingTestCase("{}", {}),
+    newPassingTestCase("{\"k1\": true}", {k1: true}),
+    newPassingTestCase("{\"k1\": true, \"k2\": false}", {k1: true, k2: false})
+];
+
+passed, failed, total = runAllTestCases(test_cases);
+print("passed: ", passed, "\n");
+print("failed: ", failed, "\n");
+print(" total: ", total,  "\n");

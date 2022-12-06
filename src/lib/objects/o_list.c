@@ -48,6 +48,7 @@ static void    walkexts(Object *self, void (*callback)(void   **referer, unsigne
 static Object *copy(Object *self, Heap *heap, Error *err);
 static int hash(Object *self);
 static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);
+static Object* keysof(Object *self, Heap *heap, Error  *error);
 
 static TypeObject t_list = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -59,6 +60,7 @@ static TypeObject t_list = {
 	.insert = insert,
 	.count = count,
 	.print = print,
+	.keysof = keysof,
 	.istypeof = istypeof,
 	.walk = walk,
 	.walkexts = walkexts,
@@ -90,6 +92,16 @@ istypeof(Object *self,
     		return false;
     }
     return true;
+}
+
+static Object*
+keysof(Object *self, 
+	   Heap   *heap, 
+	   Error  *error)
+{
+	ListObject *list = (ListObject*) self;
+	int count = list->count;
+	return Object_NewListOfConsecutiveIntegers(0, count-1, heap, error);
 }
 
 static int hash(Object *self)
@@ -303,4 +315,33 @@ static void print(Object *self, FILE *fp)
 			fprintf(fp, ", ");
 	}
 	fprintf(fp, "]");
+}
+
+Object *Object_NewListOfConsecutiveIntegers(int first, int last, Heap *heap, Error *error)
+{
+	int count = last - first + 1;
+	
+	Object *list = Object_NewList(count, heap, error);
+	if (list == NULL)
+		return NULL;
+
+	for (int i = 0; i < count; i++) {
+
+		Object *key = Object_FromInt(i, heap, error);
+		if (key == NULL)
+			return NULL;
+
+		Object *val;
+		if (first == 0)
+			val = key;
+		else {
+			val = Object_FromInt(first+i, heap, error);
+			if (val == NULL)
+				return NULL;
+		}
+
+		if (!Object_Insert(list, key, val, heap, error))
+			return NULL;
+	}
+	return list;
 }
