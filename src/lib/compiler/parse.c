@@ -1925,7 +1925,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 				type = parse_expression(ctx, 0, 0);
 				if(type == NULL)
 					return 0;
-			} else
+		parameter	} else
 				type = NULL;
 
 			Node *defarg; // Default argument (or NULL if there isn't one)

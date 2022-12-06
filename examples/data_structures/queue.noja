@@ -8,7 +8,7 @@ fun newCircularQueue(T: Type = int, max: int = 3) {
 
     if max <= 0:
         error("Maximum queue size must be positive");
-
+    
     list = [];
     i = 0;
     while i < max: {

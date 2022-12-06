@@ -1,7 +1,7 @@
 
 fun dummy() {}
 Func = type(dummy);
-NFunc = type(print); # The function type is not a build-in at the moment,
+NFunc = type(print); # The function type is not a built-in at the moment,
                      # but we can define it manually.
 
 fun copyList(list: List) {

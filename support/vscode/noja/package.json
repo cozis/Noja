@@ -1,0 +1,24 @@
+{
+    "name": "Noja",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": ">=0.9.0-pre.1"
+    },
+    "publisher": "Francesco Cozzuto",
+    "contributes": {
+        "languages": [
+            {
+                "id": "Noja",
+                "aliases": ["Noja", "noja"],
+                "extensions": [".noja", ".nj"]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "Noja",
+                "scopeName": "source.noja",
+                "path": "./syntaxes/noja.tmLanguage.json"
+            }
+        ]
+    }
+}

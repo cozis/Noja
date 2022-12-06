@@ -11,14 +11,16 @@ fun isDigit(c: String) {
        and d <= 9;
 }
 
-fun skipSpaces(context: Map) {
+ParsingContext = {str: String, cur: int};
+
+fun skipSpaces(context: ParsingContext) {
     # Skip zero or more whitespace characters.
     while context.cur < count(context.str) 
       and isSpace(context.str[context.cur]):
       context.cur = context.cur + 1;
 }
 
-fun parseNull(context: Map) {
+fun parseNull(context: ParsingContext) {
     
     assert(context.cur < count(context.str) 
        and context.str[context.cur] == 'n');
@@ -33,7 +35,7 @@ fun parseNull(context: Map) {
     return none;
 }
 
-fun parseTrue(context: Map) {
+fun parseTrue(context: ParsingContext) {
     
     assert(context.cur < count(context.str) 
        and context.str[context.cur] == 't');
@@ -48,7 +50,7 @@ fun parseTrue(context: Map) {
     return true;
 }
 
-fun parseFalse(context: Map) {
+fun parseFalse(context: ParsingContext) {
     
     assert(context.cur < count(context.str) 
        and context.str[context.cur] == 'f');
@@ -67,7 +69,7 @@ fun parseFalse(context: Map) {
 fun dummy() {}
 Func = type(dummy);
 
-fun skip(context: Map, test_callback: Func) {
+fun skip(context: ParsingContext, test_callback: Func) {
     k = context.cur;
     while k < count(context.str) 
       and test_callback(context.str[k]):
@@ -75,7 +77,7 @@ fun skip(context: Map, test_callback: Func) {
     return k;
 }
 
-fun parseInteger(context: Map) {
+fun parseInteger(context: ParsingContext) {
     assert(context.cur < count(context.str) and isDigit(context.str[context.cur]));
 
     buffer = 0;
@@ -91,7 +93,7 @@ fun parseInteger(context: Map) {
     return buffer;
 }
 
-fun parseFloating(context: Map) {
+fun parseFloating(context: ParsingContext) {
     assert(context.cur < count(context.str) 
        and isDigit(context.str[context.cur]));
 
@@ -125,7 +127,7 @@ fun parseFloating(context: Map) {
     return buffer;
 }
 
-fun parseIntegerOrFloating(context: Map) {
+fun parseIntegerOrFloating(context: ParsingContext) {
     assert(context.cur < count(context.str) 
        and isDigit(context.str[context.cur]));
 
@@ -141,7 +143,7 @@ fun parseIntegerOrFloating(context: Map) {
         return parseInteger(context);
 }
 
-fun parseString(context: Map) {
+fun parseString(context: ParsingContext) {
     
     assert(context.cur < count(context.str) 
        and context.str[context.cur] == '"');
@@ -164,7 +166,7 @@ fun parseString(context: Map) {
     return buffer;
 }
 
-fun parseArray(context: Map) {
+fun parseArray(context: ParsingContext) {
     assert(context.cur < count(context.str) 
        and context.str[context.cur] == '[');
 
@@ -210,7 +212,7 @@ fun parseArray(context: Map) {
     return list;
 }
 
-fun parseValue(context: Map) {
+fun parseValue(context: ParsingContext) {
     
     if context.cur == count(context.str):
         return none, "Source ended where a value was expected";
