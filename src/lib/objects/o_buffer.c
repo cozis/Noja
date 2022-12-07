@@ -50,6 +50,7 @@ static _Bool   buffer_insert(Object *self, Object *key, Object *val, Heap *heap,
 static int     buffer_count(Object *self);
 static void	   buffer_print(Object *obj, FILE *fp);
 static _Bool   buffer_free(Object *self, Error *error);
+static Object* keysof(Object *self, Heap *heap, Error *error);
 
 static TypeObject t_buffer = {
 	.base = (Object) { .type = &t_type, .flags = Object_STATIC },
@@ -60,6 +61,7 @@ static TypeObject t_buffer = {
 	.count = buffer_count,
 	.print = buffer_print,
 	.free  = buffer_free,
+	.keysof = keysof,
 };
 
 #define THRESHOLD 128
