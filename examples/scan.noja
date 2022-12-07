@@ -1,0 +1,46 @@
+
+Scanner = {src: String, i: int};
+
+fun newScanner(src: String) {
+    scan = {src: src, i: 0};
+    assert(istypeof(Scanner, scan));
+    return scan;
+}
+
+fun isDigit(char: ?String) {
+    if char == none:
+        return false;
+    return string.ord(char) >= string.ord('0')
+       and string.ord(char) <= string.ord('9');
+}
+
+fun isSpace(c: String)
+    return c == ' '
+        or c == '\t'
+        or c == '\n';
+
+fun min(x, y) {
+    if x < y:
+        return x;
+    return y;
+}
+
+fun hint(scan: Scanner, n: int = 1) {
+    k = scan.i + n;
+    if k < count(scan.src):
+        return scan.src[k];
+    return none;
+}
+
+fun current(scan: Scanner)
+    return hint(scan, 0);
+
+fun consume(scan: Scanner, n: int = 1) {
+    assert(n > 0);
+    limit = count(scan.src);
+    scan.i = min(scan.i + n, limit);
+}
+
+fun consumeSpaces(scan: Scanner)
+    while isSpace(current(scan)):
+        consume(scan);

@@ -1,49 +1,12 @@
+scan = import("scan.noja");
 
-Scanner = {src: String, i: int};
-
-fun newScanner(src: String) {
-    scan = {src: src, i: 0};
-    assert(istypeof(Scanner, scan));
-    return scan;
-}
-
-fun isDigit(char: ?String) {
-    if char == none:
-        return false;
-    return string.ord(char) >= string.ord('0')
-       and string.ord(char) <= string.ord('9');
-}
-
-fun isSpace(c: String)
-    return c == ' '
-        or c == '\t'
-        or c == '\n';
-
-fun min(x, y) {
-    if x < y:
-        return x;
-    return y;
-}
-
-fun hint(scan: Scanner, n: int = 1) {
-    k = scan.i + n;
-    if k < count(scan.src):
-        return scan.src[k];
-    return none;
-}
-
-fun current(scan: Scanner)
-    return hint(scan, 0);
-
-fun consume(scan: Scanner, n: int = 1) {
-    assert(n > 0);
-    limit = count(scan.src);
-    scan.i = min(scan.i + n, limit);
-}
-
-fun consumeSpaces(scan: Scanner)
-    while isSpace(current(scan)):
-        consume(scan);
+newScanner = scan.newScanner;
+Scanner = scan.Scanner;
+hint = scan.hint;
+consume = scan.consume;
+current = scan.current;
+consumeSpaces = scan.consumeSpaces;
+isDigit = scan.isDigit;
 
 fun parseString(scan: Scanner) {
 
@@ -301,4 +264,83 @@ fun parse(src: String) {
     scan = newScanner(src);
     val, err = parseValue(scan);
     return val, err;
+}
+
+fun test() {
+
+    compareAny = import("compare.noja").compareAny;
+
+    Error = String;
+    JSONValueType = (bool | float | String | Map | List | None);
+    TestCase = [String, ?JSONValueType, ?Error];
+    
+    fun runAllTestCases(test_cases: List) {
+        total  = count(test_cases);
+        passed = 0;
+        evaluated = 0;
+        while evaluated < total: {
+            
+            test_case = test_cases[evaluated];
+            input  = test_case[0];
+            expres = test_case[1]; # Expected result
+            experr = test_case[2]; # Expected error
+
+            res, err = parse(input);
+            
+            #print("res=", res, ", err=", err, "\n");
+            #print("expres=", expres, ", experr=", experr, "\n");
+            
+            result = compareAny(res, expres)
+                 and compareAny(err, experr);
+
+            if result: {
+                print("Test ", evaluated, ": PASSED\n");
+                passed = passed+1;
+            } else {
+
+                print("Test ", evaluated, ": FAILED\n");
+                print("\tInput:\n");
+                print("\t\t", input, "\n");
+
+                if experr == none: {
+                    if err == none:
+                        print("\tGot result ", res, " but was expected ", expres, "\n");
+                    else
+                        print("\tFailed unexpectedly [", err, "]\n");
+                } else if err == none:
+                    print("\tSucceded unexpectedly. Was expected error [", experr, "]\n");
+                else
+                    print("\tWas expected error [", experr, "], but got [", err, "]\n");
+            }
+            evaluated = evaluated+1;
+        }
+        return passed, (total-passed), total;
+    }
+
+    fun newPassingTestCase(src: String, res: JSONValueType)
+        return [src, res, none];
+
+    fun newFailingTestCase(src: String, err: String)
+        return [src, none, err];
+
+    test_cases = [
+        newPassingTestCase("null", none),
+        newPassingTestCase("true", true),
+        newPassingTestCase("false", false),
+        newPassingTestCase("\"Hello, world!\"", "Hello, world!"),
+        newPassingTestCase("1", 1.0),
+        newPassingTestCase("2.3", 2.3),
+        newPassingTestCase("[]", []),
+        newPassingTestCase("[1]", [1.0]),
+        newPassingTestCase("[1, 2]", [1.0, 2.0]),
+        newPassingTestCase("[1, 2, 3]", [1.0, 2.0, 3.0]),
+        newPassingTestCase("{}", {}),
+        newPassingTestCase("{\"k1\": true}", {k1: true}),
+        newPassingTestCase("{\"k1\": true, \"k2\": false}", {k1: true, k2: false})
+    ];
+
+    passed, failed, total = runAllTestCases(test_cases);
+    print("passed: ", passed, "\n");
+    print("failed: ", failed, "\n");
+    print(" total: ", total,  "\n");
 }

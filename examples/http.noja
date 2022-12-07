@@ -1,0 +1,383 @@
+scan = import("scan.noja");
+
+newScanner = scan.newScanner;
+Scanner = scan.Scanner;
+hint = scan.hint;
+consume = scan.consume;
+current = scan.current;
+isDigit = scan.isDigit;
+consumeSpaces = scan.consumeSpaces;
+
+fun isAlpha(char: String)
+    return (string.ord(char) >= string.ord('a') and string.ord(char) <= string.ord('z'))
+        or (string.ord(char) >= string.ord('A') and string.ord(char) <= string.ord('Z'));
+
+fun isUpper(char: String)
+    return string.ord(char) >= string.ord('A')
+       and string.ord(char) <= string.ord('Z');
+
+fun isUnreserved(char: String)
+    return isAlpha(char)
+        or isDigit(char)
+        or char == "-"
+        or char == "."
+        or char == "_"
+        or char == "~";
+
+fun isSubdelim(char: String)
+    return char == "!" or char == "$"
+        or char == "&" or char == "'"
+        or char == "(" or char == ")"
+        or char == "*" or char == "+"
+        or char == "," or char == ";"
+        or char == "=";
+
+fun isPChar(char: String)
+    return isUnreserved(char)
+        or isSubdelim(char)
+        or char == ":" 
+        or char == "@";
+
+fun parseMethod(scan: Scanner) {
+    
+    char = current(scan);
+    if char == none or not isUpper(char):
+        return none, "Missing method";
+
+    method = "";
+    do {
+        method = string.cat(method, char);
+        consume(scan);
+        char = current(scan);
+    } while char != none and isUpper(char);
+
+    return method, none;
+}
+
+fun parsePort(scan: Scanner) {
+
+    port = none;
+    char = current(scan);
+    if char == ":" and isDigit(hint(scan, 1)): {
+
+        consume(scan); # Skip the ":"
+        char = current(scan);
+
+        port = 0;
+        do {
+            digit = string.ord(char)
+                  - string.ord("0");
+            port = port * 10 + digit;
+            consume(scan);
+            char = current(scan);
+        } while char != none and isDigit(char);
+    }
+    return port;
+}
+
+fun isHostname(char: String)
+    return isUnreserved(char)
+        or isSubdelim(char);
+
+fun parseHost(scan: Scanner) {
+
+    char = current(scan);
+    if char == none:
+        return none, "Missing host";
+
+    if not isHostname(char):
+        return none, "Invalid character in place of host";
+
+    name = "";
+    do {
+        name = string.cat(name, char);
+        consume(scan);
+        char = current(scan);
+    } while char != none and isHostname(char);
+
+    port = parsePort(scan);
+    return {name: name, port: port};
+}
+
+fun parsePath(scan: Scanner) {
+
+    path = "";
+    char = current(scan);
+    if char != none and char == "/": {
+        path = string.cat(path, char);
+        consume(scan);
+        char = current(scan);
+    } else {
+        if char == none or not isPChar(char):
+            return none, "Invalid character in place of path";
+    }
+
+    while char != none and isPChar(char): {
+        do {
+            path = string.cat(path, char);
+            consume(scan);
+            char = current(scan);
+        } while char != none and isPChar(char);
+        if char == none or char != "/":
+            break;
+        path = string.cat(path, char);
+        consume(scan);
+        char = current(scan);
+    }
+
+    return path;
+}
+
+fun isQuery(char: ?String) {
+    if char == none:
+        return false;
+    return isPChar(char) 
+        or char == "/" 
+        or char == "?";
+}
+
+fun parseQuery(scan: Scanner) {
+    
+    char = current(scan);
+    if char != none and char == "?": {
+        consume(scan); # Consume the "?"
+        query = "";
+        while isQuery(char = current(scan)): {
+            query = string.cat(query, char);
+            consume(scan);
+        }
+    } else
+        query = none;
+
+    return query;
+}
+
+fun isFragment(char: ?String) {
+    if char == none:
+        return false;
+    return isPChar(char) or char == "/";
+}
+
+fun parseFragment(scan: Scanner) {
+    
+    char = current(scan);
+    if char != none and char == "#": {
+        consume(scan); # Consume the "#"
+        fragment = "";
+        while isFragment(char = current(scan)): {
+            fragment = string.cat(fragment, char);
+            consume(scan);
+        }
+    } else
+        fragment = none;
+
+    return fragment;
+}
+
+Host = { name: String, port: ?int };
+
+URL = {
+    schema: ?String,
+    host: ?Host,
+    path: ?String,
+    query: ?String,
+    fragment: ?String
+};
+
+fun isSchemaFirst(char: ?String) {
+    return char != none and isAlpha(char);
+}
+
+fun isSchema(char: ?String)
+    return char != none 
+       and (isAlpha(char) 
+        or isDigit(char)
+        or char == "+" 
+        or char == "-"
+        or char == ".");
+
+fun parseSchema(scan: Scanner) {
+
+    char = current(scan);
+    schema = none;
+    if isSchemaFirst(char): {
+        start = scan.i;
+        schema = "";
+        do {
+            schema = string.cat(schema, char);
+            consume(scan);
+            char = current(scan);
+        } while isSchema(char);
+
+        if char == ":": 
+            consume(scan);
+        else {
+            schema = none;
+            scan.i = start;
+        }
+    }
+
+    return schema;
+}
+
+fun followsAuthority(scan: Scanner)
+    return current(scan) == "/" and hint(scan, 1) == "/";
+
+fun parseURL(scan: Scanner) {
+
+    schema = parseSchema(scan);
+    
+    if followsAuthority(scan): {
+        consume(scan, 2);
+        
+        host, error = parseHost(scan);
+        if error != none:
+            return none, error;
+        
+        path = none;
+        if current(scan) == "/":
+            path = parsePath(scan);
+
+    } else {
+        
+        host = none;
+
+        char = current(scan);
+        if char == none or char == "?" or char == "#":
+            return none, "Missing path";
+
+        path, error = parsePath(scan);
+        if error != none:
+            return none, error;
+    }
+
+    query = parseQuery(scan);
+    fragment = parseFragment(scan);
+    print(scan);
+
+    return {
+        host    : host,
+        path    : path, 
+        query   : query,
+        schema  : schema, 
+        fragment: fragment
+    };
+}
+
+fun parseVersion(scan: Scanner) {
+
+    if hint(scan, 0) != "H" or hint(scan, 1) != "T"
+    or hint(scan, 2) != "T" or hint(scan, 3) != "P"
+    or hint(scan, 4) != "/" or not isDigit(hint(scan, 5)):
+        return none, "Invalid version token";
+
+    consume(scan, 5); 
+    major = string.ord(current(scan)) 
+          - string.ord("0");
+
+    if hint(scan, 1) != "." and isDigit(hint(scan, 2)): {
+        consume(scan, 2);
+        minor = string.ord(current(scan)) 
+              - string.ord("0");
+    } else
+        minor = 0;
+    consume(scan);
+
+    return {major: major, minor: minor};
+}
+
+Version = {
+    major: int,
+    minor: int
+};
+
+Request = {
+    method : String, 
+    url    : URL, 
+    version: Version
+};
+
+fun newRequest(method: String, url: URL, 
+               version: Version, headers: Map = {})
+    return {
+        method: method, 
+        url: url, 
+        version: version,
+        headers: headers
+    };
+
+fun parse(src: String) {
+    
+    scan = newScanner(src);
+    
+    method, error = parseMethod(scan);
+    if error != none:
+        return none, error;
+
+    char = current(scan);
+    if char == none or char != " ":
+        return none, "Missing space after method";
+    consume(scan);
+
+    url, error = parseURL(scan);
+    if error != none:
+        return none, error;
+
+    char = current(scan);
+    if char != " ":
+        return none, "Missing space after URL";
+    consume(scan);
+
+    version, error = parseVersion(scan);
+    if error != none:
+        return none, error;
+
+    if hint(scan, 0) != "\r" or hint(scan, 1) != "\n":
+        # Request with no headers or body
+        return newRequest(method, url, version);
+    consume(scan, 2); # Consume the "\r\n"
+
+    headers = {};
+    while (char = hint(scan, 0)) != none and (char != "\r" or hint(scan, 1) != "\n"): {
+
+        # Header name until the next ":"
+        name = "";
+        do {
+            name = string.cat(name, char);
+            consume(scan);
+            char = current(scan);
+        } while char != ":" and char != none;
+        
+        if char == none:
+            return none, "Invalid header (missing \":\" after name)";
+        consume(scan);
+        consumeSpaces(scan);
+        char = current(scan);
+
+        # Header body until \r
+        body = "";
+        do {
+            body = string.cat(body, char);
+            consume(scan);
+            char = current(scan);
+        } while char != "\r" and char != none;
+
+        headers[name] = body;
+    }
+
+    if char != none:
+        consume(scan, 2); # Consume the final "\r\n"
+
+    return newRequest(method, url, version, headers);
+}
+
+sample = string.cat(
+    "GET /search?client=firefox-b-d&q=http+request+dataset HTTP/2\r\n",
+    "Host: www.google.com\r\n",
+    "user-agent: curl/7.84.0\r\n",
+    "accept: */*\r\n",
+    "\r\n");
+
+request, error = parse(sample);
+print("request=", request, "\n");
+print("error=", error, "\n");

@@ -931,7 +931,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			Object *callable = Stack_Top(runtime->stack, 0);
 			ASSERT(callable != NULL);
 
-			Object *argv[8];
+			Object *argv[32];
 
 			int max_argc = sizeof(argv) / sizeof(argv[0]);
 			if(argc > max_argc)
