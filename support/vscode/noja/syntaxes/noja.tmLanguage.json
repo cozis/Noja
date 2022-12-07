@@ -9,17 +9,17 @@
         {
             "match": "\\b(fun)\\b[ \\t\\n]*([a-zA-Z_][a-zA-Z0-9_]*)?\\b",
             "captures": {
-                "1": {"name": "keyword.control.noja"},
+                "1": {"name": "storage.type.function.noja"},
                 "2": {"name": "entity.name.function"}
             }
         },
         {
-            "name": "keyword.operator.word.noja",
-            "match": "\\b(and|or|not)\\b"
-        },
-        {
             "name": "keyword.operator.noja",
             "match": "(\\+|-|\\*|\\/|=|==|!=|\\>|\\<|\\>=|\\<=|\\|)"
+        },
+        {
+            "name": "keyword.operator.logical.noja",
+            "match": "\\b(and|or|not)\\b"
         },
         {
             "name": "constant.language.noja",
@@ -56,13 +56,17 @@
             "match": "[0-9]+"
         },
         {
-            "name": "storage.type.noja",
+            "name": "support.type.noja",
             "match": "\\b(int|float|bool|[_A-Z][A-Za-z0-9_]*)\\b"
+        },
+        {
+            "name": "support.function.builtin.noja",
+            "match": "\\b(import|type|istypeof|print|input|count|error|assert|keysof)\\b"
         },
         {
             "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)[ \\t\\n]*\\(",
             "captures": {
-                "1": {"name": "variable.function.noja"}
+                "1": {"name": "variable.other.function"}
             }
         },
         {
