@@ -71,6 +71,7 @@ typedef enum {
 	TSUB = '-',
 	TMUL = '*',
 	TDIV = '/',
+	TMOD = '%',
 
 	TLSS = '<',
 	TGRT = '>',
@@ -145,7 +146,8 @@ static inline _Bool isoper(char c)
 			c == '*' || c == '/' || 
 			c == '<' || c == '>' ||
 			c == '!' || c == '=' ||
-			c == ',' || c == '|';
+			c == ',' || c == '|' ||
+			c == '%';
 }
 
 /* Symbol: tokenize
@@ -328,6 +330,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 				{   TASS, 1, "="  },
 				{ TCOMMA, 1, ","  },
 				{   TSMT, 1, "|"  },
+				{   TMOD, 1, "%"  },
 			};
 
 			_Bool found = 0;
@@ -1603,7 +1606,7 @@ static inline _Bool isbinop(Token *tok)
 			tok->kind == TEQL || tok->kind == TNQL ||
 			tok->kind == TKWAND || tok->kind == TKWOR ||
 			tok->kind == '=' || tok->kind == ',' ||
-			tok->kind == '|';
+			tok->kind == '|' || tok->kind == '%';
 }
 
 static inline _Bool isrightassoc(Token *tok)
@@ -1645,6 +1648,7 @@ static inline int precedenceof(Token *tok)
 
 		case '*':
 		case '/':
+		case '%':
 		return 6;
 		
 		case ',':
@@ -1707,6 +1711,7 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 				case '-': temp->base.kind = EXPR_SUB; break;
 				case '*': temp->base.kind = EXPR_MUL; break;
 				case '/': temp->base.kind = EXPR_DIV; break;
+				case '%': temp->base.kind = EXPR_MOD; break;
 				case '<': temp->base.kind = EXPR_LSS; break;
 				case '>': temp->base.kind = EXPR_GRT; break;
 				case TLEQ: temp->base.kind = EXPR_LEQ; break;

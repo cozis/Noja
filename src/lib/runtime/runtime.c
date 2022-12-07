@@ -739,6 +739,40 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 		}
 
+		case OPCODE_MOD:
+		{
+			ASSERT(opc == 0);
+
+			Object *rop = Stack_Top(runtime->stack,  0);
+			Object *lop = Stack_Top(runtime->stack, -1);
+
+			if(!Runtime_Pop(runtime, error, 2))
+				return 0;
+
+			// We managed to pop rop and lop,
+			// so we know they're not NULL.
+			ASSERT(rop != NULL);
+			ASSERT(lop != NULL);
+
+			if (!Object_IsInt(rop) || !Object_IsInt(lop)) {
+				Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+				return 0;
+			}
+
+			long long int x, y, z;
+			y = Object_GetInt(rop);
+			x = Object_GetInt(lop);
+			z = x % y;
+
+			Object *res = Object_FromInt(z, runtime->heap, error);
+			if(res == NULL)
+				return 0;
+
+			if(!Runtime_Push(runtime, error, res))
+				return 0;
+			return 1;
+		}
+
 		case OPCODE_EQL:
 		case OPCODE_NQL:
 		{
@@ -1213,18 +1247,6 @@ static _Bool step(Runtime *runtime, Error *error)
 			return 1;
 		}
 
-		case OPCODE_PUSHTYPTYP:
-		{
-			ASSERT(opc == 0);
-
-			Object *obj = (Object*) Object_GetTypeType();
-			ASSERT(obj != NULL);
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
 		case OPCODE_PUSHNNETYP:
 		{
 			ASSERT(opc == 0);
@@ -1279,15 +1301,6 @@ static _Bool step(Runtime *runtime, Error *error)
 			ASSERT(retc >= 0);
 			ASSERT(retc <= MAX_RETS);
 			ASSERT(retc == runtime->frame->used);
-			return 0;
-		}
-
-		case OPCODE_ERROR:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_STRING);
-			const char *msg = ops[0].as_string;
-			Error_Report(error, 0, "%s", msg);
 			return 0;
 		}
 

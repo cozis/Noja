@@ -52,6 +52,7 @@ typedef enum {
 	EXPR_SUB,
 	EXPR_MUL,
 	EXPR_DIV,
+	EXPR_MOD,
 
 	EXPR_EQL,
 	EXPR_NQL,

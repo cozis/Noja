@@ -135,14 +135,6 @@ static void emitInstr_EQL(CodegenContext *ctx, int off, int len)
 	CodegenContext_EmitInstr(ctx, OPCODE_EQL, NULL, 0, off, len);
 }
 
-static void emitInstr_ERROR(CodegenContext *ctx, const char *msg, int off, int len)
-{
-	Operand opv[1] = {
-		{ .type = OPTP_STRING, .as_string = msg },
-	};
-	CodegenContext_EmitInstr(ctx, OPCODE_ERROR, opv, 1, off, len);
-}
-
 static void emitInstr_CHECKTYPE(CodegenContext *ctx, int arg_index, const char *arg_name, int off, int len)
 {
 	Operand opv[2] = {
@@ -167,11 +159,6 @@ static void emitInstr_PUSHTYP(CodegenContext *ctx, int off, int len)
 	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTYP, NULL, 0, off, len);
 }
 
-static void emitInstr_PUSHTYPTYP(CodegenContext *ctx, int off, int len)
-{
-	CodegenContext_EmitInstr(ctx, OPCODE_PUSHTYPTYP, NULL, 0, off, len);
-}
-
 static void emitInstr_PUSHNNETYP(CodegenContext *ctx, int off, int len)
 {
 	CodegenContext_EmitInstr(ctx, OPCODE_PUSHNNETYP, NULL, 0, off, len);
@@ -192,6 +179,7 @@ static Opcode exprkind_to_opcode(ExprKind kind)
 		case EXPR_SUB: return OPCODE_SUB;
 		case EXPR_MUL: return OPCODE_MUL;
 		case EXPR_DIV: return OPCODE_DIV;
+		case EXPR_MOD: return OPCODE_MOD;
 		case EXPR_EQL: return OPCODE_EQL;
 		case EXPR_NQL: return OPCODE_NQL;
 		case EXPR_LSS: return OPCODE_LSS;
@@ -391,7 +379,7 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 
 		case EXPR_NULLABLETYPE:
 		case EXPR_SUMTYPE:
-		case EXPR_NOT:
+		case EXPR_NOT: case EXPR_MOD:
 		case EXPR_POS: case EXPR_NEG:
 		case EXPR_ADD: case EXPR_SUB:
 		case EXPR_MUL: case EXPR_DIV:

@@ -15,7 +15,7 @@
         },
         {
             "name": "keyword.operator.noja",
-            "match": "(\\+|-|\\*|\\/|=|==|!=|\\>|\\<|\\>=|\\<=|\\|)"
+            "match": "(\\+|-|\\*|\\/|%|=|==|!=|\\>|\\<|\\>=|\\<=|\\|)"
         },
         {
             "name": "keyword.operator.logical.noja",

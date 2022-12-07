@@ -37,6 +37,7 @@
 #include "executable.h"
 
 #define MAX_OPS 3
+#define MAX_OPCODE_NAME_SIZE 127
 
 typedef struct {
 	Opcode 	opcode;
@@ -62,84 +63,104 @@ struct xExeBuilder {
 };
 
 typedef struct {
+	Opcode opcode;
 	const char  *name;
-	int 		 opcount;
+	int opcount;
 	OperandType *optypes;
 } InstrInfo;
 
+#define INSTR(name, ...)  	 	 		 \
+	{							 		 \
+		OPCODE_##name, 			 		 \
+		#name,					 		 \
+		sizeof((OperandType[]) { __VA_ARGS__ }) / sizeof(OperandType), \
+		(OperandType[]) { __VA_ARGS__ }, \
+	},
+
 static const InstrInfo instr_table[] = {
-	[OPCODE_NOPE]    = {"NOPE", 0, NULL},
-	[OPCODE_POS]     = {"POS",  0, NULL},
-	[OPCODE_NEG]     = {"NEG",  0, NULL},
-	[OPCODE_NOT]     = {"NOT",  0, NULL},
-	[OPCODE_ADD]     = {"ADD",  0, NULL},
-	[OPCODE_SUB]     = {"SUB",  0, NULL},
-	[OPCODE_MUL]     = {"MUL",  0, NULL},
-	[OPCODE_DIV]     = {"DIV",  0, NULL},
-	[OPCODE_EQL]     = {"EQL",  0, NULL},
-	[OPCODE_NQL]     = {"NQL",  0, NULL},
-	[OPCODE_LSS]     = {"LSS",  0, NULL},
-	[OPCODE_GRT]     = {"GRT",  0, NULL},
-	[OPCODE_LEQ]     = {"LEQ",  0, NULL},
-	[OPCODE_GEQ]     = {"GEQ",  0, NULL},
-	[OPCODE_NLB]     = {"NLB",  0, NULL},
-	[OPCODE_STP] 	 = {"STP",  0, NULL},
-	[OPCODE_ASS]     = {"ASS",  1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_POP]     = {"POP",  1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_CHECKTYPE] = {"CHECKTYPE", 2, (OperandType[]) {OPTP_INT, OPTP_STRING}},
-	[OPCODE_CALL]    = {"CALL", 2, (OperandType[]) {OPTP_INT, OPTP_INT}},
-	[OPCODE_SELECT]  = {"SELECT",  0, NULL},
-	[OPCODE_INSERT]  = {"INSERT",  0, NULL},
-	[OPCODE_INSERT2] = {"INSERT2", 0, NULL},
-	[OPCODE_PUSHINT] = {"PUSHINT", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_PUSHFLT] = {"PUSHFLT", 1, (OperandType[]) {OPTP_FLOAT}},
-	[OPCODE_PUSHSTR] = {"PUSHSTR", 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_PUSHVAR] = {"PUSHVAR", 1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_PUSHTRU] = {"PUSHTRU", 0, NULL},
-	[OPCODE_PUSHFLS] = {"PUSHFLS", 0, NULL},
-	[OPCODE_PUSHNNE] = {"PUSHNNE", 0, NULL},
-	[OPCODE_PUSHFUN] = {"PUSHFUN", 2, (OperandType[]) {OPTP_IDX, OPTP_INT}},
-	[OPCODE_PUSHLST] = {"PUSHLST", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_PUSHMAP] = {"PUSHMAP", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_PUSHTYP] = {"PUSHTYP", 0, NULL},
-	[OPCODE_PUSHTYPTYP] = {"PUSHTYPTYP", 0, NULL},
-	[OPCODE_PUSHNNETYP] = {"PUSHNNETYP", 0, NULL},
-	[OPCODE_RETURN] = {"RETURN", 1, (OperandType[]) {OPTP_INT}},
-	[OPCODE_ERROR]  = {"ERROR",  1, (OperandType[]) {OPTP_STRING}},
-	[OPCODE_EXIT]   = {"EXIT", 0, NULL},
-	[OPCODE_JUMPIFNOTANDPOP] = {"JUMPIFNOTANDPOP", 1, (OperandType[]) {OPTP_IDX}},
-	[OPCODE_JUMPIFANDPOP]    = {"JUMPIFANDPOP",    1, (OperandType[]) {OPTP_IDX}},
-	[OPCODE_JUMP]            = {"JUMP",            1, (OperandType[]) {OPTP_IDX}},
+	INSTR(NOPE)
+	INSTR(POS)
+	INSTR(NEG)
+	INSTR(NOT)
+	INSTR(ADD)
+	INSTR(SUB)
+	INSTR(MUL)
+	INSTR(DIV)
+	INSTR(EQL)
+	INSTR(NQL)
+	INSTR(LSS)
+	INSTR(GRT)
+	INSTR(LEQ)
+	INSTR(GEQ)
+	INSTR(NLB)
+	INSTR(STP)
+	INSTR(ASS, OPTP_STRING)
+	INSTR(POP, OPTP_INT)
+	INSTR(CHECKTYPE, OPTP_INT, OPTP_STRING)
+	INSTR(CALL, OPTP_INT, OPTP_INT)
+	INSTR(SELECT)
+	INSTR(INSERT)
+	INSTR(INSERT2)
+	INSTR(PUSHINT, OPTP_INT)
+	INSTR(PUSHFLT, OPTP_FLOAT)
+	INSTR(PUSHSTR, OPTP_STRING)
+	INSTR(PUSHVAR, OPTP_STRING)
+	INSTR(PUSHTRU)
+	INSTR(PUSHFLS)
+	INSTR(PUSHNNE)
+	INSTR(PUSHFUN, OPTP_IDX, OPTP_INT)
+	INSTR(PUSHLST, OPTP_INT)
+	INSTR(PUSHMAP, OPTP_INT)
+	INSTR(PUSHTYP)
+	INSTR(PUSHNNETYP)
+	INSTR(RETURN, OPTP_INT)
+	INSTR(EXIT)
+	INSTR(JUMPIFNOTANDPOP, OPTP_IDX)
+	INSTR(JUMPIFANDPOP, OPTP_IDX)
+	INSTR(JUMP, OPTP_IDX)
 };
 
-_Bool Executable_GetOpcodeBinaryFromName(const char *name, size_t name_len, Opcode *opcode)
+static const size_t instr_count = sizeof(instr_table)/sizeof(instr_table[0]);
+
+_Bool Executable_GetOpcodeBinaryFromName(const char *name, size_t len, Opcode *opcode)
 {
 	// The input name is assumed not zero-terminated,
 	// so to simplify things we duplicate it to add
 	// an extra null byte.
-	char buff[128]; // No opcode should have a name this big.
-	ASSERT(name_len < sizeof(buff)); // If this is triggered, [buff] should be made bigger.
-	
-	memcpy(buff, name, name_len);
-	buff[name_len] = '\0';
-
+	char buff[MAX_OPCODE_NAME_SIZE+1]; // No opcode should have a name this big.
+	if (len >= sizeof(buff))
+		return false;
+	memcpy(buff, name, len);
+	buff[len] = '\0';
 	name = buff;
 
 	// Now name is zero terminated.
-	ASSERT(name[name_len] == '\0');
+	ASSERT(name[len] == '\0');
 
-	for(size_t i = 0; i < sizeof(instr_table)/sizeof(instr_table[0]); i += 1) {
+	for(size_t i = 0; i < instr_count; i += 1) {
 		if(!strcmp(name, instr_table[i].name)) {
-			*opcode = i; // Is this safe?
+			if (opcode != NULL)
+				*opcode = instr_table[i].opcode;
 			return 1;
 		}
 	}
 	return 0;
 }
 
+static const InstrInfo *Executable_GetInstrByOpcode(Opcode opcode)
+{
+	for (size_t i = 0; i < instr_count; i++)
+		if (instr_table[i].opcode == opcode)
+			return instr_table + i;
+	return NULL;
+}
+
 const char *Executable_GetOpcodeName(Opcode opcode)
 {
-	return instr_table[opcode].name;
+	const InstrInfo *instr = Executable_GetInstrByOpcode(opcode);
+	if (instr == NULL)
+		return NULL;
+	return instr->name;
 }
 
 Executable *Executable_Copy(Executable *exe)
@@ -172,8 +193,8 @@ void Executable_Dump(Executable *exe)
 		int opc = MAX_OPS;
 
 		(void) Executable_Fetch(exe, i, &opcode, ops, &opc);
-
-		const InstrInfo *info = instr_table + exe->body[i].opcode;
+		
+		const InstrInfo *info = Executable_GetInstrByOpcode(opcode);
 
 		fprintf(stderr, "%d: %s ", i, info->name);
 
@@ -250,7 +271,7 @@ _Bool Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops,
 		return 0;
 
 	const Instruction *instr = exe->body + index;
-	const InstrInfo *info = instr_table + instr->opcode;
+	const InstrInfo *info = Executable_GetInstrByOpcode(instr->opcode);
 
 	if(opcode)
 		*opcode = instr->opcode;
@@ -497,7 +518,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 		[OPTP_STRING] = membersizeof(Operand, as_string),
 	};
 
-	const InstrInfo *info = instr_table + opcode;
+	const InstrInfo *info = Executable_GetInstrByOpcode(opcode);
 
 	if(opc != info->opcount)
 	{
@@ -634,4 +655,3 @@ int ExeBuilder_InstrCount(ExeBuilder *exeb)
 
 	return raw_size / sizeof(Instruction);
 }
-

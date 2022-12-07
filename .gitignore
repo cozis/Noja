@@ -11,4 +11,4 @@ vgcore.*
 *.gcov
 lib*.a
 
-*.noja
+./*.noja
