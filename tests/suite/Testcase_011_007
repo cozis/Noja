@@ -12,18 +12,8 @@
     POP 1;
     JUMP end;
 fun:
-    PUSHTYP;
     PUSHVAR "int";
-    PUSHTYP;
-    PUSHTYPTYP;
-    EQL;
-    JUMPIFNOTANDPOP annot_bad;
-    EQL;
-    JUMPIFANDPOP arg_ok;
-    ERROR "Bad type for argument 1";
-annot_bad:
-    ERROR "Argument 1 type annotation 0 is not a type";
-arg_ok:
+    CHECKTYPE 1, "b";
     ASS "b";
     POP 1;
     ASS "a";

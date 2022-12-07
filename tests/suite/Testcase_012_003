@@ -18,19 +18,8 @@ nop:
     POP 1;
     PUSHINT 1;
 not_none:
-    
-    PUSHTYP;
     PUSHVAR "int";
-    PUSHTYP;
-    PUSHTYPTYP;
-    EQL;
-    JUMPIFNOTANDPOP annot_not_ok;
-    EQL;
-    JUMPIFANDPOP type_ok;
-    ERROR "Bad type for argument 0";
-annot_not_ok:
-    ERROR "Argument 0 type annotation 0 is not a type";
-type_ok:
+    CHECKTYPE 0, "a";
     ASS "a";
     POP 1;
     RETURN 0;
