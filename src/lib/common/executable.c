@@ -185,7 +185,7 @@ void Executable_Free(Executable *exe)
 	}
 }
 
-void Executable_Dump(Executable *exe)
+void Executable_Dump(Executable *exe, FILE *fp)
 {
 	for(int i = 0; i < exe->bodyl; i += 1)
 	{
@@ -197,7 +197,7 @@ void Executable_Dump(Executable *exe)
 		
 		const InstrInfo *info = Executable_GetInstrByOpcode(opcode);
 
-		fprintf(stderr, "%d: %s ", i, info->name);
+		fprintf(fp, "%d: %s ", i, info->name);
 
 		for(int j = 0; j < opc; j += 1)
 		{
@@ -205,15 +205,15 @@ void Executable_Dump(Executable *exe)
 			{
 				case OPTP_IDX:
 				case OPTP_INT:
-				fprintf(stderr, "%lld ", ops[j].as_int);
+				fprintf(fp, "%lld ", ops[j].as_int);
 				break;
 
 				case OPTP_FLOAT:
-				fprintf(stderr, "%f ", ops[j].as_float);
+				fprintf(fp, "%f ", ops[j].as_float);
 				break;
 
 				case OPTP_STRING:
-				fprintf(stderr, "[%s] ", ops[j].as_string);
+				fprintf(fp, "[%s] ", ops[j].as_string);
 				break;
 
 				case OPTP_PROMISE:
@@ -222,7 +222,7 @@ void Executable_Dump(Executable *exe)
 			}
 		}
 
-		fprintf(stderr, "\n");
+		fprintf(fp, "\n");
 	}
 }
 

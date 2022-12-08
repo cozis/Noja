@@ -102,7 +102,7 @@ typedef struct xExeBuilder ExeBuilder;
 
 Executable *Executable_Copy(Executable *exe);
 void 		Executable_Free(Executable *exe);
-void 		Executable_Dump(Executable *exe);
+void 		Executable_Dump(Executable *exe, FILE *fp);
 _Bool       Executable_Equiv(Executable *exe1, Executable *exe2, FILE *log, const char *log_prefix);
 _Bool		Executable_Fetch(Executable *exe, int index, Opcode *opcode, Operand *ops, int *opc);
 _Bool 		Executable_SetSource(Executable *exe, Source *src);
