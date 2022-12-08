@@ -52,6 +52,7 @@
 ** +--------------------------------------------------------------------------+
 */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -112,6 +113,7 @@ typedef enum {
 	TNQL,
 	TLEQ,
 	TGEQ,
+	TARW,
 
 } TokenKind;
 
@@ -331,6 +333,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 				{ TCOMMA, 1, ","  },
 				{   TSMT, 1, "|"  },
 				{   TMOD, 1, "%"  },
+				{   TARW, 2, "->" },
 			};
 
 			_Bool found = 0;
@@ -1364,7 +1367,7 @@ static Node *parse_primary_expresion(Context *ctx)
 	return NULL;
 }
 
-static Node *makeIndexSelectionExprNode(Context *ctx, Node *set, Node *idx)
+static Node *makeIndexOrArrowSelectionExprNode(Context *ctx, bool arrow, Node *set, Node *idx)
 {
 	IndexSelectionExprNode *sel = BPAlloc_Malloc(ctx->alloc, sizeof(IndexSelectionExprNode));
 
@@ -1378,7 +1381,7 @@ static Node *makeIndexSelectionExprNode(Context *ctx, Node *set, Node *idx)
 	sel->base.base.next = NULL;
 	sel->base.base.offset = -1;
 	sel->base.base.length = -1;
-	sel->base.kind = EXPR_SELECT;
+	sel->base.kind = arrow ? EXPR_ARW : EXPR_SELECT;
 	sel->set = set;
 	sel->idx = idx;
 	return (Node*) sel;
@@ -1398,20 +1401,23 @@ static Node *parse_postfix_expression(Context *ctx)
 		switch(current(ctx))
 		{
 			case '.':
+			case TARW:
 			{
+				bool arrow = (current(ctx) == TARW);
+
 				next(ctx);
 
-				// We expect an identifier after the dot.
+				// We expect an identifier after the dot or arrow
 
 				if(done(ctx))
 				{
-					Error_Report(ctx->error, 0, "Source ended after dot of dot selection expression");
+					Error_Report(ctx->error, 0, "Source ended after dot or arrow");
 					return NULL;
 				}
 
 				if(current(ctx) != TIDENT)
 				{
-					Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after fot of dot selection expression where an identifier was expected", ctx->token->length, ctx->src + ctx->token->offset);
+					Error_Report(ctx->error, 0, "Got unexpected token \"%.*s\" after dot or arrow, where an identifier was expected", ctx->token->length, ctx->src + ctx->token->offset);
 					return NULL;
 				}
 
@@ -1419,7 +1425,7 @@ static Node *parse_postfix_expression(Context *ctx)
 				if(idx == NULL)
 					return NULL;
 
-				Node *sel = makeIndexSelectionExprNode(ctx, node, idx);
+				Node *sel = makeIndexOrArrowSelectionExprNode(ctx, arrow, node, idx);
 				if(sel == NULL)
 					return NULL;
 
@@ -1446,7 +1452,7 @@ static Node *parse_postfix_expression(Context *ctx)
 					return NULL;
 				}
 
-				Node *sel = makeIndexSelectionExprNode(ctx, node, ls->itemc == 1 ? ls->items : (Node*) ls);
+				Node *sel = makeIndexOrArrowSelectionExprNode(ctx, false, node, ls->itemc == 1 ? ls->items : (Node*) ls);
 				if(sel == NULL)
 					return NULL;
 
@@ -1653,7 +1659,7 @@ static inline int precedenceof(Token *tok)
 		
 		case ',':
 		return 7;
-		
+
 		default:
 		return -100000000;
 	}
@@ -1723,7 +1729,6 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 				case '=': temp->base.kind = EXPR_ASS; break;
 				case '|': temp->base.kind = EXPR_SUMTYPE; break;
 				case ',': temp->base.kind = EXPR_PAIR; break;
-				
 				default:
 				UNREACHABLE;
 				break;

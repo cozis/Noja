@@ -198,19 +198,34 @@ static void emitInstrForFuncCallNode(CodegenContext *ctx, CallExprNode *expr,
 	                                 Label *label_break, int returns)
 {
 	Node *arg = expr->argv;
-    
 	while(arg)
 	{
 		emitInstrForNode(ctx, arg, label_break);
 		arg = arg->next;
 	}
 
-	emitInstrForNode(ctx, expr->func, label_break);
+	int argc;
+	if (expr->func->kind == NODE_EXPR && ((ExprNode*) expr->func)->kind == EXPR_ARW) {
+		IndexSelectionExprNode *selection = (IndexSelectionExprNode*) expr->func;
+		Node *idx = selection->idx;
+		Node *set = selection->set;
+		emitInstrForNode(ctx, set, label_break);
+		emitInstrForNode(ctx, idx, label_break);
+		CodegenContext_EmitInstr(ctx, OPCODE_SELECT2, NULL, 0, 
+								 expr->func->offset, 
+								 expr->func->length);
+		argc = expr->argc+1;
+	} else {
+		emitInstrForNode(ctx, expr->func, label_break);
+		argc = expr->argc;
+	}
 
 	Operand ops[2];
-	ops[0] = (Operand) { .type = OPTP_INT, .as_int = expr->argc };
+	ops[0] = (Operand) { .type = OPTP_INT, .as_int = argc };
 	ops[1] = (Operand) { .type = OPTP_INT, .as_int = returns };
-	CodegenContext_EmitInstr(ctx, OPCODE_CALL, ops, 2, expr->base.base.offset, expr->base.base.length);
+	CodegenContext_EmitInstr(ctx, OPCODE_CALL, ops, 2, 
+							 expr->base.base.offset, 
+							 expr->base.base.length);
 }
 
 static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr, 
@@ -393,6 +408,11 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 			CodegenContext_EmitInstr(ctx, exprkind_to_opcode(expr->kind), NULL, 0, expr->base.offset, expr->base.length);
 			return;
 		}
+
+		case EXPR_ARW:
+		CodegenContext_ReportErrorAndJump(ctx, 0, "Operator -> out of a function call");
+		UNREACHABLE;
+		return;
 
 		case EXPR_AND:
 		{

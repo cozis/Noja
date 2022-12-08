@@ -99,6 +99,7 @@ static const InstrInfo instr_table[] = {
 	INSTR(CHECKTYPE, OPTP_INT, OPTP_STRING)
 	INSTR(CALL, OPTP_INT, OPTP_INT)
 	INSTR(SELECT)
+	INSTR(SELECT2)
 	INSTR(INSERT)
 	INSTR(INSERT2)
 	INSTR(PUSHINT, OPTP_INT)
@@ -519,6 +520,13 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 	};
 
 	const InstrInfo *info = Executable_GetInstrByOpcode(opcode);
+
+#ifndef NDEBUG
+	if (info == NULL) {
+		Error_Report(error, 1, "Missing instruction table entry for opcode");
+		return 0;
+	}
+#endif
 
 	if(opc != info->opcount)
 	{

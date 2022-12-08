@@ -978,12 +978,18 @@ static _Bool step(Runtime *runtime, Error *error)
 		}
 
 		case OPCODE_SELECT:
+		case OPCODE_SELECT2:
 		{
 			ASSERT(opc == 0);
 
-			if(runtime->frame->used < 2)
+			int to_be_popped = (opcode == OPCODE_SELECT) ? 2 : 1;
+
+			if(runtime->frame->used < to_be_popped)
 			{
-				Error_Report(error, 1, "Frame has not enough values on the stack to run SELECT instruction");
+				const char *name = "SELECT";
+				if (opcode == OPCODE_SELECT2)
+					name = "SELECT2";
+				Error_Report(error, 1, "Frame has not enough values on the stack to run %s instruction", name);
 				return 0;
 			}
 
@@ -992,7 +998,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			ASSERT(col != NULL && key != NULL);
 
-			if(!Runtime_Pop(runtime, error, 2))
+			if(!Runtime_Pop(runtime, error, to_be_popped))
 				return 0;
 
 			ASSERT(error->occurred == 0);
@@ -1007,7 +1013,6 @@ static _Bool step(Runtime *runtime, Error *error)
 					Error_Free(&dummy);
 
 					val = Object_NewNone(runtime->heap, error);
-
 					if(val == NULL)
 						return 0;
 				}

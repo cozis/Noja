@@ -1,3 +1,4 @@
+
 scan = import("scan.noja");
 
 newScanner = scan.newScanner;
@@ -7,14 +8,16 @@ consume = scan.consume;
 current = scan.current;
 isDigit = scan.isDigit;
 consumeSpaces = scan.consumeSpaces;
+ord = string.ord;
+cat = string.cat;
 
 fun isAlpha(char: String)
-    return (string.ord(char) >= string.ord('a') and string.ord(char) <= string.ord('z'))
-        or (string.ord(char) >= string.ord('A') and string.ord(char) <= string.ord('Z'));
+    return (ord(char) >= ord('a') and ord(char) <= ord('z'))
+        or (ord(char) >= ord('A') and ord(char) <= ord('Z'));
 
 fun isUpper(char: String)
-    return string.ord(char) >= string.ord('A')
-       and string.ord(char) <= string.ord('Z');
+    return ord(char) >= ord('A')
+       and ord(char) <= ord('Z');
 
 fun isUnreserved(char: String)
     return isAlpha(char)
@@ -46,7 +49,7 @@ fun parseMethod(scan: Scanner) {
 
     method = "";
     do {
-        method = string.cat(method, char);
+        method = cat(method, char);
         consume(scan);
         char = current(scan);
     } while char != none and isUpper(char);
@@ -65,8 +68,8 @@ fun parsePort(scan: Scanner) {
 
         port = 0;
         do {
-            digit = string.ord(char)
-                  - string.ord("0");
+            digit = ord(char)
+                  - ord("0");
             port = port * 10 + digit;
             consume(scan);
             char = current(scan);
@@ -90,7 +93,7 @@ fun parseHost(scan: Scanner) {
 
     name = "";
     do {
-        name = string.cat(name, char);
+        name = cat(name, char);
         consume(scan);
         char = current(scan);
     } while char != none and isHostname(char);
@@ -104,7 +107,7 @@ fun parsePath(scan: Scanner) {
     path = "";
     char = current(scan);
     if char != none and char == "/": {
-        path = string.cat(path, char);
+        path = cat(path, char);
         consume(scan);
         char = current(scan);
     } else {
@@ -114,13 +117,13 @@ fun parsePath(scan: Scanner) {
 
     while char != none and isPChar(char): {
         do {
-            path = string.cat(path, char);
+            path = cat(path, char);
             consume(scan);
             char = current(scan);
         } while char != none and isPChar(char);
         if char == none or char != "/":
             break;
-        path = string.cat(path, char);
+        path = cat(path, char);
         consume(scan);
         char = current(scan);
     }
@@ -143,7 +146,7 @@ fun parseQuery(scan: Scanner) {
         consume(scan); # Consume the "?"
         query = "";
         while isQuery(char = current(scan)): {
-            query = string.cat(query, char);
+            query = cat(query, char);
             consume(scan);
         }
     } else
@@ -165,7 +168,7 @@ fun parseFragment(scan: Scanner) {
         consume(scan); # Consume the "#"
         fragment = "";
         while isFragment(char = current(scan)): {
-            fragment = string.cat(fragment, char);
+            fragment = cat(fragment, char);
             consume(scan);
         }
     } else
@@ -174,12 +177,15 @@ fun parseFragment(scan: Scanner) {
     return fragment;
 }
 
-Host = { name: String, port: ?int };
+Host = { 
+    name: String, 
+    port: ?int 
+};
 
 URL = {
     schema: ?String,
     host: ?Host,
-    path: ?String,
+    path: String,
     query: ?String,
     fragment: ?String
 };
@@ -204,7 +210,7 @@ fun parseSchema(scan: Scanner) {
         start = scan.i;
         schema = "";
         do {
-            schema = string.cat(schema, char);
+            schema = cat(schema, char);
             consume(scan);
             char = current(scan);
         } while isSchema(char);
@@ -253,7 +259,6 @@ fun parseURL(scan: Scanner) {
 
     query = parseQuery(scan);
     fragment = parseFragment(scan);
-    print(scan);
 
     return {
         host    : host,
@@ -272,13 +277,13 @@ fun parseVersion(scan: Scanner) {
         return none, "Invalid version token";
 
     consume(scan, 5); 
-    major = string.ord(current(scan)) 
-          - string.ord("0");
+    major = ord(current(scan)) 
+          - ord("0");
 
     if hint(scan, 1) != "." and isDigit(hint(scan, 2)): {
         consume(scan, 2);
-        minor = string.ord(current(scan)) 
-              - string.ord("0");
+        minor = ord(current(scan)) 
+              - ord("0");
     } else
         minor = 0;
     consume(scan);
@@ -343,7 +348,7 @@ fun parse(src: String) {
         # Header name until the next ":"
         name = "";
         do {
-            name = string.cat(name, char);
+            name = cat(name, char);
             consume(scan);
             char = current(scan);
         } while char != ":" and char != none;
@@ -357,7 +362,7 @@ fun parse(src: String) {
         # Header body until \r
         body = "";
         do {
-            body = string.cat(body, char);
+            body = cat(body, char);
             consume(scan);
             char = current(scan);
         } while char != "\r" and char != none;
@@ -371,7 +376,7 @@ fun parse(src: String) {
     return newRequest(method, url, version, headers);
 }
 
-sample = string.cat(
+sample = cat(
     "GET /search?client=firefox-b-d&q=http+request+dataset HTTP/2\r\n",
     "Host: www.google.com\r\n",
     "user-agent: curl/7.84.0\r\n",

@@ -65,6 +65,7 @@ typedef enum {
 	EXPR_OR,
 	EXPR_NOT,
 
+	EXPR_ARW,
 	EXPR_ASS,
 	EXPR_INT,
 	EXPR_MAP,

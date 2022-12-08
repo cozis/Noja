@@ -1,0 +1,12 @@
+
+
+fun sayHello(self, other)
+    print("Hello ", other, " from ", self.name);
+
+person = {
+    name: "Francesco", 
+    sayHello: sayHello
+};
+
+person->sayHello("Giovanni");
+
