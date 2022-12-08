@@ -3,11 +3,7 @@ scan = import("scan.noja");
 
 newScanner = scan.newScanner;
 Scanner = scan.Scanner;
-hint = scan.hint;
-consume = scan.consume;
-current = scan.current;
 isDigit = scan.isDigit;
-consumeSpaces = scan.consumeSpaces;
 ord = string.ord;
 cat = string.cat;
 
@@ -43,15 +39,15 @@ fun isPChar(char: String)
 
 fun parseMethod(scan: Scanner) {
     
-    char = current(scan);
+    char = scan->current();
     if char == none or not isUpper(char):
         return none, "Missing method";
 
     method = "";
     do {
         method = cat(method, char);
-        consume(scan);
-        char = current(scan);
+        scan->consume();
+        char = scan->current();
     } while char != none and isUpper(char);
 
     return method, none;
@@ -60,19 +56,19 @@ fun parseMethod(scan: Scanner) {
 fun parsePort(scan: Scanner) {
 
     port = none;
-    char = current(scan);
-    if char == ":" and isDigit(hint(scan, 1)): {
+    char = scan->current();
+    if char == ":" and isDigit(scan->hint(1)): {
 
-        consume(scan); # Skip the ":"
-        char = current(scan);
+        scan->consume(); # Skip the ":"
+        char = scan->current();
 
         port = 0;
         do {
             digit = ord(char)
                   - ord("0");
             port = port * 10 + digit;
-            consume(scan);
-            char = current(scan);
+            scan->consume();
+            char = scan->current();
         } while char != none and isDigit(char);
     }
     return port;
@@ -84,7 +80,7 @@ fun isHostname(char: String)
 
 fun parseHost(scan: Scanner) {
 
-    char = current(scan);
+    char = scan->current();
     if char == none:
         return none, "Missing host";
 
@@ -94,8 +90,8 @@ fun parseHost(scan: Scanner) {
     name = "";
     do {
         name = cat(name, char);
-        consume(scan);
-        char = current(scan);
+        scan->consume();
+        char = scan->current();
     } while char != none and isHostname(char);
 
     port = parsePort(scan);
@@ -105,11 +101,11 @@ fun parseHost(scan: Scanner) {
 fun parsePath(scan: Scanner) {
 
     path = "";
-    char = current(scan);
+    char = scan->current();
     if char != none and char == "/": {
         path = cat(path, char);
-        consume(scan);
-        char = current(scan);
+        scan->consume();
+        char = scan->current();
     } else {
         if char == none or not isPChar(char):
             return none, "Invalid character in place of path";
@@ -118,14 +114,14 @@ fun parsePath(scan: Scanner) {
     while char != none and isPChar(char): {
         do {
             path = cat(path, char);
-            consume(scan);
-            char = current(scan);
+            scan->consume();
+            char = scan->current();
         } while char != none and isPChar(char);
         if char == none or char != "/":
             break;
         path = cat(path, char);
-        consume(scan);
-        char = current(scan);
+        scan->consume();
+        char = scan->current();
     }
 
     return path;
@@ -141,13 +137,13 @@ fun isQuery(char: ?String) {
 
 fun parseQuery(scan: Scanner) {
     
-    char = current(scan);
+    char = scan->current();
     if char != none and char == "?": {
-        consume(scan); # Consume the "?"
+        scan->consume(); # Consume the "?"
         query = "";
-        while isQuery(char = current(scan)): {
+        while isQuery(char = scan->current()): {
             query = cat(query, char);
-            consume(scan);
+            scan->consume();
         }
     } else
         query = none;
@@ -163,13 +159,13 @@ fun isFragment(char: ?String) {
 
 fun parseFragment(scan: Scanner) {
     
-    char = current(scan);
+    char = scan->current();
     if char != none and char == "#": {
-        consume(scan); # Consume the "#"
+        scan->consume(); # Consume the "#"
         fragment = "";
-        while isFragment(char = current(scan)): {
+        while isFragment(char = scan->current()): {
             fragment = cat(fragment, char);
-            consume(scan);
+            scan->consume();
         }
     } else
         fragment = none;
@@ -204,19 +200,19 @@ fun isSchema(char: ?String)
 
 fun parseSchema(scan: Scanner) {
 
-    char = current(scan);
+    char = scan->current();
     schema = none;
     if isSchemaFirst(char): {
         start = scan.i;
         schema = "";
         do {
             schema = cat(schema, char);
-            consume(scan);
-            char = current(scan);
+            scan->consume();
+            char = scan->current();
         } while isSchema(char);
 
         if char == ":": 
-            consume(scan);
+            scan->consume();
         else {
             schema = none;
             scan.i = start;
@@ -227,7 +223,7 @@ fun parseSchema(scan: Scanner) {
 }
 
 fun followsAuthority(scan: Scanner)
-    return current(scan) == "/" and hint(scan, 1) == "/";
+    return scan->current() == "/" and scan->hint(1) == "/";
 
 fun parseURL(scan: Scanner) {
 
@@ -241,14 +237,14 @@ fun parseURL(scan: Scanner) {
             return none, error;
         
         path = none;
-        if current(scan) == "/":
+        if scan->current() == "/":
             path = parsePath(scan);
 
     } else {
         
         host = none;
 
-        char = current(scan);
+        char = scan->current();
         if char == none or char == "?" or char == "#":
             return none, "Missing path";
 
@@ -271,22 +267,22 @@ fun parseURL(scan: Scanner) {
 
 fun parseVersion(scan: Scanner) {
 
-    if hint(scan, 0) != "H" or hint(scan, 1) != "T"
-    or hint(scan, 2) != "T" or hint(scan, 3) != "P"
-    or hint(scan, 4) != "/" or not isDigit(hint(scan, 5)):
+    if scan->hint(0) != "H" or scan->hint(1) != "T"
+    or scan->hint(2) != "T" or scan->hint(3) != "P"
+    or scan->hint(4) != "/" or not isDigit(scan->hint(5)):
         return none, "Invalid version token";
 
-    consume(scan, 5); 
-    major = ord(current(scan)) 
+    scan->consume(5); 
+    major = ord(scan->current()) 
           - ord("0");
 
-    if hint(scan, 1) != "." and isDigit(hint(scan, 2)): {
-        consume(scan, 2);
-        minor = ord(current(scan)) 
+    if scan->hint(1) != "." and isDigit(scan->hint(2)): {
+        scan->consume(2);
+        minor = ord(scan->current()) 
               - ord("0");
     } else
         minor = 0;
-    consume(scan);
+    scan->consume();
 
     return {major: major, minor: minor};
 }
@@ -319,59 +315,59 @@ fun parse(src: String) {
     if error != none:
         return none, error;
 
-    char = current(scan);
+    char = scan->current();
     if char == none or char != " ":
         return none, "Missing space after method";
-    consume(scan);
+    scan->consume();
 
     url, error = parseURL(scan);
     if error != none:
         return none, error;
 
-    char = current(scan);
+    char = scan->current();
     if char != " ":
         return none, "Missing space after URL";
-    consume(scan);
+    scan->consume();
 
     version, error = parseVersion(scan);
     if error != none:
         return none, error;
 
-    if hint(scan, 0) != "\r" or hint(scan, 1) != "\n":
+    if scan->hint(0) != "\r" or scan->hint(1) != "\n":
         # Request with no headers or body
         return newRequest(method, url, version);
-    consume(scan, 2); # Consume the "\r\n"
+    scan->consume(2); # Consume the "\r\n"
 
     headers = {};
-    while (char = hint(scan, 0)) != none and (char != "\r" or hint(scan, 1) != "\n"): {
+    while (char = scan->hint(0)) != none and (char != "\r" or scan->hint(1) != "\n"): {
 
         # Header name until the next ":"
         name = "";
         do {
             name = cat(name, char);
-            consume(scan);
-            char = current(scan);
+            scan->consume();
+            char = scan->current();
         } while char != ":" and char != none;
         
         if char == none:
             return none, "Invalid header (missing \":\" after name)";
-        consume(scan);
-        consumeSpaces(scan);
-        char = current(scan);
+        scan->consume();
+        scan->consumeSpaces();
+        char = scan->current();
 
         # Header body until \r
         body = "";
         do {
             body = cat(body, char);
-            consume(scan);
-            char = current(scan);
+            scan->consume();
+            char = scan->current();
         } while char != "\r" and char != none;
 
         headers[name] = body;
     }
 
     if char != none:
-        consume(scan, 2); # Consume the final "\r\n"
+        scan->consume(2); # Consume the final "\r\n"
 
     return newRequest(method, url, version, headers);
 }

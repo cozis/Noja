@@ -1,8 +1,46 @@
 
-Scanner = {src: String, i: int};
+fun dummy() {}
+Func = type(dummy) 
+     | type(print);
+
+Scanner = {
+    src: String, 
+    i: int,
+    hint: Func,
+    current: Func,
+    consume: Func,
+    consumeSpaces: Func
+};
+
+fun hint(scan: Scanner, n: int = 1) {
+    k = scan.i + n;
+    if k < count(scan.src):
+        return scan.src[k];
+    return none;
+}
+
+fun current(scan: Scanner)
+    return hint(scan, 0);
+
+fun consume(scan: Scanner, n: int = 1) {
+    assert(n > 0);
+    limit = count(scan.src);
+    scan.i = min(scan.i + n, limit);
+}
+
+fun consumeSpaces(scan: Scanner)
+    while isSpace(current(scan)):
+        consume(scan);
 
 fun newScanner(src: String) {
-    scan = {src: src, i: 0};
+    scan = {
+        src: src, 
+        i: 0,
+        hint: hint,
+        consume: consume,
+        current: current,
+        consumeSpaces: consumeSpaces
+    };
     assert(istypeof(Scanner, scan));
     return scan;
 }
@@ -24,23 +62,3 @@ fun min(x, y) {
         return x;
     return y;
 }
-
-fun hint(scan: Scanner, n: int = 1) {
-    k = scan.i + n;
-    if k < count(scan.src):
-        return scan.src[k];
-    return none;
-}
-
-fun current(scan: Scanner)
-    return hint(scan, 0);
-
-fun consume(scan: Scanner, n: int = 1) {
-    assert(n > 0);
-    limit = count(scan.src);
-    scan.i = min(scan.i + n, limit);
-}
-
-fun consumeSpaces(scan: Scanner)
-    while isSpace(current(scan)):
-        consume(scan);
