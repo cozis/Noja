@@ -134,13 +134,18 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
         UNUSED(errname);
         
 		Object *o_none = Object_NewNone(heap, error);
-		if(o_none == NULL)
+		if(o_none == NULL) {
+			Source_Free(src);
 			return -1;
+		}
 
 		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-		if(o_err == NULL)
+		if(o_err == NULL) {
+			Source_Free(src);
 			return -1;
+		}
 
+		Source_Free(src);
 		Error_Free(&sub_error);
 		rets[0] = o_none;
 		rets[1] = o_err;
@@ -156,19 +161,30 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
         UNUSED(errname);
 
 		Object *o_none = Object_NewNone(heap, error);
-		if(o_none == NULL) return -1;
+		if(o_none == NULL) {
+			Source_Free(src);
+			Executable_Free(exe);
+			return -1;
+		}
 
 		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-		if(o_err == NULL) return -1;
-
+		if(o_err == NULL) {
+			Source_Free(src);
+			Executable_Free(exe);
+			return -1;
+		}
 		Error_Free(&sub_error);
 		rets[0] = o_none;
 		rets[1] = o_err;
+		Source_Free(src);
+		Executable_Free(exe);
 		return 2;
     }
     ASSERT(retc == 1);
 	
 	Error_Free(&sub_error);
+	Source_Free(src);
+	Executable_Free(exe);
     rets[0] = sub_rets[0];
     return 1;
 }

@@ -46,8 +46,7 @@ fun parseMethod(scan: Scanner) {
     method = "";
     do {
         method = cat(method, char);
-        scan->consume();
-        char = scan->current();
+        char = scan->consume();
     } while char != none and isUpper(char);
 
     return method, none;
@@ -59,16 +58,13 @@ fun parsePort(scan: Scanner) {
     char = scan->current();
     if char == ":" and isDigit(scan->hint(1)): {
 
-        scan->consume(); # Skip the ":"
-        char = scan->current();
+        char = scan->consume(); # Skip the ":"
 
         port = 0;
         do {
-            digit = ord(char)
-                  - ord("0");
+            digit = ord(char) - ord("0");
             port = port * 10 + digit;
-            scan->consume();
-            char = scan->current();
+            char = scan->consume();
         } while char != none and isDigit(char);
     }
     return port;
@@ -90,8 +86,7 @@ fun parseHost(scan: Scanner) {
     name = "";
     do {
         name = cat(name, char);
-        scan->consume();
-        char = scan->current();
+        char = scan->consume();
     } while char != none and isHostname(char);
 
     port = parsePort(scan);
@@ -104,8 +99,7 @@ fun parsePath(scan: Scanner) {
     char = scan->current();
     if char != none and char == "/": {
         path = cat(path, char);
-        scan->consume();
-        char = scan->current();
+        char = scan->consume();
     } else {
         if char == none or not isPChar(char):
             return none, "Invalid character in place of path";
@@ -114,14 +108,12 @@ fun parsePath(scan: Scanner) {
     while char != none and isPChar(char): {
         do {
             path = cat(path, char);
-            scan->consume();
-            char = scan->current();
+            char = scan->consume();
         } while char != none and isPChar(char);
         if char == none or char != "/":
             break;
         path = cat(path, char);
-        scan->consume();
-        char = scan->current();
+        char = scan->consume();
     }
 
     return path;
@@ -139,12 +131,9 @@ fun parseQuery(scan: Scanner) {
     
     char = scan->current();
     if char != none and char == "?": {
-        scan->consume(); # Consume the "?"
         query = "";
-        while isQuery(char = scan->current()): {
+        while isQuery(char = scan->consume()):
             query = cat(query, char);
-            scan->consume();
-        }
     } else
         query = none;
 
@@ -161,12 +150,9 @@ fun parseFragment(scan: Scanner) {
     
     char = scan->current();
     if char != none and char == "#": {
-        scan->consume(); # Consume the "#"
         fragment = "";
-        while isFragment(char = scan->current()): {
+        while isFragment(char = scan->consume()):
             fragment = cat(fragment, char);
-            scan->consume();
-        }
     } else
         fragment = none;
 
@@ -207,8 +193,7 @@ fun parseSchema(scan: Scanner) {
         schema = "";
         do {
             schema = cat(schema, char);
-            scan->consume();
-            char = scan->current();
+            char = scan->consume();
         } while isSchema(char);
 
         if char == ":": 
@@ -230,7 +215,7 @@ fun parseURL(scan: Scanner) {
     schema = parseSchema(scan);
     
     if followsAuthority(scan): {
-        consume(scan, 2);
+        scan->consume(2);
         
         host, error = parseHost(scan);
         if error != none:
@@ -272,14 +257,12 @@ fun parseVersion(scan: Scanner) {
     or scan->hint(4) != "/" or not isDigit(scan->hint(5)):
         return none, "Invalid version token";
 
-    scan->consume(5); 
-    major = ord(scan->current()) 
-          - ord("0");
+    char = scan->consume(5); 
+    major = ord(char) - ord("0");
 
     if scan->hint(1) != "." and isDigit(scan->hint(2)): {
-        scan->consume(2);
-        minor = ord(scan->current()) 
-              - ord("0");
+        char = scan->consume(2);
+        minor = ord(char) - ord("0");
     } else
         minor = 0;
     scan->consume();
@@ -345,22 +328,19 @@ fun parse(src: String) {
         name = "";
         do {
             name = cat(name, char);
-            scan->consume();
-            char = scan->current();
+            char = scan->consume();
         } while char != ":" and char != none;
         
         if char == none:
             return none, "Invalid header (missing \":\" after name)";
         scan->consume();
-        scan->consumeSpaces();
-        char = scan->current();
+        char = scan->consumeSpaces();
 
         # Header body until \r
         body = "";
         do {
             body = cat(body, char);
-            scan->consume();
-            char = scan->current();
+            char = scan->consume();
         } while char != "\r" and char != none;
 
         headers[name] = body;

@@ -26,11 +26,15 @@ fun consume(scan: Scanner, n: int = 1) {
     assert(n > 0);
     limit = count(scan.src);
     scan.i = min(scan.i + n, limit);
+    return current(scan);
 }
 
-fun consumeSpaces(scan: Scanner)
-    while isSpace(current(scan)):
-        consume(scan);
+fun consumeSpaces(scan: Scanner) {
+    char = current(scan);
+    while isSpace(char):
+        char = consume(scan);
+    return char;
+}
 
 fun newScanner(src: String) {
     scan = {

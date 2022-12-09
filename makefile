@@ -52,7 +52,7 @@ LFLAGS = -lm
 # Can be one of: YES, NO
 USING_VALGRIND = NO
 
-# May be one of: COVERAGE, RELEASE, DEBUG
+# May be one of: COVERAGE, RELEASE, DEBUG, CHECKMEM
 BUILD_MODE = RELEASE
 
 # Changing the BUILD_MODE will add one of the
@@ -61,6 +61,9 @@ BUILD_MODE = RELEASE
 # the flags are also determined based on the CC.
 CFLAGS_DEBUG = -DDEBUG -g 
 LFLAGS_DEBUG = 
+
+CFLAGS_CHECKMEM = -fsanitize=address -g
+LFLAGS_CHECKMEM = -fsanitize=address
 
 CFLAGS_RELEASE = -DNDEBUG -O3
 LFLAGS_RELEASE =
