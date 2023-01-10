@@ -72,9 +72,9 @@ static Object *select_(Object *self, Object *key,
 	if(err->occurred)
 		return NULL;
 
-	if (selected == NULL)
+	if (selected == NULL && closure->prev != NULL)
 		selected = Object_Select(closure->prev, key, heap, err);
-	
+
 	return selected;
 }
 
@@ -82,6 +82,6 @@ static void walk(Object *self, void (*callback)(Object **referer, void *userp), 
 {
 	ClosureObject *closure = (ClosureObject*) self;
 
-	callback((Object**) &closure->prev, userp);
+	callback(&closure->prev, userp);
 	callback(&closure->vars, userp);
 }
