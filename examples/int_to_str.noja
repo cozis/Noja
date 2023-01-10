@@ -1,0 +1,65 @@
+
+# Shortcuts for some commonly used functions
+chr = string.chr;
+ord = string.ord;
+cat = string.cat;
+
+# Some useful stuff
+Numeric = int | float;
+
+# This function returns the magnitude of the
+# argument and the power of 10 with the same
+# magnitude.
+fun getIntegerMagnitude(n: int) {
+	assert(n >= 0);
+	magn = 0;
+	powr = 1;
+	# Basically grow the power until it's
+	# bigger than the input.
+	while n >= powr * 10: {
+		powr = 10 * powr;
+		magn = 1 + magn;
+	}
+	return magn, powr;
+}
+
+# Stringify a number between 0 and 9.
+fun stringFromDigit(digit: int) {
+	assert(digit >= 0 and digit <= 9);
+	return chr(ord("0") + digit);
+}
+
+fun abs(n: Numeric) {
+	if n < 0:
+		return -n;
+	return n;
+}
+
+# Stringify an unsigned integer
+fun stringFromInteger(n: int) {
+
+	negative = (n < 0);
+	
+	# Get the power of 10 with the
+	# magnitude of the input.
+	_, power = getIntegerMagnitude(n);
+
+	temp = abs(n); # Temporary copy of the input
+	text = ""; # The output we're about to compute
+
+	while power >= 1: {
+		# Pop the leftmost digit from [temp].
+		digit = temp / power; # Get the leftmost digit
+		temp  = temp % power; # Remove it
+
+		# Add the digit to the output.
+		text = cat(text, stringFromDigit(digit));
+
+		# Prep for the next iteration.
+		power = power / 10;
+	}
+
+	if negative:
+		text = cat("-", text);
+	return text;
+}

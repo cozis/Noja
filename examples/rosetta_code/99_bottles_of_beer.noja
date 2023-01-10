@@ -1,0 +1,43 @@
+# == The beer song =================
+#
+# The lyrics follow this form:
+#
+# > 99 bottles of beer on the wall
+# > 99 bottles of beer
+# > Take one down, pass it around
+# > 98 bottles of beer on the wall
+# > 
+# > 98 bottles of beer on the wall
+# > 98 bottles of beer
+# > Take one down, pass it around
+# > 97 bottles of beer on the wall
+# >
+# > ...
+#
+# and go on until 0.
+#
+# ==================================
+
+stringFromInteger = import("../int_to_str.noja").stringFromInteger;
+cat = string.cat;
+
+fun verse(n: int)
+	return cat(
+		stringFromInteger(n), " bottles of beer on the wall\n",
+		stringFromInteger(n), " bottles of beer\n",
+		"Take one down, pass it around\n",
+		stringFromInteger(n-1), " bottles of beer on the wall\n"
+	);
+
+fun song(start: int = 99, end: int = 1) {
+	
+	text = "";
+	i = start;
+	while i >= end: {
+		text = cat(text, verse(i), "\n");
+		i = i-1;
+	}
+	return text;
+}
+
+print(song());

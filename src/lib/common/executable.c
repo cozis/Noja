@@ -86,6 +86,7 @@ static const InstrInfo instr_table[] = {
 	INSTR(SUB)
 	INSTR(MUL)
 	INSTR(DIV)
+	INSTR(MOD)
 	INSTR(EQL)
 	INSTR(NQL)
 	INSTR(LSS)
@@ -523,7 +524,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 #ifndef NDEBUG
 	if (info == NULL) {
-		Error_Report(error, 1, "Missing instruction table entry for opcode");
+		Error_Report(error, 1, "Missing instruction table entry for opcode %d", opcode);
 		return 0;
 	}
 #endif
