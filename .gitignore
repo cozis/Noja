@@ -12,3 +12,7 @@ vgcore.*
 lib*.a
 
 ./*.noja
+
+embedder
+
+*_n.c

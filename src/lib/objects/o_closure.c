@@ -34,9 +34,9 @@
 typedef struct ClosureObject ClosureObject;
 
 struct ClosureObject {
-	Object         base;
-	ClosureObject *prev;
-	Object        *vars;
+	Object  base;
+	Object *prev;
+	Object *vars;
 };
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);
@@ -57,13 +57,7 @@ Object *Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *er
 	if(obj == NULL)
 		return NULL;
 
-	if(parent != NULL && parent->type != &t_closure)
-	{
-		Error_Report(error, 0, "Object is not a Closure");
-		return NULL;
-	}
-
-	obj->prev = (ClosureObject*) parent;
+	obj->prev = parent;
 	obj->vars = new_map;
 
 	return (Object*) obj;
@@ -74,18 +68,13 @@ static Object *select_(Object *self, Object *key,
 {
 	ClosureObject *closure = (ClosureObject*) self;
 
-	Object *selected = NULL;
+	Object *selected = Object_Select(closure->vars, key, heap, err);
+	if(err->occurred)
+		return NULL;
 
-	while(closure != NULL && selected == NULL)
-	{
-		selected = Object_Select(closure->vars, key, heap, err);
-
-		if(err->occurred)
-			return NULL;
-
-		closure = closure->prev;
-	}
-
+	if (selected == NULL)
+		selected = Object_Select(closure->prev, key, heap, err);
+	
 	return selected;
 }
 

@@ -112,9 +112,13 @@ LIB_OBJDIR = $(OBJDIR)/$(LIB_SUBDIR)
 CLI_OBJDIR = $(OBJDIR)/$(CLI_SUBDIR)
 TST_OBJDIR = $(OBJDIR)/$(TST_SUBDIR)
 
+LIB_NFILES = $(call rwildcard, $(LIB_SRCDIR), *.noja)
 LIB_CFILES = $(call rwildcard, $(LIB_SRCDIR), *.c)
 LIB_HFILES = $(call rwildcard, $(LIB_SRCDIR), *.h)
-LIB_OFILES = $(patsubst $(LIB_SRCDIR)/%.c, $(LIB_OBJDIR)/%.o, $(LIB_CFILES))
+LIB_OFILES = $(patsubst $(LIB_SRCDIR)/%.c, $(LIB_OBJDIR)/%.o, $(LIB_CFILES)) \
+			 $(patsubst $(LIB_SRCDIR)/%.noja, $(LIB_OBJDIR)/%_n.o, $(LIB_NFILES))
+
+$(info $(LIB_OFILES))
 
 CLI_CFILES = $(call rwildcard, $(CLI_SRCDIR), *.c)
 CLI_HFILES = $(call rwildcard, $(CLI_SRCDIR), *.h)
@@ -138,6 +142,12 @@ TST = $(OUTDIR)/$(TST_FNAME)
 .PHONY: report install clean all
 
 all: $(LIB) $(CLI) $(TST)
+
+embedder: misc/embedder.c
+	gcc $< -o $@ -Wall -Wextra
+
+%_n.c: %.noja embedder
+	./embedder $< start_noja $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@ mkdir -p $(@D)

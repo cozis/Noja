@@ -56,18 +56,74 @@ static _Bool interpret(Executable *exe)
     RuntimeError error;
     RuntimeError_Init(&error, runt); // Here we specify the runtime to snapshot in case of failure.
     
-    Object *bins = Object_NewStaticMap(bins_basic, bins_basic_init, runt, (Error*) &error);
-
-    if(bins == NULL)
     {
-        assert(error.base.occurred == 1);
-        print_error(NULL, (Error*) &error);
-        RuntimeError_Free(&error);
-        Runtime_Free(runt);
-        return 0;
-    }
+        Object *native_bins = Object_NewStaticMap(bins_basic, bins_basic_init, runt, (Error*) &error);
+        if(native_bins == NULL)
+        {
+            assert(error.base.occurred == 1);
+            print_error(NULL, (Error*) &error);
+            RuntimeError_Free(&error);
+            Runtime_Free(runt);
+            return 0;
+        }
 
-    Runtime_SetBuiltins(runt, bins);
+        // Just to execute the prelude
+        Runtime_SetBuiltins(runt, native_bins);
+
+        extern char start_noja[];
+        Source *prelude = Source_FromString("<prelude>", start_noja, -1, (Error*) &error);
+        if (prelude == NULL) {
+            assert(error.base.occurred == 1);
+            print_error(NULL, (Error*) &error);
+            RuntimeError_Free(&error);
+            Runtime_Free(runt);
+            return 0;
+        }
+
+        CompilationErrorType errtyp;
+        Executable *prelude_exe = compile(prelude, (Error*) &error, &errtyp);
+        if(exe == NULL) {
+            const char *errname;
+            switch(errtyp) {
+                default:
+                case CompilationErrorType_INTERNAL: errname = NULL; break;
+                case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
+                case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
+            }
+            print_error(errname, (Error*) &error);
+            RuntimeError_Free(&error);
+            Runtime_Free(runt);
+            Source_Free(prelude);
+            return 0;
+        }
+
+        Object *rets[8];
+        int retc = run(runt, (Error*) &error, prelude_exe, 0, NULL, NULL, 0, rets);
+        if(retc < 0) {
+            print_error("Runtime", (Error*) &error);
+            RuntimeError_Free(&error);
+            Runtime_Free(runt);
+            Source_Free(prelude);
+            Executable_Free(prelude_exe);
+            return 0;
+        }
+        Object *noja_bins = rets[0];
+
+        Object *all_bins = Object_NewClosure(native_bins, noja_bins, Runtime_GetHeap(runt), (Error*) &error);
+        if (all_bins == NULL) {
+            print_error(NULL, (Error*) &error);
+            RuntimeError_Free(&error);
+            Runtime_Free(runt);
+            Source_Free(prelude);
+            Executable_Free(prelude_exe);
+            return 0;
+        }
+
+        Runtime_SetBuiltins(runt, all_bins);
+
+        Source_Free(prelude);
+        Executable_Free(prelude_exe);
+    }
 
     Object *rets[8];
     int retc = run(runt, (Error*) &error, exe, 0, NULL, NULL, 0, rets);
