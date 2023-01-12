@@ -1,15 +1,11 @@
 
-fun dummy() {}
-Func = type(dummy) 
-     | type(print);
-
 Scanner = {
     src: String, 
     i: int,
-    hint: Func,
-    current: Func,
-    consume: Func,
-    consumeSpaces: Func
+    hint: Callable,
+    current: Callable,
+    consume: Callable,
+    consumeSpaces: Callable
 };
 
 fun hint(scan: Scanner, n: int = 1) {
@@ -60,9 +56,3 @@ fun isSpace(c: String)
     return c == ' '
         or c == '\t'
         or c == '\n';
-
-fun min(x, y) {
-    if x < y:
-        return x;
-    return y;
-}

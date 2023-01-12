@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         }
     }
     
-    fprintf(out_stream, "\n};\n");
+    fprintf(out_stream, "\n\t0\n};\n");
 
     fclose(in_stream);
     fclose(out_stream);

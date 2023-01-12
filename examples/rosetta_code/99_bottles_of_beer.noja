@@ -18,7 +18,6 @@
 #
 # ==================================
 
-stringFromInteger = import("../int_to_str.noja").stringFromInteger;
 cat = string.cat;
 
 fun verse(n: int)

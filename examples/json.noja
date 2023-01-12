@@ -85,7 +85,7 @@ fun parseArray(scan: Scanner) {
         val, err = parseValue(scan);
         if err != none:
             return none, err;
-        array[count(array)] = val;
+        append(array, val);
 
         char = scan->consumeSpaces();
         if char == ']':
@@ -164,11 +164,6 @@ fun parseNull(scan: Scanner) {
     scan->consume();
 
     return none;
-}
-
-fun integerFromDigit(char: String) {
-    assert(isDigit(char));
-    return ord(char) - ord('0');
 }
 
 fun parseNumber(scan: Scanner) {

@@ -108,7 +108,7 @@ static _Bool buffer_free(Object *self, Error *error)
 	UNUSED(error);
 
 	BufferObject *buffer = (BufferObject*) self;
-
+	
 	Payload *payload = buffer->payload;
 	ASSERT(payload != NULL && payload->refs > 0);
 
@@ -142,6 +142,7 @@ Object *Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap
 	if(slice == NULL)
 		return NULL;
 
+	payload->refs++;
 	slice->payload = payload;
 	slice->offset = offset;
 	slice->length = length;

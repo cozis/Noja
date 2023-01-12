@@ -57,9 +57,9 @@ _Bool Object_IsFile(Object *obj)
 
 FILE *Object_GetStream(Object *obj)
 {
-	if(!Object_IsDir(obj)) {
+	if(!Object_IsFile(obj)) {
 		Error_Panic("%s expected a " TYPENAME_FILE
-			        "object, but an %s was provided", 
+			        " object, but an %s was provided", 
 			        __func__,  Object_GetName(obj));
 		return NULL;
 	}

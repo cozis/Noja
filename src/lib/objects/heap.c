@@ -170,6 +170,7 @@ void Heap_Free(Heap *heap)
 			// it now though.
 			Error_Free(&error);
 			Error_Init(&error);
+			// Continue the loop..
 		}
 	}
 

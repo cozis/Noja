@@ -82,7 +82,7 @@ static _Bool interpret(Executable *exe)
 
         CompilationErrorType errtyp;
         Executable *prelude_exe = compile(prelude, (Error*) &error, &errtyp);
-        if(exe == NULL) {
+        if(prelude_exe == NULL) {
             const char *errname;
             switch(errtyp) {
                 default:
@@ -108,6 +108,21 @@ static _Bool interpret(Executable *exe)
             return 0;
         }
         Object *noja_bins = rets[0];
+
+        // Need to remake the native built-ins because
+        // running the script invalidated the previous 
+        // pointer.
+        native_bins = Object_NewStaticMap(bins_basic, bins_basic_init, runt, (Error*) &error);
+        if(native_bins == NULL)
+        {
+            assert(error.base.occurred == 1);
+            print_error(NULL, (Error*) &error);
+            RuntimeError_Free(&error);
+            Runtime_Free(runt);
+            Source_Free(prelude);
+            Executable_Free(prelude_exe);
+            return 0;
+        }
 
         Object *all_bins = Object_NewClosure(native_bins, noja_bins, Runtime_GetHeap(runt), (Error*) &error);
         if (all_bins == NULL) {

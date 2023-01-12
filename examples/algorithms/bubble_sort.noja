@@ -1,9 +1,4 @@
 
-fun dummy() {}
-Func = type(dummy);
-NFunc = type(print); # The function type is not a built-in at the moment,
-                     # but we can define it manually.
-
 fun copyList(list: List) {
 
 	list2 = [];
@@ -17,10 +12,10 @@ fun copyList(list: List) {
 	return list2;
 }
 
-fun numericLess(a: int | float, b: int | float) 
+fun numericLess(a: Numeric, b: Numeric) 
 	return a < b;
 
-fun bubbleSort(list: List, less: NFunc | Func = numericLess) {
+fun bubbleSort(list: List, less: Callable = numericLess) {
 	
 	list2 = copyList(list);
 
