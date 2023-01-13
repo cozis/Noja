@@ -8,8 +8,6 @@
 #bytecode
     
     PUSHFUN fun, 1;
-    ASS "nop";
-    POP 1;
     JUMP end;
 fun:
     PUSHVAR "None";
@@ -20,4 +18,6 @@ fun:
     RETURN 1;
     RETURN 0;
 end:
+    ASS "nop";
+    POP 1;
     EXIT;

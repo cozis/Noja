@@ -7,8 +7,6 @@
 #bytecode
 
     PUSHFUN nop, 2;
-    ASS "nop";
-    POP 1;
     JUMP nop_end;
 nop:
     ASS "b";
@@ -24,4 +22,6 @@ not_none:
     POP 1;
     RETURN 0;
 nop_end:
+    ASS "nop";
+    POP 1;
     EXIT;

@@ -8,8 +8,6 @@
 #bytecode
     
     PUSHFUN fun, 2;
-    ASS "add";
-    POP 1;
     JUMP end;
 fun:
     ASS "b";
@@ -24,4 +22,6 @@ fun:
     RETURN 1;
     RETURN 0;
 end:
+    ASS "add";
+    POP 1;
     EXIT;

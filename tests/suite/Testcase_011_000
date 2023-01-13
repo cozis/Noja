@@ -6,10 +6,10 @@
 #bytecode
     
     PUSHFUN fun, 0;
-    ASS "X";
-    POP 1;
     JUMP end;
 fun:
     RETURN 0;
 end:
+    ASS "X";
+    POP 1;
     EXIT;
