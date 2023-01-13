@@ -70,6 +70,7 @@ typedef enum {
 	EXPR_INT,
 	EXPR_MAP,
 	EXPR_CALL,
+	EXPR_FUNC,
 	EXPR_PAIR,
 	EXPR_LIST,
 	EXPR_NONE,
@@ -157,6 +158,14 @@ typedef struct {
 	Node    *set;
 } IndexSelectionExprNode;
 
+#warning "temp"
+typedef struct {
+	ExprNode base;
+	Node    *argv;
+	int      argc;
+	Node    *body;
+} FuncExprNode;
+
 typedef struct {
 	Node  base;
 	Node *condition;
@@ -187,12 +196,10 @@ typedef struct {
 } ReturnNode;
 
 typedef struct {
-	Node  base;
-	char *name;
-	Node *argv;
-	int   argc;
-	Node *body;
-} FunctionNode;
+	Node            base;
+	StringExprNode *name;
+	FuncExprNode   *expr;
+} FuncDeclNode;
 
 typedef struct {
 	Node  base;

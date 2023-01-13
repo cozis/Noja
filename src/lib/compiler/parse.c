@@ -136,7 +136,7 @@ static Node *parse_expression(Context *ctx, _Bool allow_toplev_tuples, _Bool all
 static Node *parse_expression_statement(Context *ctx);
 static Node *parse_ifelse_statement(Context *ctx);
 static Node *parse_compound_statement(Context *ctx, TokenKind end);
-static Node *parse_function_definition(Context *ctx);
+static FuncDeclNode *parse_function_definition(Context *ctx);
 static Node *parse_postfix_expression(Context *ctx);
 static Node *parse_prefix_expression(Context *ctx);
 static Node *parse_while_statement(Context *ctx);
@@ -656,7 +656,7 @@ static Node *parse_statement(Context *ctx)
 		}
 
 		case TKWFUN:
-		return parse_function_definition(ctx);
+		return (Node*) parse_function_definition(ctx);
 
 		case TKWWHILE:
 		return parse_while_statement(ctx);
@@ -965,57 +965,68 @@ static Node *parse_map_primary_expression(Context *ctx)
 		while(1)
 		{
 			Node *key;
-			_Bool key_is_a_single_ident;
+			Node *item;
+
+			bool item_is_func_decl = false;
+
+			if (current(ctx) == TKWFUN) 
 			{
-				_Bool key_starts_with_an_ident = current(ctx) == TIDENT;
-
-				next(ctx);
-
-				key_is_a_single_ident = key_starts_with_an_ident && (current(ctx) == TDONE || current(ctx) == ':');
-
-				prev(ctx);
-			}
-
-			if(key_is_a_single_ident)
-			{
-				assert(current(ctx) == TIDENT);
-				key = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
-
-				next(ctx);
+				FuncDeclNode *func = parse_function_definition(ctx);
+				if (func == NULL) return NULL;
+				key  = (Node*) func->name;
+				item = (Node*) func->expr;
+				item_is_func_decl = true;
 			}
 			else
 			{
-				key = parse_expression(ctx, 0, 1);
+				_Bool key_is_a_single_ident;
+				{
+					_Bool key_starts_with_an_ident = current(ctx) == TIDENT;
+
+					next(ctx);
+
+					key_is_a_single_ident = key_starts_with_an_ident && (current(ctx) == TDONE || current(ctx) == ':');
+
+					prev(ctx);
+				}
+
+				if(key_is_a_single_ident)
+				{
+					assert(current(ctx) == TIDENT);
+					key = makeStringExprNode(ctx, ctx->src + ctx->token->offset, ctx->token->length);
+
+					next(ctx);
+				}
+				else
+					key = parse_expression(ctx, 0, 1);
+
+				if(key == NULL)
+					return NULL;
+
+				if(done(ctx))
+				{
+					Error_Report(ctx->error, 0, 
+						"Source ended where a map key-value "
+						"separator ':' was expected");
+					return NULL;
+				}
+
+				if(current(ctx) != ':')
+				{
+					Error_Report(ctx->error, 0, 
+						"Got token \"%.*s\" where a map key-value "
+						"separator ':' was expected", 
+						ctx->token->length, 
+						ctx->src + ctx->token->offset);
+					return NULL;
+				}
+
+				next(ctx);
+
+				// Parse.
+				item = parse_expression(ctx, 0, 1);
+				if(item == NULL) return NULL;
 			}
-
-			if(key == NULL)
-				return NULL;
-
-			if(done(ctx))
-			{
-				Error_Report(ctx->error, 0, 
-					"Source ended where a map key-value "
-					"separator ':' was expected");
-				return NULL;
-			}
-
-			if(current(ctx) != ':')
-			{
-				Error_Report(ctx->error, 0, 
-					"Got token \"%.*s\" where a map key-value "
-					"separator ':' was expected", 
-					ctx->token->length, 
-					ctx->src + ctx->token->offset);
-				return NULL;
-			}
-
-			next(ctx);
-
-			// Parse.
-			Node *item = parse_expression(ctx, 0, 1);
-
-			if(item == NULL)
-				return NULL;
 
 			// Append.
 			if(tail)
@@ -1038,19 +1049,20 @@ static Node *parse_map_primary_expression(Context *ctx)
 			if(current(ctx) == '}')
 				break;
 
-			if(current(ctx) != ',')
-			{
-				if(current(ctx) == TDONE)
-					Error_Report(ctx->error, 0, "Source ended inside a map literal");
-				else
-					Error_Report(ctx->error, 0, 
-						"Got unexpected token \"%.*s\" inside "
-						"map literal, where ',' or '}' were expected", 
-						ctx->token->length, ctx->src + ctx->token->offset);
-				return NULL;
+			if (!item_is_func_decl) {
+				if(current(ctx) != ',')
+				{
+					if(current(ctx) == TDONE)
+						Error_Report(ctx->error, 0, "Source ended inside a map literal");
+					else
+						Error_Report(ctx->error, 0, 
+							"Got unexpected token \"%.*s\" inside "
+							"map literal, where ',' or '}' were expected", 
+							ctx->token->length, ctx->src + ctx->token->offset);
+					return NULL;
+				}
+				next(ctx); // Skip the ','.
 			}
-
-			next(ctx); // Skip the ','.
 		}
 	}
 
@@ -2001,7 +2013,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 	return 1;
 }
 
-static Node *parse_function_definition(Context *ctx)
+static FuncDeclNode *parse_function_definition(Context *ctx)
 {
 	assert(ctx != NULL);
 
@@ -2028,13 +2040,15 @@ static Node *parse_function_definition(Context *ctx)
 		return NULL;
 	}
 
-	char *name = copy_token_text(ctx);
-
-	if(name == NULL)
+	char *name_val = copy_token_text(ctx);
+	if(name_val == NULL)
 	{
 		Error_Report(ctx->error, 1, "No memory");
 		return NULL;
 	}
+	int name_len = strlen(name_val);
+	int name_offset = current_token(ctx)->offset;
+	int name_length = current_token(ctx)->length;
 
 	int   argc = 0; // Initialization for the warning.
 	Node *argv;
@@ -2052,28 +2066,56 @@ static Node *parse_function_definition(Context *ctx)
 	if(body == NULL)
 		return NULL;
 
-	FunctionNode *func;
+	FuncDeclNode *func;
 	{
-		// Make argument node.
-		func = BPAlloc_Malloc(ctx->alloc, sizeof(FunctionNode));
+		int length = body->offset 
+				   + body->length 
+				   - offset;
 
+		FuncExprNode *expr = BPAlloc_Malloc(ctx->alloc, sizeof(FuncExprNode));
+		if (expr == NULL)
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
+		expr->base.base.kind = NODE_EXPR;
+		expr->base.base.next = NULL;
+		expr->base.base.offset = offset;
+		expr->base.base.length = length;
+		expr->base.kind = EXPR_FUNC;
+		expr->argv = argv;
+		expr->argc = argc;
+		expr->body = body;
+
+		StringExprNode *name = BPAlloc_Malloc(ctx->alloc, sizeof(StringExprNode));
+		if (name == NULL)
+		{
+			Error_Report(ctx->error, 1, "No memory");
+			return NULL;
+		}
+		name->base.base.kind = NODE_EXPR;
+		name->base.base.next = NULL;
+		name->base.base.offset = name_offset;
+		name->base.base.length = name_length;
+		name->base.kind = EXPR_STRING;
+		name->val = name_val;
+		name->len = name_len;
+
+		func = BPAlloc_Malloc(ctx->alloc, sizeof(FuncDeclNode));
 		if(func == NULL)
 		{
 			Error_Report(ctx->error, 1, "No memory");
 			return NULL;
 		}
-
 		func->base.kind = NODE_FUNC;
 		func->base.next = NULL;
 		func->base.offset = offset;
-		func->base.length = body->offset + body->length - offset;
+		func->base.length = length;
 		func->name = name;
-		func->argv = argv;
-		func->argc = argc;
-		func->body = body;
+		func->expr = expr;
 	}
 
-	return (Node*) func;
+	return func;
 }
 
 static Node *parse_while_statement(Context *ctx)

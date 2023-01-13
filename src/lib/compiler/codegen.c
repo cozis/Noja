@@ -255,7 +255,7 @@ static void emitInstrForArgumentNode(CodegenContext *ctx, ArgumentNode *arg, int
 	emitInstr_POP1(ctx, arg->base.offset, arg->base.length);
 }
 
-static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func)
+static void emitInstrForFuncExprNode(CodegenContext *ctx, FuncExprNode *func)
 {
 	Label *label_func = Label_New(ctx);
 	Label *label_jump = Label_New(ctx);
@@ -266,11 +266,9 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func)
 			{ .type = OPTP_PROMISE, .as_promise = Label_ToPromise(label_func) },
 			{ .type = OPTP_INT,     .as_int     = func->argc },
 		};
-		CodegenContext_EmitInstr(ctx, OPCODE_PUSHFUN, ops, 2, func->base.offset, func->base.length);
+		CodegenContext_EmitInstr(ctx, OPCODE_PUSHFUN, ops, 2, func->base.base.offset, func->base.base.length);
 	}
-	emitInstr_ASS(ctx, func->name, func->base.offset, func->base.length); // Assign variable
-	emitInstr_POP1(ctx, func->base.offset, func->base.length); // Pop function object
-	emitInstr_JUMP(ctx, label_jump, func->base.offset, func->base.length); // Jump after the function code
+	emitInstr_JUMP(ctx, label_jump, func->base.base.offset, func->base.base.length); // Jump after the function code
 	Label_SetHere(label_func, ctx); // This is the function code index.
 
 	// Compile the function body.
@@ -302,6 +300,12 @@ static void emitInstrForFuncNode(CodegenContext *ctx, FunctionNode *func)
 	Label_Free(label_jump);
 }
 
+static void emitInstrForFuncDeclNode(CodegenContext *ctx, FuncDeclNode *func)
+{
+	emitInstrForFuncExprNode(ctx, func->expr);
+	emitInstr_ASS(ctx, func->name->val, func->base.offset, func->base.length); // Assign variable
+	emitInstr_POP1(ctx, func->base.offset, func->base.length); // Pop function object
+}
 
 static void flattenTupleTree(CodegenContext *ctx, ExprNode *root, ExprNode *tuple[], int max, int *count)
 {
@@ -569,6 +573,10 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 		emitInstrForFuncCallNode(ctx, (CallExprNode*) expr, label_break, 1);
 		return;
 
+		case EXPR_FUNC:
+		emitInstrForFuncExprNode(ctx, (FuncExprNode*) expr);
+		return;
+
 		case EXPR_SELECT:
 		{
 			IndexSelectionExprNode *sel = (IndexSelectionExprNode*) expr;
@@ -723,7 +731,7 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break
 		}
 
 		case NODE_FUNC:
-		emitInstrForFuncNode(ctx, (FunctionNode*) node);
+		emitInstrForFuncDeclNode(ctx, (FuncDeclNode*) node);
 		return;
 
 		default:

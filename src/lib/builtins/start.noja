@@ -56,7 +56,7 @@ fun stringFromInteger(n: int) {
 
 	temp = abs(n); # Temporary copy of the input
 	text = ""; # The output we're about to compute
-
+	
 	while power >= 1: {
 		# Pop the leftmost digit from [temp].
 		digit = temp / power; # Get the leftmost digit
@@ -78,6 +78,7 @@ fun floatFromInteger(n: int)
 	return 1.0 * n;
 
 fun integerFromDigit(char: String) {
+	ord = string.ord;
     res = ord(char) - ord('0');
     if res < 0 or res > 9:
     	error("String isn't a digit");

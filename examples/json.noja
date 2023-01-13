@@ -329,3 +329,5 @@ fun test() {
     print("failed: ", failed, "\n");
     print(" total: ", total,  "\n");
 }
+
+return {parse: parse, test: test};

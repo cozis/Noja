@@ -352,13 +352,17 @@ fun parse(src: String) {
     return newRequest(method, url, version, headers);
 }
 
-sample = cat(
-    "GET /search?client=firefox-b-d&q=http+request+dataset HTTP/2\r\n",
-    "Host: www.google.com\r\n",
-    "user-agent: curl/7.84.0\r\n",
-    "accept: */*\r\n",
-    "\r\n");
+fun test() {
+    sample = cat(
+        "GET /search?client=firefox-b-d&q=http+request+dataset HTTP/2\r\n",
+        "Host: www.google.com\r\n",
+        "user-agent: curl/7.84.0\r\n",
+        "accept: */*\r\n",
+        "\r\n");
 
-request, error = parse(sample);
-print("request=", request, "\n");
-print("error=", error, "\n");
+    request, error = parse(sample);
+    print("request=", request, "\n");
+    print("error=", error, "\n");
+}
+
+return {parse: parse, test: test};

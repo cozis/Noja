@@ -8,38 +8,40 @@ Scanner = {
     consumeSpaces: Callable
 };
 
-fun hint(scan: Scanner, n: int = 1) {
-    k = scan.i + n;
-    if k < count(scan.src):
-        return scan.src[k];
-    return none;
-}
-
-fun current(scan: Scanner)
-    return hint(scan, 0);
-
-fun consume(scan: Scanner, n: int = 1) {
-    assert(n > 0);
-    limit = count(scan.src);
-    scan.i = min(scan.i + n, limit);
-    return current(scan);
-}
-
-fun consumeSpaces(scan: Scanner) {
-    char = current(scan);
-    while isSpace(char):
-        char = consume(scan);
-    return char;
-}
-
 fun newScanner(src: String) {
+
+    fun isSpace(c: String)
+    return c == ' '
+        or c == '\t'
+        or c == '\n';
+    
     scan = {
         src: src, 
         i: 0,
-        hint: hint,
-        consume: consume,
-        current: current,
-        consumeSpaces: consumeSpaces
+        
+        fun hint(scan: Scanner, n: int = 1) {
+            k = scan.i + n;
+            if k < count(scan.src):
+                return scan.src[k];
+            return none;
+        }
+        
+        fun current(scan: Scanner)
+            return scan->hint(0);
+
+        fun consume(scan: Scanner, n: int = 1) {
+            assert(n > 0);
+            limit = count(scan.src);
+            scan.i = min(scan.i + n, limit);
+            return scan->current();
+        }
+
+        fun consumeSpaces(scan: Scanner) {
+            char = scan->current();
+            while isSpace(char):
+                char = scan->consume();
+            return char;
+        }
     };
     assert(istypeof(Scanner, scan));
     return scan;
@@ -48,11 +50,7 @@ fun newScanner(src: String) {
 fun isDigit(char: ?String) {
     if char == none:
         return false;
-    return string.ord(char) >= string.ord('0')
-       and string.ord(char) <= string.ord('9');
+    ord = string.ord;
+    return ord(char) >= ord('0')
+       and ord(char) <= ord('9');
 }
-
-fun isSpace(c: String)
-    return c == ' '
-        or c == '\t'
-        or c == '\n';

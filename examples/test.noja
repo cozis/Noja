@@ -1,0 +1,15 @@
+
+Person = {name: String, age: int, sayHello: Callable};
+
+fun newPerson(name: String, age: int)
+	return {
+		name: name, 
+		age: age,
+		fun sayHello(self)
+			print("Hello from ", self.name, "!\n");
+	};
+
+me = newPerson("Francesco", 24);
+me->sayHello();
+
+assert(istypeof(Person, me));
