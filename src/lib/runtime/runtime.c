@@ -879,6 +879,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			
 			arg_index = ops[0].as_int;
 			arg_name  = ops[1].as_string;
+			ASSERT(arg_name != NULL);
 
 			if(runtime->frame->used < 2)
 			{

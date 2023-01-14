@@ -104,7 +104,7 @@ void _Error_Report2(Error *err, _Bool internal,
 		}
 		else
 		{
-			snprintf(temp, p+1, fmt, va2);
+			vsnprintf(temp, p+1, fmt, va2);
 			err->truncated = 0;
 			err->message   = temp;
 			err->length    = p;

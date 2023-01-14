@@ -1,0 +1,359 @@
+scanner = import("scanner.noja");
+
+newScanner = scanner.newScanner;
+Scanner = scanner.Scanner;
+isDigit = scanner.isDigit;
+ord = string.ord;
+cat = string.cat;
+
+fun isAlpha(char: String)
+    return (ord(char) >= ord('a') and ord(char) <= ord('z'))
+        or (ord(char) >= ord('A') and ord(char) <= ord('Z'));
+
+fun isUpper(char: String)
+    return ord(char) >= ord('A')
+       and ord(char) <= ord('Z');
+
+fun isUnreserved(char: String)
+    return isAlpha(char)
+        or isDigit(char)
+        or char == "-"
+        or char == "."
+        or char == "_"
+        or char == "~";
+
+fun isSubdelim(char: String)
+    return char == "!" or char == "$"
+        or char == "&" or char == "'"
+        or char == "(" or char == ")"
+        or char == "*" or char == "+"
+        or char == "," or char == ";"
+        or char == "=";
+
+fun isPChar(char: String)
+    return isUnreserved(char)
+        or isSubdelim(char)
+        or char == ":" 
+        or char == "@";
+
+fun parseMethod(scan: Scanner) {
+    
+    char = scan->current();
+    if char == none or not isUpper(char):
+        return none, "Missing method";
+
+    method = "";
+    do {
+        method = cat(method, char);
+        char = scan->consume();
+    } while char != none and isUpper(char);
+
+    return method, none;
+}
+
+fun parsePort(scan: Scanner) {
+
+    port = none;
+    char = scan->current();
+    if char == ":" and isDigit(scan->hint(1)): {
+
+        char = scan->consume(); # Skip the ":"
+
+        port = 0;
+        do {
+            digit = ord(char) - ord("0");
+            port = port * 10 + digit;
+            char = scan->consume();
+        } while char != none and isDigit(char);
+    }
+    return port;
+}
+
+fun isHostname(char: String)
+    return isUnreserved(char)
+        or isSubdelim(char);
+
+fun parseHost(scan: Scanner) {
+
+    char = scan->current();
+    if char == none:
+        return none, "Missing host";
+
+    if not isHostname(char):
+        return none, "Invalid character in place of host";
+
+    name = "";
+    do {
+        name = cat(name, char);
+        char = scan->consume();
+    } while char != none and isHostname(char);
+
+    port = parsePort(scan);
+    return {name: name, port: port};
+}
+
+fun parsePath(scan: Scanner) {
+
+    path = "";
+    char = scan->current();
+    if char != none and char == "/": {
+        path = cat(path, char);
+        char = scan->consume();
+    } else {
+        if char == none or not isPChar(char):
+            return none, "Invalid character in place of path";
+    }
+
+    while char != none and isPChar(char): {
+        do {
+            path = cat(path, char);
+            char = scan->consume();
+        } while char != none and isPChar(char);
+        if char == none or char != "/":
+            break;
+        path = cat(path, char);
+        char = scan->consume();
+    }
+
+    return path;
+}
+
+fun isQuery(char: ?String) {
+    if char == none:
+        return false;
+    return isPChar(char) 
+        or char == "/" 
+        or char == "?";
+}
+
+fun parseQuery(scan: Scanner) {
+    
+    char = scan->current();
+    if char != none and char == "?": {
+        query = "";
+        while isQuery(char = scan->consume()):
+            query = cat(query, char);
+    } else
+        query = none;
+
+    return query;
+}
+
+fun isFragment(char: ?String) {
+    if char == none:
+        return false;
+    return isPChar(char) or char == "/";
+}
+
+fun parseFragment(scan: Scanner) {
+    
+    char = scan->current();
+    if char != none and char == "#": {
+        fragment = "";
+        while isFragment(char = scan->consume()):
+            fragment = cat(fragment, char);
+    } else
+        fragment = none;
+
+    return fragment;
+}
+
+fun isSchemaFirst(char: ?String) {
+    return char != none and isAlpha(char);
+}
+
+fun isSchema(char: ?String)
+    return char != none 
+       and (isAlpha(char) 
+        or isDigit(char)
+        or char == "+" 
+        or char == "-"
+        or char == ".");
+
+fun parseSchema(scan: Scanner) {
+
+    char = scan->current();
+    schema = none;
+    if isSchemaFirst(char): {
+        start = scan.i;
+        schema = "";
+        do {
+            schema = cat(schema, char);
+            char = scan->consume();
+        } while isSchema(char);
+
+        if char == ":": 
+            scan->consume();
+        else {
+            schema = none;
+            scan.i = start;
+        }
+    }
+
+    return schema;
+}
+
+fun followsAuthority(scan: Scanner)
+    return scan->current() == "/" and scan->hint(1) == "/";
+
+fun parseURL(scan: Scanner) {
+
+    schema = parseSchema(scan);
+    
+    if followsAuthority(scan): {
+        scan->consume(2);
+        
+        host, error = parseHost(scan);
+        if error != none:
+            return none, error;
+        
+        path = none;
+        if scan->current() == "/":
+            path = parsePath(scan);
+
+    } else {
+        
+        host = none;
+
+        char = scan->current();
+        if char == none or char == "?" or char == "#":
+            return none, "Missing path";
+
+        path, error = parsePath(scan);
+        if error != none:
+            return none, error;
+    }
+
+    query = parseQuery(scan);
+    fragment = parseFragment(scan);
+
+    return {
+        host    : host,
+        path    : path, 
+        query   : query,
+        schema  : schema, 
+        fragment: fragment
+    };
+}
+
+fun parseVersion(scan: Scanner) {
+
+    if scan->hint(0) != "H" or scan->hint(1) != "T"
+    or scan->hint(2) != "T" or scan->hint(3) != "P"
+    or scan->hint(4) != "/" or not isDigit(scan->hint(5)):
+        return none, "Invalid version token";
+
+    char = scan->consume(5); 
+    major = ord(char) - ord("0");
+
+    if scan->hint(1) == "." and isDigit(scan->hint(2)): {
+        char = scan->consume(2);
+        minor = ord(char) - ord("0");
+    } else
+        minor = 0;
+    scan->consume();
+
+    return {major: major, minor: minor};
+}
+
+fun parseHead(src: String) {
+    
+    scan = newScanner(src);
+    
+    method, error = parseMethod(scan);
+    if error != none:
+        return none, error;
+
+    char = scan->current();
+    if char == none or char != " ":
+        return none, "Missing space after method";
+    scan->consume();
+
+    url, error = parseURL(scan);
+    if error != none:
+        return none, error;
+
+    char = scan->current();
+    if char != " ":
+        return none, "Missing space after URL";
+    scan->consume();
+
+    version, error = parseVersion(scan);
+    if error != none:
+        return none, error;
+
+    if scan->hint(0) != "\r" 
+    or scan->hint(1) != "\n": {
+    
+        # Request with no headers or body
+        return {
+            method: method, 
+            url: url, 
+            version: 
+            version, 
+            headers: {},
+            body: none
+        }, none, scan.i;
+    }
+
+    scan->consume(2); # Consume the "\r\n"
+
+    headers = {};
+    while (char = scan->hint(0)) != none and (char != "\r" or scan->hint(1) != "\n"): {
+
+        # Header name until the next ":"
+        name = "";
+        do {
+            name = cat(name, char);
+            char = scan->consume();
+        } while char != ":" and char != none;
+        
+        if char == none:
+            return none, "Invalid header (missing \":\" after name)";
+        scan->consume();
+        char = scan->consumeSpaces();
+
+        # Header body until \r
+        body = "";
+        do {
+            body = cat(body, char);
+            char = scan->consume();
+        } while char != "\r" and char != none;
+
+        headers[name] = body;
+
+        if char == "\r": {
+            if scan->hint(1) != "\n":
+                return none, "Missing \\n after \\r in header body";
+            scan->consume(2);
+        }
+    }
+
+    if char != none: {
+        assert(char == "\r" and scan->hint(1) == "\n");
+        scan->consume(2); # Consume the final "\r\n"
+    }
+    
+    return {
+        method: method, 
+        url: url, 
+        version: version, 
+        headers: headers,
+        body: none
+    }, none, scan.i;
+}
+
+fun test() {
+    sample = cat(
+        "GET /search?client=firefox-b-d&q=http+request+dataset HTTP/2\r\n",
+        "Host: www.google.com\r\n",
+        "user-agent: curl/7.84.0\r\n",
+        "accept: */*\r\n",
+        "\r\n");
+
+    request, error = parseHead(sample);
+    print("request=", request, "\n");
+    print("error=", error, "\n");
+}
+
+return {parseHead: parseHead, test: test};

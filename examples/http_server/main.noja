@@ -1,0 +1,109 @@
+server  = import("server.noja");
+request = import("request.noja");
+response = import("response.noja");
+Request = request.Request;
+
+fun loadFile(path: String) {
+	
+	stream, error = files.openFile(path, files.READ);
+	if error != none:
+		return none, error;
+
+	text = "";
+	size = 512;
+	do {
+		size = 2 * size;
+		data = buffer.new(size);
+
+		num_bytes, error = files.read(stream, data);
+		if error != none:
+			return none, error;
+
+		text = string.cat(text, buffer.toString(data));
+
+	} while num_bytes == size;
+
+	files.close(stream);
+	return text;
+}
+
+fun generateHome() {
+	title = "Homepage";
+	content = "Hello, world!";
+	return string.cat(
+		"<html>",
+			"<head>",
+				"<title>", title, "</title>",
+			"</head>",
+			"<body>",
+				"<a>", content, "</a>",
+			"</body>",
+		"</html>"
+	);
+}
+
+fun generateLogout() {
+}
+
+table = {
+	'/': 'login.html',
+	'/home': generateHome,
+	'/login': 'login.html',
+	'/signup': 'signup.html',
+	'/logout': generateLogout
+};
+
+default = 'notfound.html';
+debug = true;
+
+fun callback(req: Request) {
+
+	path = req.url.path;
+
+	if path == "/" or path == "/login": {
+
+		if req.method == "POST": {
+
+			
+			
+		} else if req.method == "GET"; {
+
+		} else {
+			assert(false);
+		}
+	}
+	
+	# Generate response body	
+	{
+		entry = table[req.url.path];
+		if entry == none: {
+			entry = default;
+			not_found = true;
+		} else
+			not_found = false;
+
+		if isCallable(entry):
+			data, error = entry(req);
+		else
+			data, error = loadFile(entry);
+	}
+
+	# Generate response object
+	{
+		if error == none:
+			res = response.new(200, data);
+		else if not_found:
+			res = response.new(404, data);
+		else if debug:
+			res = response.new(500, error);
+		else
+			res = response.new(500);
+	}
+
+	return res;
+}
+
+s, err = server.new(callback, "127.0.0.1", 8080);
+if s == none: error(err);
+s->loop(); # This doesn't return
+s->close();

@@ -1,0 +1,87 @@
+parseHead = import("parse.noja").parseHead;
+
+Version = {
+    major: int,
+    minor: int
+};
+
+Host = { 
+    name: String, 
+    port: ?int 
+};
+
+URL = {
+    schema: ?String,
+    host  : ?Host,
+    path  : String,
+    query : ?String,
+    fragment: ?String
+};
+
+Request = {
+    method : String, 
+    url    : URL, 
+    version: Version,
+    body   : None | Buffer | [Buffer, Buffer]
+};
+
+fun fromSocket(fd: int, max_head: int = 1024) {
+
+	{
+		# Create a buffer to hold the received bytes
+		head_buffer = buffer.new(max_head);
+		
+		# Receive bytes up to the buffer's size
+		received_bytes, error = net.recv(fd, head_buffer);
+		if error != none:
+			return none, error, true;
+		
+		# Downsize the buffer to the received amount
+		head_buffer = buffer.sliceUp(head_buffer, 0, received_bytes);
+		assert(count(head_buffer) == received_bytes);
+
+		# Convert the received data to a string
+		text, error = buffer.toString(head_buffer);
+		if error != none:
+			return none, error, false; # Request isn't UTF-8
+	}
+
+	{
+		# Parse the request head's information
+		request, error, parsed_bytes = parseHead(text);
+		if error != none:
+			return none, error, false;
+
+		# Split the received data into head and body.
+		head_bytes = buffer.sliceUp(head_buffer, 0, parsed_bytes);
+		body_bytes = buffer.sliceUp(head_buffer, parsed_bytes, count(head_buffer) - parsed_bytes);
+	}
+	
+	# Receive the remaining portion of the 
+	# request's body (if it wasn't already)
+	{
+		content_length = request.headers['Content-Length'];
+		if content_length == none: 
+			content_length = 0;
+
+		# TODO: Limit the content length 
+
+		waiting_bytes = content_length - count(body_bytes);
+		assert(waiting_bytes >= 0);
+
+		if waiting_bytes > 0: {
+
+			second_half = buffer.new(waiting_bytes);
+
+			received_bytes, error = net.recv(fd, second_half);
+			if error != none:
+				return none, error, true; # Failed to receive the second half of the body
+			assert(received_bytes == waiting_bytes);
+
+			body_bytes = [body_bytes, second_half];
+		}
+	}
+
+	request.body = body_bytes;
+	return request;
+}

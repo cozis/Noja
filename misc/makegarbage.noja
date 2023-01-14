@@ -11,7 +11,7 @@ while i < n: {
 	i = i + 1;
 
 	fun printPercent()
-		print(100.0 * i / n, '%\n');
+		print(string.cat('\r', stringFromNumeric(100.0 * i / n), '%'));
 	
 	printPercent();
 }

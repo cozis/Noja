@@ -46,7 +46,7 @@ static const char usage[] =
 int main(int argc, char **argv)
 {
 	assert(argc > 0);
-
+	
 	if(argc == 1)
 	{
 		// $ noja

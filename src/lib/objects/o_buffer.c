@@ -76,6 +76,18 @@ _Bool Object_IsBuffer(Object *obj)
 	return Object_GetType(obj) == Object_GetBufferType();
 }
 
+Object *Object_NewBufferFromString(const char *str, size_t len, Heap *heap, Error *error)
+{
+	Object *buffer = Object_NewBuffer(len, heap, error);
+	if (buffer == NULL)
+		return NULL;
+
+	void *ptr = Object_GetBuffer(buffer, NULL);
+	memcpy(ptr, str, len);
+
+	return buffer;
+}
+
 Object *Object_NewBuffer(size_t size, Heap *heap, Error *error)
 {
 	// Make the thing.

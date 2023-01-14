@@ -1,0 +1,17 @@
+stack, error = import("stack.noja");
+print(error, "\n");
+Stack     = stack.Stack;
+makeStack = stack.makeStack;
+StackIterator = stack.StackIterator;
+makeStackIterator = stack.makeStackIterator;
+
+s1 = makeStack(int);
+s1->push(1);
+s1->push(2);
+s1->push(3);
+print(toString(s1), "\n");
+
+iter = makeIterator(s1);
+print(toString(iter), "\n");
+while (val, key = iter->next()) != none:
+	print(key, " => ", val, "\n");

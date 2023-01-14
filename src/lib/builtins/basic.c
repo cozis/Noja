@@ -32,7 +32,9 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "net.h"
 #include "math.h"
+#include "utils.h"
 #include "basic.h"
 #include "files.h"
 #include "string.h"
@@ -43,41 +45,48 @@
 #include "../runtime/runtime.h"
 #include "../compiler/compile.h"
 
+static int bin_typename(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+{
+	UNUSED(argc);
+	ASSERT(argc == 1);
+
+	Heap *heap = Runtime_GetHeap(runtime);
+	const char *name = argv[0]->type->name;
+	Object   *o_name = Object_FromString(name, -1, heap, error);
+	if (o_name == NULL)
+		return -1;
+
+	rets[0] = o_name;
+	return 1;
+}
+
 static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(runtime);
 	UNUSED(rets);
 	UNUSED(error);
-
+	
 	for(int i = 0; i < (int) argc; i += 1)
 		Object_Print(argv[i], stdout);
 	return 0;
 }
 
-static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+static int bin_import(Runtime *runtime, 
+					  Object **argv, 
+					  unsigned int argc, 
+					  Object *rets[static MAX_RETS], 
+					  Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 1);
 	
-	Heap *heap = Runtime_GetHeap(runtime);
-	ASSERT(heap != NULL);
-	
-	Object *o_path = argv[0];
-	const char *path;
-	size_t path_len;
-	{
-		if(!Object_IsString(o_path))
-		{
-			Error_Report(error, 0, "Argument #%d is not a string", 1);
-			return -1;
-		}
-		
-		path = Object_GetString(o_path, &path_len);
-		if (path == NULL)
-			return -1;
-		
-	}
-	
+	ParsedArgument pargs[2];
+	if (!parseArgs(error, argv, argc, pargs, "s"))
+		return -1;
+
+	const char *path = pargs[0].as_string.data;
+	size_t  path_len = pargs[0].as_string.size;
+
 	char full_path[1024];
 	
 	if(path[0] == '/') {
@@ -101,88 +110,28 @@ static int bin_import(Runtime *runtime, Object **argv, unsigned int argc, Object
 		memcpy(full_path + written, path, path_len);
 		full_path[written + path_len] = '\0';
 	}
-	
-	Error sub_error;
-	Error_Init(&sub_error);
-	Source *src = Source_FromFile(full_path, &sub_error);
-	if(src == NULL) {
 
-		Object *o_none = Object_NewNone(heap, error);
-		if(o_none == NULL)
-			return -1;
-
-		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-		if(o_err == NULL)
-			return -1;
-
-		Error_Free(&sub_error);
-		rets[0] = o_none;
-		rets[1] = o_err;
-		return 2;
-	}
+	Source *src = Source_FromFile(full_path, error);
+	if(src == NULL)
+		return -1;
 	
 	CompilationErrorType errtyp;
-    Executable *exe = compile(src, &sub_error, &errtyp);
+    Executable *exe = compile(src, error, &errtyp);
     if(exe == NULL) {
-        const char *errname;
-        switch(errtyp) {
-            default:
-            case CompilationErrorType_INTERNAL: errname = NULL; break;
-            case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
-            case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
-        }
-        UNUSED(errname);
-        
-		Object *o_none = Object_NewNone(heap, error);
-		if(o_none == NULL) {
-			Source_Free(src);
-			return -1;
-		}
-
-		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-		if(o_err == NULL) {
-			Source_Free(src);
-			return -1;
-		}
-
 		Source_Free(src);
-		Error_Free(&sub_error);
-		rets[0] = o_none;
-		rets[1] = o_err;
-		return 2;
+		return -1;
     }
 
 	Object *sub_rets[8];
-	int retc = run(runtime, &sub_error, exe, 0, NULL, NULL, 0, sub_rets);
+	int retc = run(runtime, error, exe, 0, NULL, NULL, 0, sub_rets);
     if(retc < 0)
     {
-    	const char *errname = "Runtime";
-        // Snapshot?
-        UNUSED(errname);
-
-		Object *o_none = Object_NewNone(heap, error);
-		if(o_none == NULL) {
-			Source_Free(src);
-			Executable_Free(exe);
-			return -1;
-		}
-
-		Object *o_err = Object_FromString(sub_error.message, -1, heap, error);
-		if(o_err == NULL) {
-			Source_Free(src);
-			Executable_Free(exe);
-			return -1;
-		}
-		Error_Free(&sub_error);
-		rets[0] = o_none;
-		rets[1] = o_err;
 		Source_Free(src);
 		Executable_Free(exe);
-		return 2;
+		return -1;
     }
     ASSERT(retc == 1);
 	
-	Error_Free(&sub_error);
 	Source_Free(src);
 	Executable_Free(exe);
     rets[0] = sub_rets[0];
@@ -355,13 +304,14 @@ void bins_basic_init(StaticMapSlot slots[])
 	slots[3].as_type = Object_GetBoolType();
 	slots[4].as_type = Object_GetFloatType();
 	slots[5].as_type = Object_GetStringType();
-	slots[6].as_type = Object_GetListType();
-	slots[7].as_type = Object_GetMapType();
-	slots[8].as_type = Object_GetFileType();
-	slots[9].as_type = Object_GetDirType();
-	slots[10].as_type = Object_GetNullableType();
-	slots[11].as_type = Object_GetSumType();
-	slots[12].as_object = Object_NewAny();
+	slots[6].as_type = Object_GetBufferType();
+	slots[7].as_type = Object_GetListType();
+	slots[8].as_type = Object_GetMapType();
+	slots[9].as_type = Object_GetFileType();
+	slots[10].as_type = Object_GetDirType();
+	slots[11].as_type = Object_GetNullableType();
+	slots[12].as_type = Object_GetSumType();
+	slots[13].as_object = Object_NewAny();
 }
 
 StaticMapSlot bins_basic[] = {
@@ -371,6 +321,7 @@ StaticMapSlot bins_basic[] = {
 	{ TYPENAME_BOOL,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_FLOAT,  SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_STRING, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
+	{ TYPENAME_BUFFER, SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_LIST,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_MAP,    SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
 	{ TYPENAME_FILE,   SM_TYPE, .as_type = NULL /* Until bins_basic_init is called */ },
@@ -378,6 +329,8 @@ StaticMapSlot bins_basic[] = {
 	{ TYPENAME_NULLABLE,  SM_TYPE, .as_type = NULL },
 	{ TYPENAME_SUM,       SM_TYPE, .as_type = NULL },
 	{ "any",    SM_OBJECT, .as_object = NULL },
+	
+	{ "net",    SM_SMAP, .as_smap = bins_net,    },
 	{ "math",   SM_SMAP, .as_smap = bins_math,   },
 	{ "files",  SM_SMAP, .as_smap = bins_files,  },
 	{ "buffer", SM_SMAP, .as_smap = bins_buffer, },
@@ -391,6 +344,7 @@ StaticMapSlot bins_basic[] = {
 	{ "error",  SM_FUNCT, .as_funct = bin_error, .argc = 1 },
 	{ "assert", SM_FUNCT, .as_funct = bin_assert, .argc = -1 },
 	{ "istypeof", SM_FUNCT, .as_funct = bin_istypeof, .argc = 2, },
+	{ "typename", SM_FUNCT, .as_funct = bin_typename, .argc = 1, },
 	{ "keysof", SM_FUNCT, .as_funct = bin_keysof, .argc = 1, },
 	{ NULL, SM_END, {}, {} },
 };

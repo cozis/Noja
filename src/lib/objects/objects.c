@@ -139,7 +139,7 @@ int Object_Call(Object *obj, Object **argv, unsigned int argc, Object *rets[stat
 
 	if(type->call == NULL)
 	{
-		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+		Error_Report(err, 0, "Object of type %s isn't callable", Object_GetName(obj), __func__);
 		return -1;
 	}
 

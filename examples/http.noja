@@ -260,7 +260,7 @@ fun parseVersion(scan: Scanner) {
     char = scan->consume(5); 
     major = ord(char) - ord("0");
 
-    if scan->hint(1) != "." and isDigit(scan->hint(2)): {
+    if scan->hint(1) == "." and isDigit(scan->hint(2)): {
         char = scan->consume(2);
         minor = ord(char) - ord("0");
     } else
@@ -316,9 +316,10 @@ fun parse(src: String) {
     if error != none:
         return none, error;
 
-    if scan->hint(0) != "\r" or scan->hint(1) != "\n":
+    if scan->hint(0) != "\r" or scan->hint(1) != "\n": {
         # Request with no headers or body
         return newRequest(method, url, version);
+    }
     scan->consume(2); # Consume the "\r\n"
 
     headers = {};
@@ -344,10 +345,18 @@ fun parse(src: String) {
         } while char != "\r" and char != none;
 
         headers[name] = body;
+
+        if char == "\r": {
+            if scan->hint(1) != "\n":
+                return none, "Missing \\n after \\r in header body";
+            scan->consume(2);
+        }
     }
 
-    if char != none:
+    if char != none: {
+        assert(char == "\r" and scan->hint(1) == "\n");
         scan->consume(2); # Consume the final "\r\n"
+    }
 
     return newRequest(method, url, version, headers);
 }

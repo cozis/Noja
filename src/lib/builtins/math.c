@@ -81,8 +81,6 @@
 		return 1;								\
 	}
 
-WRAP_FUNC(ceil)
-WRAP_FUNC(floor)
 WRAP_FUNC(sin)
 WRAP_FUNC(cos)
 WRAP_FUNC(tan)
@@ -95,6 +93,48 @@ WRAP_FUNC(log10)
 WRAP_FUNC(sqrt)
 WRAP_FUNC_2(atan2)
 WRAP_FUNC_2(pow)
+
+static int bin_ceil(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error) \
+{
+	UNUSED(argc);
+	ASSERT(argc == 1);
+
+	if(Object_IsFloat(argv[0]))
+	{
+		double v = Object_GetFloat(argv[0]);
+
+		rets[0] = Object_FromInt(ceil(v), Runtime_GetHeap(runtime), error);
+		if(rets[0] == NULL)
+			return -1;
+		return 1;
+	}
+	else
+	{
+		Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));
+		return -1;
+	}
+}
+
+static int bin_floor(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error) \
+{
+	UNUSED(argc);
+	ASSERT(argc == 1);
+
+	if(Object_IsFloat(argv[0]))
+	{
+		double v = Object_GetFloat(argv[0]);
+
+		rets[0] = Object_FromInt(floor(v), Runtime_GetHeap(runtime), error);
+		if(rets[0] == NULL)
+			return -1;
+		return 1;
+	}
+	else
+	{
+		Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));
+		return -1;
+	}
+}
 
 StaticMapSlot bins_math[] = {
 	{ "PI", SM_FLOAT, .as_float = M_PI },

@@ -1,0 +1,113 @@
+Response = {
+	status: int, 
+	body: Buffer, 
+	headers: Map
+};
+
+status_table = {
+	100: "Continue",
+	101: "Switching Protocols",
+	102: "Processing",
+
+	200: "OK",
+	201: "Created",
+	202: "Accepted",
+	203: "Non-Authoritative Information",
+	204: "No Content",
+	205: "Reset Content",
+	206: "Partial Content",
+	207: "Multi-Status",
+	208: "Already Reported",
+
+	300: "Multiple Choices",
+	301: "Moved Permanently",
+	302: "Found",
+	303: "See Other",
+	304: "Not Modified",
+	305: "Use Proxy",
+	306: "Switch Proxy",
+	307: "Temporary Redirect",
+	308: "Permanent Redirect",
+
+	400: "Bad Request",
+	401: "Unauthorized",
+	402: "Payment Required",
+	403: "Forbidden",
+	404: "Not Found",
+	405: "Method Not Allowed",
+	406: "Not Acceptable",
+	407: "Proxy Authentication Required",
+	408: "Request Timeout",
+	409: "Conflict",
+	410: "Gone",
+	411: "Length Required",
+	412: "Precondition Failed",
+	413: "Request Entity Too Large",
+	414: "Request-URI Too Long",
+	415: "Unsupported Media Type",
+	416: "Requested Range Not Satisfiable",
+	417: "Expectation Failed",
+	418: "I'm a teapot",
+	420: "Enhance your calm",
+	422: "Unprocessable Entity",
+	426: "Upgrade Required",
+	429: "Too many requests",
+	431: "Request Header Fields Too Large",
+	449: "Retry With",
+	451: "Unavailable For Legal Reasons",
+
+	500: "Internal Server Error",
+	501: "Not Implemented",
+	502: "Bad Gateway",
+	503: "Service Unavailable",
+	504: "Gateway Timeout",
+	505: "HTTP Version Not Supported",
+	509: "Bandwidth Limit Exceeded"
+};
+
+fun getStatusText(code: int) {
+	text = status_table[code];
+	if text == none:
+		return "???";
+	return text;
+}
+
+fun new(status: int = 200, 
+		body: Buffer | String = "", 
+		headers: Map = {}) {
+	
+	if type(body) == String:
+		body = buffer.fromString(body);
+
+	# It's important to cast the body from a
+	# string to a buffer before calculating
+	# the Content-Length because the count of
+	# a string doesn't necessarily match the
+	# number of bytes!
+	headers['Content-Length'] = count(body);
+
+	return {status: status, body: body, headers: headers};
+}
+
+fun toBuffer(res: Response) {
+
+	cat = string.cat;
+	text = cat("HTTP/1.0 ", toString(res.status), " ", getStatusText(res.status), "\r\n");
+	
+	i = 0;
+	header_names = keysof(res.headers);
+	while i < count(header_names): {
+		name = header_names[i];
+		body = toString(res.headers[name]);
+		text = cat(text, name, ": ", body, "\r\n");
+		i = i+1;
+	}
+	text = cat(text, "\r\n", buffer.toString(res.body));
+	return buffer.fromString(text);
+}
+
+fun toSocket(fd: int, res: Response) {
+	buf = toBuffer(res);
+	_, error = net.send(fd, buf);
+	return error;
+}

@@ -30,6 +30,7 @@
 
 #include <errno.h>
 #include "files.h"
+#include "utils.h"
 #include "../utils/defs.h"
 
 enum {
@@ -38,30 +39,19 @@ enum {
 	MD_APPEND = 2,
 };
 
-#include <errno.h>
-
 static int bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
 	ASSERT(argc == 2);
 
-	if(!Object_IsString(argv[0]))
-	{
-		Error_Report(error, 0, "Expected first argument to be a string, but it's a %s", Object_GetName(argv[0]));
-		return -1;
-	}
-
-	if(!Object_IsInt(argv[1]))
-	{
-		Error_Report(error, 0, "Expected second argument to be an int, but it's a %s", Object_GetName(argv[1]));
-		return -1;
-	}
-
 	Heap *heap = Runtime_GetHeap(runtime);
 
-	int mode = Object_GetInt(argv[1]);
-	const char *path = Object_GetString(argv[0], NULL);
-	ASSERT(path != NULL); // We know argv[0] is a string.
+	ParsedArgument pargs[2];
+	if (!parseArgs(error, argv, argc, pargs, "si"))
+		return -1;
+
+	const char *path = pargs[0].as_string.data;
+	int         mode = pargs[1].as_int;
 
 	FILE *fp;
 	{
@@ -91,39 +81,23 @@ static int bin_openFile(Runtime *runtime, Object **argv, unsigned int argc, Obje
 		fp = fopen(path, mode2);
 
 		if(fp == NULL) {
-
-			Object *o_none = Object_NewNone(heap, error);
-			if(o_none == NULL)
-				return -1;
-
 			const char *errdesc;
 			switch(errno) {
-				case EACCES: errdesc = "Can't access file"; break;
-				case EPERM: errdesc = "Permission denied"; break;
-				case EEXIST: errdesc = "File or folder already exists"; break;
-				case EISDIR: errdesc = "Entity is a directory"; break;
+				case EACCES:  errdesc = "Can't access file"; break;
+				case EPERM:   errdesc = "Permission denied"; break;
+				case EEXIST:  errdesc = "File or folder already exists"; break;
+				case EISDIR:  errdesc = "Entity is a directory"; break;
 				case ENOTDIR: errdesc = "Entity is not a directory"; break;
-				case ELOOP: errdesc = "Too many symbolic links"; break;
+				case ELOOP:   errdesc = "Too many symbolic links"; break;
 				case ENAMETOOLONG: errdesc = "Entity name is too long"; break;
-				case ENFILE: errdesc = "Open descriptors limit reached"; break;
-				case ENOENT: errdesc = "File or folder doesn't exist"; break;
-				default: errdesc = "Unexpected error"; break;
+				case ENFILE:  errdesc = "Open descriptors limit reached"; break;
+				case ENOENT:  errdesc = "File or folder doesn't exist"; break;
+				default:      errdesc = "Unexpected error"; break;
 			}
-
-			Object *o_error = Object_FromString(errdesc, -1, heap, error);
-			if(o_error == NULL)
-				return -1;
-
-			rets[0] = o_none;
-			rets[1] = o_error;
-			return 2;
+			return returnValues(error, heap, rets, "ns", errdesc);
 		}
 	}
-
-	rets[0] = Object_FromStream(fp, heap, error);
-	if(rets[0] == NULL)
-		return -1;
-	return 1;
+	return returnValues(error, heap, rets, "F", fp);
 }
 
 static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
@@ -135,62 +109,31 @@ static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *
 	// Arg 1: buffer
 	// Arg 2: count
 
-	if(!Object_IsFile(argv[0]))
-	{
-		Error_Report(error, 0, "Expected first argument to be a file, but it's a %s", Object_GetName(argv[0]));
+	ParsedArgument pargs[3];
+	if (!parseArgs(error, argv, argc, pargs, "FB?i"))
 		return -1;
-	}
 
-	if(!Object_IsBuffer(argv[1]))
-	{
-		Error_Report(error, 0, "Expected second argument to be a buffer, but it's a %s", Object_GetName(argv[1]));
-		return -1;
-	}
+	FILE  *stream;
+	void  *dstptr;
+	size_t dstlen;
+	size_t count;
 
-	Heap *heap = Runtime_GetHeap(runtime);
-
-	void  *buff_addr;
-	size_t buff_size;
-	
-	buff_addr = Object_GetBuffer(argv[1], &buff_size);
-
-	size_t read_size;
-
-	if(Object_IsNone(argv[2]))
-	{
-		read_size = buff_size;
-	}
-	else if(Object_IsInt(argv[2]))
-	{
-		long long int temp = Object_GetInt(argv[2]);
-		if(temp < 0) 
-		{
-			Error_Report(error, 0, "Expected third argument to be a positive integer");
+	stream = pargs[0].as_file;
+	dstptr = pargs[1].as_buffer.data;
+	dstlen = pargs[1].as_buffer.size;
+	if (pargs[2].defined) {
+		int n = pargs[2].as_int;
+		if (n < 0) {
+			Error_Report(error, 0, "Argument count must be a non-negative integer");
 			return -1;
 		}
+		count = MIN((size_t) n, dstlen);
+	} else
+		count = (size_t) dstlen;
 
-		read_size = (size_t) temp; // TODO: Handle potential overflow.
-
-		if(read_size > buff_size)
-			read_size = buff_size;
-	}
-	else
-	{
-		Error_Report(error, 0, "Expected third argument to be an int or none, but it's a %s", Object_GetName(argv[0]));
-		return -1;
-	}
-
-	FILE *fp = Object_GetStream(argv[0]);
+	size_t n = fread(dstptr, 1, count, stream);
 	
-	if(fp == NULL)
-		return -1;
-
-	size_t n = fread(buff_addr, 1, read_size, fp);
-
-	rets[0] = Object_FromInt(n, heap, error);
-	if(rets[0] == NULL)
-		return -1;
-	return 1;
+	return returnValues2(error, runtime, rets, "i", n);
 }
 
 static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
@@ -202,62 +145,31 @@ static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	// Arg 1: buffer
 	// Arg 2: count
 
-	if(!Object_IsFile(argv[0]))
-	{
-		Error_Report(error, 0, "Expected first argument to be a file, but it's a %s", Object_GetName(argv[0]));
+	ParsedArgument pargs[3];
+	if (!parseArgs(error, argv, argc, pargs, "FB?i"))
 		return -1;
-	}
 
-	if(!Object_IsBuffer(argv[1]))
-	{
-		Error_Report(error, 0, "Expected second argument to be a buffer, but it's a %s", Object_GetName(argv[1]));
-		return -1;
-	}
+	FILE  *stream;
+	void  *srcptr;
+	size_t srclen;
+	size_t count;
 
-	Heap *heap = Runtime_GetHeap(runtime);
-
-	void  *buff_addr;
-	size_t buff_size;
-	
-	buff_addr = Object_GetBuffer(argv[1], &buff_size);
-
-	size_t write_size;
-
-	if(Object_IsNone(argv[2]))
-	{
-		write_size = buff_size;
-	}
-	else if(Object_IsInt(argv[2]))
-	{
-		long long int temp = Object_GetInt(argv[2]);
-		if(temp < 0) 
-		{
-			Error_Report(error, 0, "Expected third argument to be a positive integer");
+	stream = pargs[0].as_file;
+	srcptr = pargs[1].as_buffer.data;
+	srclen = pargs[1].as_buffer.size;
+	if (pargs[2].defined) {
+		int n = pargs[2].as_int;
+		if (n < 0) {
+			Error_Report(error, 0, "Argument count must be a non-negative integer");
 			return -1;
 		}
+		count = MIN((size_t) n, srclen);
+	} else
+		count = (int) srclen;
 
-		write_size = (size_t) temp; // TODO: Handle potential overflow.
+	size_t n = fwrite(srcptr, 1, count, stream);
 
-		if(write_size > buff_size)
-			write_size = buff_size;
-	}
-	else
-	{
-		Error_Report(error, 0, "Expected third argument to be an int or none, but it's a %s", Object_GetName(argv[0]));
-		return -1;
-	}
-
-	FILE *fp = Object_GetStream(argv[0]);
-	
-	if(fp == NULL)
-		return -1;
-
-	size_t n = fwrite(buff_addr, 1, write_size, fp);
-
-	rets[0] = Object_FromInt(n, heap, error);
-	if(rets[0] == NULL)
-		return -1;
-	return 1;
+	return returnValues2(error, runtime, rets, "i", n);
 }
 
 static int bin_openDir(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
@@ -310,9 +222,7 @@ static int bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, O
 
 	DIR *dir = Object_GetDIR(argv[0]);
 	ASSERT(dir != NULL);
-
-	Heap *heap = Runtime_GetHeap(runtime);
-
+	
 	errno = 0;
 
 	struct dirent *ent = readdir(dir);
@@ -327,10 +237,7 @@ static int bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, O
 		return -1;
 	}
 
-	rets[0] = Object_FromString(ent->d_name, -1, heap, error);
-	if(rets[0] == NULL)
-		return -1;
-	return 1;
+	return returnValues2(error, runtime, rets, "s", ent->d_name);
 }
 
 StaticMapSlot bins_files[] = {

@@ -1,0 +1,101 @@
+cat = string.cat;
+
+fun Node(T) {
+	K = { item: T, next: none };
+	K.next = ?K;
+	return K;
+}
+
+fun makeNode(item)
+	return { item: item, next: none };
+
+fun Stack(T)
+	return { size: int, head: ?Node(T) };
+
+fun StackIterator(T)
+	return { stack: Stack(T), index: ?int, cursor: ?Node(T), next: Callable };
+
+fun makeStackIterator(stack: Stack(any))
+	return {
+		stack: stack,
+		index: none,
+		cursor: stack.head,
+
+		fun toString(iter: StackIterator(stack.type))
+			return cat("StackIterator(", toString(stack), ")");
+
+		fun next(iter: StackIterator(stack.type)) {
+			if iter.index == none: {
+				iter.index = 0;
+				iter.cursor = iter.stack.head;
+			} else {
+				if iter.cursor != none: {
+					iter.cursor = iter.cursor.next;
+					iter.index = iter.index+1;
+				}
+			}
+			if iter.cursor == none:
+				return none;
+			return iter.cursor.item, iter.index;
+		}
+
+		fun haveNext(iter: StackIterator(stack.type)) {
+			return none != iter.cursor
+			   and none != iter.cursor.next;
+		}
+	};
+
+fun makeStack(T)
+	return {
+		type: T,
+		size: 0, 
+		head: none,
+		
+		fun push(stack: Stack(T), item: T) {
+			
+			if item == none:
+				error("Can't insert \"none\" into a stack");
+
+			node = makeNode(item);
+			node.next = stack.head;
+			stack.head = node;
+			stack.size = stack.size+1;
+		}
+
+		fun pop(stack: Stack(T)) {
+			node = stack.head;
+			if node != none: {
+				stack.head = node.next;
+				stack.size = stack.size-1;
+			}
+			return node.item;
+		}
+
+		fun isEmpty(stack: Stack(T))
+			return stack.head == none;
+
+		fun toString(stack: Stack(T)) {
+			iter = stack->iter();
+			s = "[";
+			while (item = iter->next()) != none: {
+				s = cat(s, toString(item));
+				if iter->haveNext():
+					s = cat(s, ", ");
+			}
+			s = cat(s, "]");
+			return s;
+		}
+
+		fun print(stack: Stack(T))
+			print(stack->toString());
+
+		fun iter(stack: Stack(T))
+			return makeStackIterator(stack);
+	};
+
+return { 
+	Stack: Stack, 
+	makeStack: makeStack, 
+	StackIterator: StackIterator,
+	makeStackIterator: makeStackIterator
+};

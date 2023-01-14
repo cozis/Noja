@@ -120,6 +120,7 @@ Object*		 Object_NewList2(int num, Object **items, Heap *heap, Error *error);
 Object*		 Object_NewListOfConsecutiveIntegers(int first, int last, Heap *heap, Error *error);
 Object*		 Object_NewNone(Heap *heap, Error *error);
 Object*      Object_NewBuffer(size_t size, Heap *heap, Error *error);
+Object*		 Object_NewBufferFromString(const char *str, size_t len, Heap *heap, Error *error);
 Object*		 Object_NewClosure(Object *parent, Object *new_map, Heap *heap, Error *error);
 Object*      Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap, Error *error);
 Object*      Object_NewNullable(Object *item, Heap *heap, Error *error);

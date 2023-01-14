@@ -1,52 +1,40 @@
 
-fun abs(n: Numeric) {
-	if n < 0:
-		return -n;
-	return n;
-}
+fun dummy() {}
 
-fun min(x, y) {
-    if x < y:
-        return x;
-    return y;
-}
-
-fun max(x, y) {
-    if x > y:
-        return x;
-    return y;
-}
-
-Func  = type(abs);
+Func  = type(dummy);
 NFunc = type(print);
 Numeric = int | float;
 Callable = Func | NFunc;
 Collection = List | Map;
 
+chr = string.chr;
+ord = string.ord;
+cat = string.cat;
+
 # Stringify a number between 0 and 9.
 fun stringFromDigit(digit: int) {
 	assert(digit >= 0 and digit <= 9);
-	return string.chr(string.ord("0") + digit);
+	return chr(ord("0") + digit);
+}
+
+# This function returns the magnitude of the
+# argument and the power of 10 with the same
+# magnitude.
+fun getIntegerMagnitude(n: int) {
+	assert(n >= 0);
+	magn = 0;
+	powr = 1;
+	# Basically grow the power until it's
+	# bigger than the input.
+	while n >= powr * 10: {
+		powr = 10 * powr;
+		magn = 1 + magn;
+	}
+	return magn, powr;
 }
 
 # Stringify an unsigned integer
 fun stringFromInteger(n: int) {
-
-	# This function returns the magnitude of the
-	# argument and the power of 10 with the same
-	# magnitude.
-	fun getIntegerMagnitude(n: int) {
-		assert(n >= 0);
-		magn = 0;
-		powr = 1;
-		# Basically grow the power until it's
-		# bigger than the input.
-		while n >= powr * 10: {
-			powr = 10 * powr;
-			magn = 1 + magn;
-		}
-		return magn, powr;
-	}
 
 	negative = (n < 0);
 	
@@ -63,27 +51,167 @@ fun stringFromInteger(n: int) {
 		temp  = temp % power; # Remove it
 
 		# Add the digit to the output.
-		text = string.cat(text, stringFromDigit(digit));
+		text = cat(text, stringFromDigit(digit));
 
 		# Prep for the next iteration.
 		power = power / 10;
 	}
 
 	if negative:
-		text = string.cat("-", text);
+		text = cat("-", text);
 	return text;
+}
+
+fun stringFromFloating(f: float, max_decimals: int = 2) {
+	# This function is just a fast hack
+	epsilon = 0.00000001;
+	asint = math.floor(f);
+	text = stringFromInteger(asint);
+	text = cat(text, ".");
+	magn = 1.0;
+	temp = f - asint;
+	i = 0;
+	do {
+		magn = magn / 10;
+		digit = math.floor(temp / magn);
+		text = cat(text, stringFromDigit(digit));
+		temp = temp - magn * digit; # Remove the handled digit
+		i = i+1;
+	} while temp > epsilon and i < max_decimals;
+	return text;
+}
+
+fun stringFromNumeric(num: Numeric) {
+	if type(num) == int:
+		return stringFromInteger(num);
+	return stringFromFloating(num);
 }
 
 fun floatFromInteger(n: int)
 	return 1.0 * n;
 
+fun stringFromList(list: List) {
+	
+	s = "[";
+	i = 0;
+	while i < count(list): {
+		s = cat(s, toString(list[i]));
+		i = i+1;
+		if i < count(list):
+			s  = cat(s, ", ");
+	}
+	s = cat(s, "]");
+	return s;
+}
+
+fun stringFromMap(map: Map, can_use_method=true) {
+	s = none; # Result
+	has_method = istypeof(Callable, map.toString);
+	if can_use_method and has_method:
+		s = map->toString();
+	else {
+		s = "{";
+		i = 0;
+		keys = keysof(map);
+		while i < count(keys): {
+			s = cat(s, toString(keys[i]), ": ", toString(map[keys[i]]));
+			i = i+1;
+			if i < count(keys):
+				s = cat(s, ", "); 
+		}
+		s = cat(s, "}");
+	}
+	return s;
+}
+
 fun integerFromDigit(char: String) {
-	ord = string.ord;
     res = ord(char) - ord('0');
     if res < 0 or res > 9:
     	error("String isn't a digit");
     return res;
 }
 
-fun append(array: List, item)
-	array[count(array)] = item;
+fun GenericIterator(T) return {
+	set : T,
+	keys : List,
+	index: ?int,
+	next : Callable
+};
+
+fun makeGenericIterator(set: Collection) return {
+	set  : set,
+	keys : keysof(set),
+	index: none,
+	fun next(iter: GenericIterator(type(set))) {
+			
+		index = iter.index;
+			
+		if index == none:
+			index = 0;
+		else {
+			if index < count(iter.keys):
+				index = index+1;
+		}
+
+		if index == count(iter.keys):
+			return none;
+
+		iter.index = index;
+		key = iter.keys[index];
+		val = iter.set[key];
+		return val, key, index;
+	}
+};
+
+return {
+
+	Func: Func,
+	NFunc: NFunc,
+	Numeric: Numeric,
+	Callable: Callable,
+	Collection: Collection,
+
+	fun makeIterator(set: Collection, can_use_method=true) {
+		if can_use_method and type(set) == Map and istypeof(Callable, set.iter):
+			return set->iter();
+		return makeGenericIterator(set);
+	}
+
+	fun toString(value, can_use_method=true) {
+		T = type(value);
+		if T == None : return "none";
+		if T == int  : return stringFromInteger(value);
+		if T == float: return stringFromFloating(value);
+		if T == List : return stringFromList(value);
+		if T == Map  : return stringFromMap(value, can_use_method);
+		if T == Type : return typename(T);
+		if T == Func : return "Func";
+		if T == NFunc: return "NFunc";
+		if T == String: return value;
+		error(cat("Don't know how to convert ", typename(value), " to a string"));
+	}
+
+	fun isCallable(x)
+		return istypeof(Callable, x);
+
+	fun append(array: List, item)
+		array[count(array)] = item;
+
+	fun abs(n: Numeric) {
+		if n < 0:
+			return -n;
+		return n;
+	}
+
+	fun min(x, y) {
+	    if x < y:
+	        return x;
+	    return y;
+	}
+
+	fun max(x, y) {
+	    if x > y:
+	        return x;
+	    return y;
+	}
+};
