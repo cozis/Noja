@@ -1,0 +1,77 @@
+
+fun undoEscaping(src: String) {
+	assert(src[0] == "%");
+	x = src[1];
+	y = src[2];
+	if not isHex(x)
+	or not isHex(y):
+		return none, "Invalid %xx token";
+	x = hexToInt(x);
+	y = hexToInt(y);
+	byte = x * 16 + y;
+	char = chr(byte);
+	return char, i;
+}
+
+fun getStringToken(src: String, i: int)
+{
+	token = "";
+	while i < count(src) 
+	  and src[i] != "=" 
+	  and src[i] != "&": {
+	
+		char = src[i];
+		
+		if char == "%": {
+
+			# Slice the "%xx" token
+			if i+2 >= count(src):
+				return none, none, "Invalid %xx escape token";
+			slice = string.slice(src, i, 3);
+
+			# Convert it to a character
+			char, error = undoEscaping(slice);
+			if error != none:
+				return none, none, error;
+
+			i = i+3;
+		} else {
+			if char == "+":
+				char = " ";
+			i = i+1;
+		}
+		
+		token = string.cat(token, char);
+	}
+	return token, i;
+}
+
+fun parse(src: String) {
+
+	result = {};
+
+	i = 0;
+	while i < count(src): {
+
+		name, i, error = getStringToken(src, i);
+		if error != none:
+			return none, error;
+
+		if i < count(src) and src[i] == "=": {
+			i = i+1; # Skip the "="
+			value, i, error = getStringToken(src, i);
+			if error != none:
+				return error;
+		} else
+			value = none;
+		
+		result[name] = value;
+
+		if i < count(src) and src[i] == "&":
+			i = i+1;
+	}
+
+	return result;
+}
+
+return {parse: parse};

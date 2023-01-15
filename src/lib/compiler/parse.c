@@ -287,7 +287,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 				if(str[i] == '\\')
 				{
 					i += 1; // Consume the \.
-					if(i < len && (str[i] == '\'' || str[i] == '"'))
+					if(i < len && (str[i] == '\'' || str[i] == '"' || str[i] == '\\'))
 						i += 1;
 				}
 				else break;

@@ -22,8 +22,22 @@ Request = {
     method : String, 
     url    : URL, 
     version: Version,
-    body   : None | Buffer | [Buffer, Buffer]
+    body   : String
 };
+
+fun bodyBytesToString(body: None | Buffer | [Buffer, Buffer]) {
+	if type(body) == None:
+		body = "";
+	else if type(body) == Buffer:
+		body = buffer.toString(body);
+	else
+		body = cat(buffer.toString(body[0]),
+			       buffer.toString(body[1]));
+	return body;
+}
+
+fun printBody(body: None | Buffer | [Buffer, Buffer])
+	print(bodyToString(body));
 
 fun fromSocket(fd: int, max_head: int = 1024) {
 
@@ -60,9 +74,11 @@ fun fromSocket(fd: int, max_head: int = 1024) {
 	# Receive the remaining portion of the 
 	# request's body (if it wasn't already)
 	{
-		content_length = request.headers['Content-Length'];
-		if content_length == none: 
+		x = request.headers['Content-Length'];
+		if x == none: 
 			content_length = 0;
+		else
+			content_length = string.toInt(string.trim(x));
 
 		# TODO: Limit the content length 
 
@@ -81,7 +97,7 @@ fun fromSocket(fd: int, max_head: int = 1024) {
 			body_bytes = [body_bytes, second_half];
 		}
 	}
-
-	request.body = body_bytes;
+	
+	request.body = bodyBytesToString(body_bytes);
 	return request;
 }

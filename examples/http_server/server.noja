@@ -40,7 +40,7 @@ return {
 		    port    : int = 8080, 
 			backlog : int = 32) {
 
-		fd, err = net.socket(net.AF_INET, net.SOCK_STREAM, 0);
+		fd, err = net.socket(net.AF_INET, net.SOCK_STREAM, 0, true);
 		if err != none:
 			return none, err;
 

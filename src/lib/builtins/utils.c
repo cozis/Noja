@@ -17,6 +17,7 @@ int returnValuesVA(Error *error, Heap *heap, Object *rets[static MAX_RETS], cons
 			case 'i': ret = Object_FromInt  (va_arg(va, int),    heap, error); break;
 			case 'f': ret = Object_FromFloat(va_arg(va, double), heap, error); break;
 			case 's': ret = Object_FromString(va_arg(va, char*), -1, heap, error); break;
+			case 'F': ret = Object_FromStream(va_arg(va, FILE*), heap, error); break;
 			default:
 			Error_Report(error, 1, "Invalid format specifier '%c'", fmt[i]);
 			return -1;
@@ -138,8 +139,17 @@ bool parseArgs(Error *error,
 					break;
 				}
 
+				case 'F': /* File */
+				if (!Object_IsFile(arg)) {
+					Error_Report(error, 0, "Argument %d was expected to be a file, but a %s was provided", current_arg+1, arg->type->name);
+					return false;
+				}
+				pargs[current_arg].defined = true;
+				pargs[current_arg].as_file = Object_GetStream(arg);
+				break;
+
 				default:
-				Error_Report(error, 1, "Invalid argument parser format specifier");
+				Error_Report(error, 1, "Invalid argument parser format specifier '%c'", fmt[i]);
 				return false;
 			}
 		}

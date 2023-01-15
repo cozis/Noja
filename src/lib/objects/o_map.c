@@ -73,6 +73,7 @@ keysof(Object *self,
 	   Error  *error)
 {
 	MapObject *map = (MapObject*) self;
+#warning "This shouldn't return items that contain none"
 	return Object_NewList2(map->count, map->keys, heap, error);
 }
 

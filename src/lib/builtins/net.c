@@ -9,19 +9,27 @@
 
 static int bin_socket(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
-	ASSERT(argc == 3);
-	ParsedArgument pargs[3];
-	if (!parseArgs(error, argv, argc, pargs, "iii"))
+	ASSERT(argc == 4);
+	ParsedArgument pargs[4];
+	if (!parseArgs(error, argv, argc, pargs, "iii?b"))
 		return -1;
 
 	int domain = pargs[0].as_int;
 	int   type = pargs[1].as_int;
 	int  proto = pargs[2].as_int;
+	bool reuse = pargs[3].defined ? pargs[3].as_bool : false;
 
 	int fd = socket(domain, type, proto);
-	
+		
 	if (fd < 0)
 		return returnValues2(error, runtime, rets, "ns", strerror(errno));
+	
+	if (reuse) {
+		int value = 1;
+		if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(value)) < 0)
+			return returnValues2(error, runtime, rets, "ns", strerror(errno));
+	}
+
 	return returnValues2(error, runtime, rets, "i", fd);
 }
 
@@ -184,7 +192,7 @@ StaticMapSlot bins_net[] = {
 	{ "AF_INET", SM_INT, .as_int = AF_INET, },
 	{ "SOCK_STREAM", SM_INT, .as_int = SOCK_STREAM, },
 	{ "SOCK_DGRAM",  SM_INT, .as_int = SOCK_DGRAM,  },
-	{ "socket",  SM_FUNCT, .as_funct = bin_socket, .argc = 3, },
+	{ "socket",  SM_FUNCT, .as_funct = bin_socket, .argc = 4, },
 	{ "bind",    SM_FUNCT, .as_funct = bin_bind,   .argc = 4, },
 	{ "listen",  SM_FUNCT, .as_funct = bin_listen, .argc = 2, },
 	{ "accept",  SM_FUNCT, .as_funct = bin_accept, .argc = 1, },

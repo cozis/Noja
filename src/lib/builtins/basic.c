@@ -39,11 +39,27 @@
 #include "files.h"
 #include "string.h"
 #include "buffer.h"
+#include "random.h"
 #include "../utils/defs.h"
 #include "../common/defs.h"
 #include "../objects/objects.h"
 #include "../runtime/runtime.h"
 #include "../compiler/compile.h"
+
+static int bin_getCurrentWorkingDirectory(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+{
+	UNUSED(argc);
+	UNUSED(argv);
+	ASSERT(argc == 0);
+
+	char path[1024];
+	if(getcwd(path, sizeof(path)) == NULL) {
+		Error_Report(error, 1, "Couldn't get current working directory because a buffer is too small");
+		return -1;
+	}
+
+	return returnValues2(error, runtime, rets, "s", path);
+}
 
 static int bin_typename(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
@@ -335,6 +351,7 @@ StaticMapSlot bins_basic[] = {
 	{ "files",  SM_SMAP, .as_smap = bins_files,  },
 	{ "buffer", SM_SMAP, .as_smap = bins_buffer, },
 	{ "string", SM_SMAP, .as_smap = bins_string, },
+	{ "random", SM_SMAP, .as_smap = bins_random, },
 	
 	{ "import", SM_FUNCT, .as_funct = bin_import, .argc = 1, },
 	{ "type",   SM_FUNCT, .as_funct = bin_type, .argc = 1 },
@@ -346,5 +363,6 @@ StaticMapSlot bins_basic[] = {
 	{ "istypeof", SM_FUNCT, .as_funct = bin_istypeof, .argc = 2, },
 	{ "typename", SM_FUNCT, .as_funct = bin_typename, .argc = 1, },
 	{ "keysof", SM_FUNCT, .as_funct = bin_keysof, .argc = 1, },
+	{ "getCurrentWorkingDirectory", SM_FUNCT, .as_funct = bin_getCurrentWorkingDirectory, .argc = 0 },
 	{ NULL, SM_END, {}, {} },
 };

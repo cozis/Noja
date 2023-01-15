@@ -1,0 +1,107 @@
+
+fun isSeparator(char: String)
+    return char == "(" or char == ")"
+        or char == "<" or char == ">"
+        or char == "@" or char == ","
+        or char == ";" or char == ":"
+        or char == "\\" or char == '"'
+        or char == "/" or char == "?"
+        or char == "[" or char == "]"
+        or char == "=" or char == " "
+        or char == "{" or char == "}"
+        or char == "\t";
+
+fun isControl(char: String) {
+    n = string.ord(char);
+    return (n >= 0 and n <= 31) or n == 127;
+}
+
+fun isChar(char: String) 
+    return string.ord(char) < 128;
+
+fun isToken(char: String)
+    return isChar(char)
+       and not isControl(char)
+       and not isSeparator(char);
+
+fun parseToken(src: String, i: int) {
+    offset = i;
+    while i < count(src) and isToken(src[i]):
+        i = i+1;
+    length = i - offset;
+    return string.slice(src, offset, length), i;
+}
+
+fun isCookieOctet(char: String) {
+    n = string.ord(char);
+    return n == 33 
+        or (n >= 35 and n <= 43)
+        or (n >= 45 and n <= 58)
+        or (n >= 60 and n <= 91)
+        or (n >= 93 and n <= 126);
+}
+
+fun parseCookieValue(src: String, i: int) {
+    
+    dquote = false;
+    if i < count(src) and src[i] == '"': {
+        dquote = true;
+        i = i+1;
+    }
+
+    if i == count(src) or not isCookieOctet(src[i]):
+        return none, none, "Missing value";
+
+    offset = i;
+    do
+        i = i+1;
+    while i < count(src) and isCookieOctet(src[i]);
+    length = i - offset;
+
+    if dquote: {
+        if i == count(src) or src[i] != '"':
+            return none, none, "Missing closing double quote";
+        i = i+1;
+    }
+
+    return string.slice(src, offset, length), i;
+}
+
+fun parseCookiePair(src: String, i: int) {
+
+    while i < count(src) and src[i] == " ":
+        i = i+1;
+
+    name, i = parseToken(src, i);
+
+    if i == count(src) or src[i] != "=":
+        return none, none, none, "Missing \"=\" after name";
+    i = i+1; # Skip the "="
+
+    value, i, error = parseCookieValue(src, i);
+    if error != none:
+        return none, none, none, error;
+
+    while i < count(src) and src[i] == " ":
+        i = i+1;
+
+    if i < count(src) and src[i] == ";":
+        i = i+1;
+
+    return name, value, i;
+}
+
+return {
+
+    fun parseCookieHeader(src: String) {
+        cookies = {};
+        i = 0;
+        while i < count(src): {
+            name, value, i, error = parseCookiePair(src, i);
+            if error != none:
+                return none, error;
+            cookies[name] = value;
+        }
+        return cookies;
+    }
+};
