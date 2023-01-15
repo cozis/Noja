@@ -1,0 +1,10 @@
+
+fun join(a, b) {
+	u = a[count(a)-1] == '/';
+	v = b[count(b)-1] == '/';
+	if u and v:
+		return string.cat(string.slice(a, 0, count(a)-1), b);
+	if u or v:
+		return string.cat(a, b);
+	return string.cat(a, '/', b);
+}

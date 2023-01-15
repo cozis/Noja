@@ -1,80 +1,57 @@
 request  = import("request.noja");
 response = import("response.noja");
+respond  = response.new;
+Router   = import("router.noja").Router;
 
-Server = {
-	fd: int, 
-	callback: Callable, 
-	loop : Callable, 
-	close: Callable
-};
-
-fun handleClient(fd: int, server: Server) {
+fun handleClient(fd: int, router: Router) {
 	
 	req, error, error_is_internal = request.fromSocket(fd);
 	if error != none: {
-		if error_is_internal: {
-			if debug: 
-				res = response.new(500, error);
-			else
-				res = response.new(500);
-		} else
-			res = response.new(400, error);
+		if error_is_internal:
+			res = respond(500, error);
+		else
+			res = respond(400, error);
 	} else {
 		if req.version.major != 1:
-			res = response.new(505, "HTTP version not supported");
+			res = respond(505, "HTTP version not supported");
 		else
-			res = server.callback(req);
+			res = router->solve(req);
 	}
 	return response.toSocket(fd, res);
 }
 
-fun fallback_callback(request: Request)
-	return response.new(500, "No callback provided");
-
 return {
-	
-	Server: Server,
+	fun serve(addr: ?String, port: int = 8080, router: Router, backlog=32) {
 
-	fun new(callback: Callable = fallback_callback,
-			addr    : String = "127.0.0.1", 
-		    port    : int = 8080, 
-			backlog : int = 32) {
+		server_fd, error = net.socket(net.AF_INET, net.SOCK_STREAM, 0, true);
+		if error != none:
+			return none, error;
 
-		fd, err = net.socket(net.AF_INET, net.SOCK_STREAM, 0, true);
-		if err != none:
-			return none, err;
-
-		if (err = net.bind(fd, net.AF_INET, port, addr)) != none: {
-			net.close(fd);
-			return none, err;
+		error = net.bind(server_fd, net.AF_INET, port, addr);
+		if error != none: {
+			net.close(server_fd);
+			return none, error;
 		}
 
-		if (err = net.listen(fd, backlog)) != none: {
-			net.close(fd);
-			return none, err;
+		error = net.listen(server_fd, backlog);
+		if error != none: {
+			net.close(server_fd);
+			return none, error;
 		}
 
-		return {
-			fd: fd,
-			callback: callback,
+		while true: {
 
-			fun loop(server: Server) {
-
-				while true: {
-					fd, addr_or_err, port = net.accept(server.fd);
-					if fd == none:
-						error = addr_or_err;
-					else {
-						error = handleClient(fd, server);
-						net.close(fd);
-					}
-					if error != none:
-						print(error);
-				}
+			new_fd, addr_or_err, port = net.accept(server_fd);
+			if new_fd == none:
+				error = addr_or_err;
+			else {
+				error = handleClient(new_fd, router);
+				net.close(new_fd);
 			}
+			if error != none:
+				print(error);
+		}
 
-			fun close(server: Server)
-				net.close(server.fd);
-		};
+		net.close(server_fd);
 	}
 };

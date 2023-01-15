@@ -1,10 +1,9 @@
-server     = import("server.noja");
-request    = import("request.noja");
-response   = import("response.noja");
-cookie     = import("cookie.noja");
+newRouter = import("router.noja").new;
+serve   = import("server.noja").serve;
+cookie  = import("cookie.noja");
+Request = import("request.noja").Request;
+respond = import("response.noja").new;
 urlencoded = import("urlencoded.noja");
-Request = request.Request;
-respond = response.new;
 
 fun getCookie(req: Request, name: String) {
 	src = req.headers["Cookie"];
@@ -32,239 +31,143 @@ fun getUsername(req: Request) {
 	return username, session_id;
 }
 
-fun loadFile(path: String) {
-
-	stream, error = files.openFile(path, files.READ);
-	if error != none:
-		return none, error;
-
-	text = "";
-	size = 512;
-	do {
-		size = 2 * size;
-		data = buffer.new(size);
-
-		num_bytes, error = files.read(stream, data);
-		if error != none:
-			return none, error;
-
-		text = string.cat(text, buffer.toString(data));
-
-	} while num_bytes == size;
-
-	#files.close(stream);
-	return text;
+fun redirect(endpoint) {
+	fun callback() 
+		return respond(307, none, {'Location': endpoint});
+	return callback;
 }
 
 user_table = {};
 session_table = {};
 
-fun redirect(endpoint) {
-	fun callback() 
-		return response.new(307, none, {'Location': endpoint});
-	return callback;
-}
+router = newRouter();
 
-route_table = {
-	'/': {
-		GET: redirect("/login")
-	},
-	'/home': {
-		fun GET(req: Request) {
-			
-			username, _, error = getUsername(req);
-			if error != none:
-				return respond(400, error);
-			if username == none:
-				return respond(401, "You're not logged in");
-			
-			content = string.cat(
-				"<html>",
-					"<head>",
-						"<title>Homepage</title>",
-					"</head>",
-					"<body>",
-						"<a>Hello, ", username, "!</a>",
-					"</body>",
-				"</html>"
-			);
-			return respond(200, content);
-		}
-	},
-	'/login': {
-		GET: 'pages/login.html',
-		fun POST(req: Request) {
+router->plug("/", {GET: redirect("/login")});
 
-			username, _, error = getUsername(req);
-			if error != none:
-				return respond(400, error);
-			if username != none:
-				return respond(400, "You're already logged in");
+router->plug("/home", {
 
-			fun areValid(params) {
-				expect = {user: String, pass: String};
-				return istypeof(expect, params) 
-			  	   and count(params.user) > 0
-				   and count(params.pass) > 0;
-			}
-
-			params = urlencoded.parse(req.body);
-			if not areValid(params):
-				return respond(400, "Invalid parameters");
-			username = params.user;
-			password = params.pass;
-
-			info = user_table[username];
-			
-			if info == none:
-				return respond(200, "No such user");
-			if info.pass != password:
-				return respond(200, "Wrong password");
-			
-			# Logged in!
-			session_id = generateRandomValue(0, 1000);
-			session_table[session_id] = username;
-
-			message = cat("Welcome, ", username, "!");			
-			headers = {
-				"Location"  : "/home", 
-				"Set-Cookie": cat("SESSID=", session_id)
-			};
-			return respond(303, message, headers);
-		}
-	},
-	'/signup': {
+	fun GET(req: Request) {
 		
-		GET: 'pages/signup.html',
+		username, _, error = getUsername(req);
+		if error != none:
+			return respond(400, error);
+		if username == none:
+			return respond(401, "You're not logged in");
+		
+		content = string.cat(
+			"<html>",
+				"<head>",
+					"<title>Homepage</title>",
+				"</head>",
+				"<body>",
+					"<a>Hello, ", username, "!</a>",
+				"</body>",
+			"</html>"
+		);
+		return respond(200, content);
+	}
+});
 
-		fun POST(req: Request) {
+router->plug("/login", {
+	GET: 'pages/login.html',
+	fun POST(req: Request) {
 
-			username, _, error = getUsername(req);
-			if error != none:
-				return respond(400, error);
-			if username != none:
-				return respond(400, "You're already logged in");
+		username, _, error = getUsername(req);
+		if error != none:
+			return respond(400, error);
+		if username != none:
+			return respond(400, "You're already logged in");
 
-			fun areValid(params) {
-				expect = {user: String, pass: String};
-				return istypeof(expect, params) 
-			  	   and count(params.user) > 0
-				   and count(params.pass) > 0;
-			}
-
-			params = urlencoded.parse(req.body);
-			if not areValid(params):
-				return respond(400, "Invalid parameters");
-			username = params.user;
-			password = params.pass;
-
-			if user_table[password] != none:
-				return respond(200, "User already exists");
-			
-			# Signed up!
-			user_table[username] = {pass: password};
-			session_id = random.generate(0, 1000);
-			session_table[session_id] = username;
-
-			# Respond
-			message = string.cat("Welcome, ", username, "!");			
-			headers = {
-				"Location"  : "/home", 
-				"Set-Cookie": string.cat("SESSID=", toString(session_id))
-			};
-			return respond(303, message, headers);
+		fun areValid(params) {
+			expect = {user: String, pass: String};
+			return istypeof(expect, params) 
+		  	   and count(params.user) > 0
+			   and count(params.pass) > 0;
 		}
-	},
-	'/logout': {
-		fun GET(req: Request) {
 
-			username, session_id, error = getUsername(req);
-			if error != none:
-				return respond(400, error);
-			if username == none:
-				return respond(401, "You're not logged in");
+		params = urlencoded.parse(req.body);
+		if not areValid(params):
+			return respond(400, "Invalid parameters");
+		username = params.user;
+		password = params.pass;
 
-			session_table[session_id] = none;
+		info = user_table[username];
+		
+		if info == none:
+			return respond(200, "No such user");
+		if info.pass != password:
+			return respond(200, "Wrong password");
+		
+		# Log-in succeded
 
-			return respond(303, "Goodbye!", {"Location": "/login"});
+		# Create a new session
+		session_id = random.generate(0, 1000);
+		session_table[session_id] = username;
+
+		message = string.cat("Welcome, ", username, "!");			
+		headers = {
+			"Location"  : "/home", 
+			"Set-Cookie": string.cat("SESSID=", toString(session_id))
+		};
+		return respond(303, message, headers);
+	}
+});
+
+router->plug("/signup", {
+	GET: 'pages/signup.html',
+
+	fun POST(req: Request) {
+
+		username, _, error = getUsername(req);
+		if error != none:
+			return respond(400, error);
+		if username != none:
+			return respond(400, "You're already logged in");
+
+		fun areValid(params) {
+			expect = {user: String, pass: String};
+			return istypeof(expect, params) 
+		  	   and count(params.user) > 0
+			   and count(params.pass) > 0;
 		}
+
+		params = urlencoded.parse(req.body);
+		if not areValid(params):
+			return respond(400, "Invalid parameters");
+		username = params.user;
+		password = params.pass;
+
+		if user_table[password] != none:
+			return respond(200, "User already exists");
+		
+		# Signed up!
+		user_table[username] = {pass: password};
+		session_id = random.generate(0, 1000);
+		session_table[session_id] = username;
+
+		# Respond
+		message = string.cat("Welcome, ", username, "!");			
+		headers = {
+			"Location"  : "/home", 
+			"Set-Cookie": string.cat("SESSID=", toString(session_id))
+		};
+		return respond(303, message, headers);
 	}
-};
+});
 
-fun join(list: List, glue="") {
-	if count(list) == 0:
-		text = "";
-	else {
-		i = 1;
-		text = toString(list[0]);
-		while i < count(list): {
-			text = string.cat(text, glue, toString(list[i]));
-			i = i+1;
-		}
+router->plug("/logout", {
+	fun GET(req: Request) {
+
+		username, session_id, error = getUsername(req);
+		if error != none:
+			return respond(400, error);
+		if username == none:
+			return respond(401, "You're not logged in");
+
+		session_table[session_id] = none;
+
+		return respond(303, "Goodbye!", {"Location": "/login"});
 	}
-	return text;
-}
+});
 
-debug = true;
-
-fun joinPath(a, b) {
-	u = a[count(a)-1] == '/';
-	v = b[count(b)-1] == '/';
-	if u and v:
-		return string.cat(string.slice(a, 0, count(a)-1), b);
-	if u or v:
-		return string.cat(a, b);
-	return string.cat(a, '/', b);
-}
-
-fun getRouteAllowedMethods(route) {
-	
-	method_table = route_table[route];
-	if method_table == none:
-		return none;
-
-	allowed = keysof(method_table);
-	if method_table.HEAD == none and method_table.GET != none:
-		append(allowed, "HEAD");
-	if method_table.OPTIONS == none:
-		append(allowed, "OPTIONS");
-	return allowed;
-}
-
-fun callback(req: Request) {
-
-	endpoint = req.url.path;
-	method_table = route_table[endpoint];
-	if method_table == none:
-		return response.new(404);
-
-	method_item = method_table[req.method];
-	if method_item == none: {
-		allowed = getRouteAllowedMethods(endpoint);
-		if req.method == "OPTIONS":
-			status = 204;
-		else
-			status = 405;
-		return response.new(status, none, {"Allow": join(allowed, ", ")});
-	}
-
-	if isCallable(method_item):
-		res = method_item(req);
-	else {
-		file = joinPath(getCurrentWorkingDirectory(), method_item);
-		data, error = loadFile(file);
-		if error == none: 
-			res = response.new(200, data);
-		else if debug:
-			res = response.new(500, error);
-		else
-			res = response.new(500);
-	}
-
-	return res;
-}
-
-s, err = server.new(callback, "127.0.0.1", 8080);
-if s == none: error(err);
-s->loop(); # This doesn't return
-s->close();
+error(serve("127.0.0.1", 8080, router));

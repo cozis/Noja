@@ -1,0 +1,100 @@
+path    = import("path.noja");
+Request = import("request.noja").Request;
+respond = import("response.noja").new;
+Router = {table: Map, plug: Callable, solve: Callable};
+
+fun loadFile(path: String) {
+
+	stream, error = files.openFile(path, files.READ);
+	if error != none:
+		return none, error;
+
+	text = "";
+	size = 512;
+	do {
+		size = 2 * size;
+		data = buffer.new(size);
+
+		num_bytes, error = files.read(stream, data);
+		if error != none:
+			return none, error;
+
+		text = string.cat(text, buffer.toString(data));
+
+	} while num_bytes == size;
+
+	#files.close(stream);
+	return text;
+}
+
+fun join(list: List, glue="") {
+	if count(list) == 0:
+		text = "";
+	else {
+		i = 1;
+		text = toString(list[0]);
+		while i < count(list): {
+			text = string.cat(text, glue, toString(list[i]));
+			i = i+1;
+		}
+	}
+	return text;
+}
+
+fun new() {
+	return {
+		table: {},
+		
+		fun plug(router: Router, name: String, methods: Map)
+			router.table[name] = methods;
+
+
+		fun getRouteAllowedMethods(route) {
+			
+			method_table = route_table[route];
+			if method_table == none:
+				return none;
+
+			allowed = keysof(method_table);
+			if method_table.HEAD == none and method_table.GET != none:
+				append(allowed, "HEAD");
+			if method_table.OPTIONS == none:
+				append(allowed, "OPTIONS");
+			return allowed;
+		}
+		
+		fun solve(router: Router, req: Request) {
+
+			endpoint = req.url.path;
+			method_table = router.table[endpoint];
+			if method_table == none:
+				return respond(404);
+
+			method_item = method_table[req.method];
+			if method_item == none: {
+				allowed = router->getRouteAllowedMethods(endpoint);
+				if req.method == "OPTIONS":
+					status = 204;
+				else
+					status = 405;
+				return respond(status, none, {"Allow": join(allowed, ", ")});
+			}
+
+			if isCallable(method_item):
+				res = method_item(req);
+			else {
+				cwd  = getCurrentWorkingDirectory();
+				file = path.join(cwd, method_item);
+				data, error = loadFile(file);
+				if error == none: 
+					res = respond(200, data);
+				else
+					res = respond(500, error);
+			}
+
+			return res;
+		}
+	};
+}
+
+return {new: new, Router: Router};
