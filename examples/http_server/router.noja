@@ -49,9 +49,9 @@ fun new() {
 			router.table[name] = methods;
 
 
-		fun getRouteAllowedMethods(route) {
+		fun getRouteAllowedMethods(router: Router, route) {
 			
-			method_table = route_table[route];
+			method_table = router.table[route];
 			if method_table == none:
 				return none;
 

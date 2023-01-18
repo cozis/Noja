@@ -5,6 +5,9 @@ Request = import("request.noja").Request;
 respond = import("response.noja").new;
 urlencoded = import("urlencoded.noja");
 
+user_table = {};
+session_table = {};
+
 fun getCookie(req: Request, name: String) {
 	src = req.headers["Cookie"];
 	if src == none:
@@ -19,8 +22,9 @@ fun getSessionID(req: Request) {
 	session_id, error = getCookie(req, "SESSID");
 	if error != none:
 		return none, error;
-	session_id = string.toInt(session_id);
-	return session_id;
+	if session_id == none:
+		return none;
+	return string.toInt(session_id);
 }
 
 fun getUsername(req: Request) {
@@ -31,18 +35,12 @@ fun getUsername(req: Request) {
 	return username, session_id;
 }
 
-fun redirect(endpoint) {
-	fun callback() 
-		return respond(307, none, {'Location': endpoint});
-	return callback;
-}
-
-user_table = {};
-session_table = {};
-
 router = newRouter();
 
-router->plug("/", {GET: redirect("/login")});
+router->plug("/", {
+	fun GET()
+		return respond(307, none, {"Location": "/login"});
+});
 
 router->plug("/home", {
 
@@ -79,23 +77,23 @@ router->plug("/login", {
 			return respond(400, "You're already logged in");
 
 		fun areValid(params) {
-			expect = {user: String, pass: String};
+			expect = {username: String, password: String};
 			return istypeof(expect, params) 
-		  	   and count(params.user) > 0
-			   and count(params.pass) > 0;
+		  	   and count(params.username) > 0
+			   and count(params.password) > 0;
 		}
 
 		params = urlencoded.parse(req.body);
 		if not areValid(params):
 			return respond(400, "Invalid parameters");
-		username = params.user;
-		password = params.pass;
-
+		username = params.username;
+		password = params.password;
+		
 		info = user_table[username];
 		
 		if info == none:
 			return respond(200, "No such user");
-		if info.pass != password:
+		if info != password:
 			return respond(200, "Wrong password");
 		
 		# Log-in succeded
@@ -125,26 +123,26 @@ router->plug("/signup", {
 			return respond(400, "You're already logged in");
 
 		fun areValid(params) {
-			expect = {user: String, pass: String};
+			expect = {username: String, password: String};
 			return istypeof(expect, params) 
-		  	   and count(params.user) > 0
-			   and count(params.pass) > 0;
+		  	   and count(params.username) > 0
+			   and count(params.password) > 0;
 		}
 
 		params = urlencoded.parse(req.body);
 		if not areValid(params):
 			return respond(400, "Invalid parameters");
-		username = params.user;
-		password = params.pass;
+		username = params.username;
+		password = params.password;
 
 		if user_table[password] != none:
 			return respond(200, "User already exists");
 		
 		# Signed up!
-		user_table[username] = {pass: password};
+		user_table[username] = password;
 		session_id = random.generate(0, 1000);
 		session_table[session_id] = username;
-
+		
 		# Respond
 		message = string.cat("Welcome, ", username, "!");			
 		headers = {
@@ -165,7 +163,7 @@ router->plug("/logout", {
 			return respond(401, "You're not logged in");
 
 		session_table[session_id] = none;
-
+		
 		return respond(303, "Goodbye!", {"Location": "/login"});
 	}
 });
