@@ -6,7 +6,7 @@ Expression use infix notation. You can have expressions of numeric values, boole
 ```
 2 * (1 + 2); 
 ```
-The basic values that can be used are integers, floats, booleans and "none".
+The basic values that can be used are integers, floats, booleans and `none`.
  
 ## Integers, floats and arithmetic operators
  
@@ -77,7 +77,7 @@ You can store computed values into variables in order to reuse them later on. Va
 x = 1 + 4;
 y = x + 2;
 ```
-here we're assigning to the variable "x" the number 5 then, we're assigning to "y" the value 7 by accessing the value previously stored into "x". The left operand of the assignment operator must be a variable name while the right operator can have any type.
+here we're assigning to the variable `x` the number 5 then, we're assigning to `y` the value 7 by accessing the value previously stored into `x`. The left operand of the assignment operator must be a variable name while the right operator can have any type.
 
 Variable names can consist of digits, letters or underscores, but the first character can't be a digit though.
  
@@ -99,7 +99,7 @@ coll[key] = item; # Store the value associated to the
 item = coll[key]; # Get the item back by selecting it 
                   # using it's key
 ```
-In this example, the "coll" variable is a collection type, while the types of "key" and "item" depend on the type of collection.
+In this example, the `coll` variable is a collection type, while the types of `key` and `item` depend on the type of collection.
 
 
 ## Lists
@@ -132,7 +132,7 @@ Special character (such as horizontal tabs and carriage returns) can be specifie
 * `\r` - carriage return
 * `\n` - newline
 
-When strings contain quotes that match the ones surrounding them or the "\" character, it's necessary to escape them:
+When strings contain quotes that match the ones surrounding them or the `\` character, it's necessary to escape them:
 ``` 
 'Hi, I\'m Francesco!';
 "Hi \"Francesco\", how old are you?";
@@ -155,7 +155,7 @@ me["name"] = true;
 
 my_name = me["name"]; # true
 ```
-When selecting from a map a value associated to a key which was never inserted, "none" is returned:
+When selecting from a map a value associated to a key which was never inserted, `none` is returned:
 ```
 my_map = {1: "one", 3: "three"};
 two = my_map[2]; # none
@@ -174,7 +174,7 @@ When instantiating a map, when a key is a string that follows variable name rule
 +{"name": "Francesco", "age": 25};
 +{name: "Francesco", age: 25};
 ```
-If instead you wanted to use the variable named "name" as a key, you can do that by adding some redundancy:
+If instead you wanted to use the variable named `name` as a key, you can do that by adding some redundancy:
 ```
 name = "x";
 
@@ -196,7 +196,7 @@ me.name = "Francesco";
 
 ## Function calls
 
-We haven't seen how function definitions work yet, but you can imagine they work like other languages such as Python or JavaScript for now. Assuming we defined a function named "sayHello", we can call it using the usual "()" notation:
+We haven't seen how function definitions work yet, but you can imagine they work like other languages such as Python or JavaScript for now. Assuming we defined a function named `sayHello`, we can call it using the usual `()` notation:
 ```
 sayHello();
 sayHello(1);
