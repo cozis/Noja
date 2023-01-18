@@ -1,220 +1,207 @@
-# Expressions
 
-Expressions behave very much like Python, with few exceptions.
+# EXPRESSIONS
 
-You can evaluate arithmetic, relational and logical operations or call into functions defined by you or the runtime!
-
-Here are some examples:
-```py
-2 * (1 + 4);
+## Basics
+Expression use infix notation. You can have expressions of numeric values, boolean values and other datatypes like strings of text. When expressions are used as statements, they need to be terminated using a semicolon. Here's an example:
 ```
-expressions are delimited by semicolons.
-
-This language is very strict in the implicit casts that it allows.
-
-## Primitive types
-Primitive types (or, more accurately, non aggregate types) are:
-* signed integers (`int`)
-* floats (`float`)
-* booleans (`bool`)
-* strings (`String`)
-* the none value (`None`)
-
-When referring to "numeric" values, only integers and floats are implied.
-
-### Integers and floats
-Integers and floats correspond to C's `long long int` and `double` types, so they are 8 bytes big each on most systems.
-
-### Booleans
-As in most languages, the boolean type of value is one that can only assume the `true` or `false` value. These values are such that the logical negation of one (`not`) gives the other.
-
-### Strings
-Strings are immutable sequences of text encoded as UTF-8. To define a string, enclose the text in single or double quotes
-```py
-"This is a string";
-'This is another string';
+2 * (1 + 2); 
 ```
+The basic values that can be used are integers, floats, booleans and "none".
+ 
+## Integers, floats and arithmetic operators
+ 
+Both integers and floats (floating point values) are signed and represented using 8 bytes. Integers can represent integer values between [2^61-1, 2^61], like `int64_t`s in C/C++. On the other hand, floats are equivalent to C/C++ `double`s. Numeric values can be operated onto using the arithmetic operators:
+ 
+* addition `+` (binary and unary)
+* subtraction `-` (binary and unary)
+* multiplication `*`
+* division `/`
+* modulo `%`
+ 
+Here "modulo" refers to the remainder of the division. These operations mainly behave like one would expect and have the following type conversion rules:
+1. Operations involving integers evaluate to integers, except division. The result of a division is always a float.
+1. If an arithmetic operation involves a float, the result is also float. 
+If operations on integers overflow or underflow, the program's execution is aborted.
 
-It's possible to define strings with special characters using the `\x` notation. The available special characters are
-* `\t` tab
-* `\r` carriage return
-* `\n` newlines
+## Booleans and logical operators
 
-If you want to use `\`, `"` or `'` as characters, you must escape them using a `\`
-```py
-print("Hello, I'm \"Francesco\"!"); # This prints: Hello, I'm "Francesco"!
+Boolean values are values that can either be `true` or `false`. They have the property that the logical negation of one equals the other.
+ 
+Booleans can be operated onto using logical operators such as `and`, `or` and `not`. These operators expect boolean values and return a new boolean value. You probably know these well, but for completeness sake, here's how they work:
 ```
+true  and true;  # = true
+true  and false; # = false
+false and true;  # = false
+false and false; # = false
 
-### The none value
-The none value is a value that's used to represent the void of a value. The token for the none value is `none`, while the none type is `None` (with a capital letter). 
+true  or true;   # = true
+true  or false;  # = true
+false or true;   # = true
+false or false;  # = false
 
-An example of usage of `none` is when assigning to a variable the result of a function call that doesn't return a value (such as `print`).
+not true;  # = false
+not false; # = true
+``` 
+If any of the operands aren't booleans, the program's execution is aborted.
 
-## Arithmetic operations
-Arithmetic operations are:
-* negation (unary `-`)
-* addition (`+`)
-* subtraction (`-`)
-* multiplication (`*`) 
-* division (`/`)
-and they are only allowed on numeric operands.
+Operators `and` and `or` are short-circuit operators. This means that they only consider the right operand if they can't deduce the solution from the left one. For example, if the left operand of an `and` evaluates to `false`, it isn't necessary to evaluate the right one, since the result of the overall operation can only be `false`.
 
-An operation on integers returns an integer, unless the operation is a division, in which case the result is a float. If one of the operands is a float, then the result is also a float. 
 
-If an integer overflow or underflow occurres, a runtime error triggers and the execution stops. Floating point exceptions aren't reported though.
+## Relational operators
 
-## Relational operations
-The relational operands are:
-* lower (`<`)
-* greater (`>`)
-* equal (`==`)
-* not equal (`!=`)
-* lower or equal (`<=`)
-* greater or equal (`>=`)
-and they either return `true` or `false`.
+Relational operators are those which evaluate to booleans and take, in general, non-boolean operands. They are:
 
-The `==` and `!=` operands may be applied to any primitive type, while the remaining ones may only be applied to numeric values.
+* equal `==`
+* not equal `!=`
+* less than `<`
+* less than or equal `<=`
+* greater than `>`
+* greater than or equal `>=`
+ 
+Equal (not equal) can be applied to all type of operands and return true (false) when the operands have the same type and hold the same value. These operator don't allow funny business like `1 == "1"` evaluating to `true`.
+ 
+The remaining relational operators are applied to numeric datatypes (ints and floats). 
 
-The `==` operator may only return `true` when the operands have the same value. 
+## The none value
 
-## Logical operations
-The logical operations in Noja are:
-* `and`
-* `or`
-* `not`
+The none value used to represent the void of a value and has the only property of being equal to itself and itself only. You can use the none value using the `none` keyword:
 
-They can only be applied to boolean values and always return a boolean value. 
-
-Note that this isn't always true for other languages. For example python allows operands of any kind. The return value in python also isn't always a boolean. It returns the left operand if it's considered to be equivalent to `True`, else the right operand is returned.
-
-The `and` and `or` operands are short-circuit operands, which means that they only evaluate the minimum amount of operands that's required to know the result. This is true in most languages. For example, if the left operand of an `and` operation is `false`, the right one will never be evaluated since the result will inevitably be `false`. This is useful because often the right operand will assume the left one to be `true` or `false`.
-
-The `and` operand has a slightly higher priority than `or`.
+```
+x = none; 
+```
 
 ## Variables and assignments
-It's possible to store computed values into *variables* in order to use them later on.
 
-The syntax to store a value to a variable is:
-```py
-variable = 1 + 4;
+You can store computed values into variables in order to reuse them later on. Variables are created using the assignment operator:
 ```
-This is usually referred to as an assignment. On the left side of the assignment there must be a valid identifier. On the right can be any expression.
-
-A valid variable name may contain alphabetical letters, digits or underscores, but a digit can't be the first character.
-
-The assignment token `=` is actually an operator that returns the assigned value. By instance the following expression
-```py
-(a = 3) + 1;
+x = 1 + 4;
+y = x + 2;
 ```
-evaluates to 4.
+here we're assigning to the variable "x" the number 5 then, we're assigning to "y" the value 7 by accessing the value previously stored into "x". The left operand of the assignment operator must be a variable name while the right operator can have any type.
 
-The default behaviour of Noja's `=` is the same as Python's `:=`.
-
-To use the value assigned to a variable, just name the variable where you want the assigned value to go.
-```py
-six = variable + 1;
+Variable names can consist of digits, letters or underscores, but the first character can't be a digit though.
+ 
+Since the assignment operator is an operator, other than do an assignment it also returns a value. Any assignment evaluates to it's right operand. By instance
 ```
+y = (x = 1 + 4) + 2;
+```
+this expression will result in `x` having value 5 and `y` value 7. This is because `x = 1 + 4`, other than assigning to `x`, is equivalent to writing `5`.
 
-## Aggregate types
-The aggregate types available in Noja are `List` and `Map`.
 
-The `List` type is an heterogeneous ordered collection of items that can have any type and can be accessed by their index. They're usually referred to as arrays in other languages.
+## Composit types and square bracket notation
 
-The `Map` type is an heterogeneous unordered collection of key-value pairs, where both key and values can have any type. Values are retrieved by their key. They are usually referred to as associative arrays.
+Composit values are collections of other values, which may also be composite. The composite types are `List`, `Map` and `String`. For all collection types it's possible to insert and retrieve values using the `[]` notation:
+```
+coll[key] = item; # Store the value associated to the 
+                  # variable "item" with key "key" in 
+                  # the collection "coll".
+
+item = coll[key]; # Get the item back by selecting it 
+                  # using it's key
+```
+In this example, the "coll" variable is a collection type, while the types of "key" and "item" depend on the type of collection.
+
 
 ## Lists
-Lists are defined as a comma-separated list of expressions between square brackets:
-```py
-[none, 2 + 1, true];
+
+Lists are heterogeneous and ordered collections of values. Each item they contain is associated to it's position in the list (the first element has position 0). They're defined and used with the following syntax:
 ```
+my_list = [true, 1.2, 19];
 
-The `n`-th list element can be accessed using the `[]` notation:
-```py
-ls = [true, false, none];
-ls[1]; # false
+x = my_list[0]; # true
+y = my_list[2]; # 19
+
+my_list[0] = 13;
+
+z = my_list[0]; # z is 13 now!
 ```
-where the list value is followed by `[..]` which contains the index of the item to retrieve.
+Trying to access an item using as key something which isn't an integer or an in range integer (less then 0 or higher than the length of the array minus one) will result in an error. The only exception to this rule is the index equal to the item count of the list (which is out of bounds since the last item of the list has index equals to the item count minus one): by inserting a value at this index, the list will increase it's size by 1. There isn't a limit on how many values a list can contain.
 
-The index may be evaluated dynamically, but it will trigger a runtime error if it doesn't evaluate to an integer value
-```py
-ls = [true, false, none];
-ls[0 + 2]; # OK!
-ls[true or false]; # Runtime error!!
+
+## Strings
+
+Strings are values which contain UTF-8 encoded text. A string can be instanciated placing text between single or double quotes:
 ```
+"I'm a string!";
 
-To append a value to a list, increasing its size, you can just insert the new value at the first unused position (which will have index equal to the current list size). As we'll see in the built-in chapter, to get the size of a list one can use the `count` function. Which means appending to a list can be done like this:
-```py
-ls = [1, 2, 3];
-ls[count(ls)] = 4;
-# Now ls is [1, 2, 3, 4]
+'I am too!';
 ```
+Special character (such as horizontal tabs and carriage returns) can be specified using the `\x` notation:
 
-## Maps
-Maps are defined as a list of key-value pairs:
-```py
-me = {"name": "Francesco", "age": 25};
+* `\t` - tab
+* `\r` - carriage return
+* `\n` - newline
+
+When strings contain quotes that match the ones surrounding them or the "\" character, it's necessary to escape them:
+``` 
+'Hi, I\'m Francesco!';
+"Hi \"Francesco\", how old are you?";
+"This is a backlash \\ and you can do nothing about it";
+``` 
+Like arrays, single characters can be selected referring to them by their position relative to the first character using the `[]` notation. When selecting single characters from a string, they're returned as new strings.
+
+Once a string is created, it's not possible to modify it. If you want to change a string's value, you need to create a new updated version of the string.
+
+ 
+## Maps and the dot operator
+
+Maps are collections of key-value pairs, where both keys and values can have any type. The syntax for defining and using maps is this:
 ```
-keys can be of any type (even non-immutable ones).
+me = {"name": "Francesco", "age": 24};
 
-To retrieve a value, the syntax is analogous to the `List` case
-```py
-name = me["name"];
+my_name = me["name"]; # Francesco
+
+me["name"] = true;
+
+my_name = me["name"]; # true
 ```
+When selecting from a map a value associated to a key which was never inserted, "none" is returned:
+```
+my_map = {1: "one", 3: "three"};
+two = my_map[2]; # none
+```
+Because of the existence of compount statements, expression statements can't start with the `{` token. The parser would assume it's a badly formatted compount statement. To avoid the ambiguity, you can add some tokens that have no effect before the `{`:
+```
+{"day": "Monday"}; # invalid
++{"day": "Monday"}; # valid
+({"day": "Monday"}); # also valid
+``` 
+This isn't very pretty but it's a case that doesn't occur in practice.
 
-The keys may be evaluated dynamically and, unlike `List`s, any type of key is allowed.
-
-When instanciating a map, if a key is a string and follows the rules of variable identifiers, it's possible to use it without double quotes:
-```py
+When instantiating a map, when a key is a string that follows variable name rules, the encoling quotes can be dropped:
+```
 # These are equivalent
-a = {"name": "Francesco", "age": 25};
-b = {name: "Francesco", age: 25};
++{"name": "Francesco", "age": 25};
++{name: "Francesco", age: 25};
 ```
-
-If you don't want to use the identifier's text as key but evaluate it as a variable to use it's value as key, then you must explicitly tell the interpreter that it's an expression
-```py
+If instead you wanted to use the variable named "name" as a key, you can do that by adding some redundancy:
+```
 name = "x";
 
 # These are equivalent
-a = {   "x": "Francesco", "age": 25};
-b = {(name): "Francesco", age: 25};
-c = { +name: "Francesco", age: 25};
-```
-Note that the `+` unary operator and the `(..)` are no-operations in this context.
++{(name): "Francesco"};
++{ +name: "Francesco"};
++{"x": "Francesco"};
 
-Because of compound statements (discussed in the next chapter), an expression can't start with the `{` of a map literal because the interpreter will assume it's a compount statement.
-The following statement is invalid
-```py
-{'name': 'John'};
+# And are different from these
++{name: "Francesco"};
++{"name": "Francesco"};
 ```
-because since it starts with a `{` it's assumed to be a compound statement but a compount statement can't contain a `:` like that. To tell the parser that it must interpret it as a map, it's possible to add some redundancy:
-```py
+Similarly, when querying a map for an item associated to a string that follows variable name rules, you can use the dot operator:
+```
 # These are equivalent
-+{'name': 'John'};
-({'name': 'John'});
-```
-This is valid code that's interpreted correctly.
-
-## Selection with multiple keys
-In general, when you have a collection type, you can retrieve items using the `[]` notation.
-
-The `[ .. ]` is actually a `List` expression. You can provide more than one value as key:
-```py
-val = coll[key0, key1];
+me["name"] = "Francesco";
+me.name = "Francesco";
 ``` 
-in which case, the key will be a `List` containing the list of provided keys. Since `List`s only allow `int` keys, this only can be used on `Map`s.
 
 ## Function calls
-We haven't seen how function definitions work yet, but you can imagine they work like other languages such as Python or JavaScript for now. Assuming we defined a function named `sayHello`, we can call it using the usual `()` notation:
-```py
+
+We haven't seen how function definitions work yet, but you can imagine they work like other languages such as Python or JavaScript for now. Assuming we defined a function named "sayHello", we can call it using the usual "()" notation:
+```
 sayHello();
 sayHello(1);
 sayHello(1, 2, 3);
 ```
 
-## The print function
-One function that's always available is `print`, which takes a variable number of arguments and prints them to the standard output. It doesn't add spaces between the argument prints or newlines at the end of the print, so a call such as
-```py
-print("A", "B");
-print("C", "D");
-```
-will output `ABCD`.
+## Functions useful for collections
+count, keysof

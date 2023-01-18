@@ -1,208 +1,139 @@
-# Functions
-Function definition statements always start with the `fun` keyword, followed by its name, argument list and then body.
+# FUNCTIONS
+## Definition and basics
 
-Here are some examples of function definitions:
-```py
-# No arguments
-fun sayHelloToEveryone() {
-    print('Hello, everyone!\n');
-}
-
-# Some arguments
-fun sayHelloTo(name) {
-    print('Hello, ', name, '!\n');
-}
-
-fun sayHelloToBoth(name1, name2) {
-    print('Hello, ', name1, '!\n');
-    print('Hello, ', name2, '!\n');
+Functions are defined like this:
+```
+fun sayHello() {
+    print("Hello!\n");
 }
 ```
-When function bodies only have one statement, you can drop the brackets
-```py
-fun sayHelloToEveryone()
-    print('Hello, everyone!\n');
-
-fun sayHelloTo(name)
-    print('Hello, ', name, '!\n');
-
-fun sayHelloToBoth(name1, name2) {
-    print('Hello, ', name1, '!\n');
-    print('Hello, ', name2, '!\n');
+they must always start with the `fun` keyword followed by the function's name. Function name rules are the same as variables: they can contain letters, numbers or underscores, but the first character can't be a number. One or more arguments can be provided by specifying their names between the `()` following the name:
+```
+fun sayHelloTo(name1, name2) {
+    print("Hello ", name1, " and ", name2, "!\n");
 }
 ```
-Like if-else and while statements, they don't need an ending `;`.
-
-The evaluation of a function definition statement results in the definition of a variable who's name is the name of the defined function and it's value is the function itself. You may overwrite the variable or use it in an expression, although the only valid operation on it is a function call.
-
-```py
-fun abc() {}
-
-# Now "abc" is a function
-
-abc = 10;
-
-# Now it's an integer!
+When a function is called with more arguments than the ones specified in it's definition, the extra ones are discarded. If less arguments than expected are provided, the remaining ones are `none` by default. It's possible to specify default values for any of the arguments. When the caller passes `none` as an argument, the default value is used:
 ```
-
-## Functions calls and return values
-To execute a function in an expression, its name must be followed by an argument list enclosed in brackets `(..)`. All functions return at least one value, which may be `none` when a function has no useful value to be returned.
-
-To specify the return value of a function, one must use the `return` statement
-```py
-fun myName() {
-    # ..do stuff..
-    return "Francesco";
+fun sayHelloTo(name1="Francesco", b="Giovanni") {
+    print("Hello ", name1, " and ", name2, "!\n");
 }
 
-fun add(a, b)
+sayHello(none, "Filippo"); # Hello Francesco and Filippo!
+
+# Here the arguments are implicitly none
+sayHello(); # Hello Francesco and Giovanni!
+``` 
+Return value can be specified using the `return` keyword:
+```
+fun sum(a, b) {
     return a + b;
-```
-
-when calling a function, the resulting value of the call will be the one evaluated by the last return statement.
-
-```py
-fun add(a, b)
-    return a + b;
-
-six = add(2, 3) + 1; 
-```
-
-Note that a return statement must always end with a `;`.
-
-When a function doesn't return a value explicitly, then the `none` value is returned:
-```py
-fun iDontReturnExplicitly() {
-    1 + 2;
 }
 
-print(iDontReturnExplicitly(), '\n'); # Prints: none 
+print("The sum of 3 and 7 is ", sum(3, 7), "\n");
 ```
-
-## Multiple return values
-Functions may return more than one value:
-```py
-fun swap(a, b)
-    return b, a;
+functions that don't return a value explicitly will return `none` implicitly. Multiple values can be returned. To get the extra return values, one must assign them to variables. If called outside of an assignment, only the first return value is considered.
 ```
+fun divmod(x, y) {
+    return (x / y), (x % y);
+}
 
-When calling a function with more than one return value in an expression, only the first return value is considered.
+res1, res2 = divmod(100, 20); # 5, 0
 
-```py
-fun returnTwoThings()
-    return 5, "I'm ignored";
+print(divmod(100, 20)); # Prints 5 (the modulo's result is discarded) 
+``` 
+When a function returns more values than what was expected in an assignment expression, the extra values are ignored. If an assignment expects a function to return more values than it actually returns, the extra variables are set to `none`.
 
-print(1 + returnTwoThings(), '\n'); # Prints 6.
+## Scoping and closures
+ 
+Functions are the only construct that creates a new scope: when variables are defined inside a functions, they're only accessible from within that function. When the function returns, all variables defined by it are no longer accessible. Here are some examples:
 ```
+fun doSomething() {
+    name = "Francesco";
+}
 
-The way to use the additional return values is through an assignment to multiple variables
-
-```py
-first, second = returnTwoThings();
-print(first, '\n'); # Prints 5
-print(second, '\n'); # Prints "I'm ignored"
+doSomething();
+print(name); # Runtime Error: No variable "name" is defined!
 ```
-
-An assignment to multiple variables is still an expression, and it evaluates to the leftmost value
-```py
-fun combine(a, b) 
-    return (a+b), (a-b);
-
-print((x,y = combine(3, 4))); # Prints 7.
+By contrast, functions can access variables defined in their parent scope (relative to their definition)
 ```
-
-When assigning to more values than returned, the excess variables are set to none. If more values are returned than what were expected, the extra ones are ignored.
-
-## Function arguments and default values
-When a function is called with less arguments than it expected, the unprovided arguments will have the `none` value. If more arguments than what were expected are provided, the unexpected ones are ignored.
-
-It's possible to define default values for any argument. The default value will be used when the respective argument is `none`.
-
-```py
-fun sayHello(name = "unnamed person")
-    print("Hello, ", name, "!\n");
-
-sayHello("Francesc"); # Hello, Francesco!
-sayHello(none); # Hello, unnamed person!
-sayHello();     # Hello, unnamed person!
-```
-
-## Scoping
-Functions are the only thing that creates a new scope. When variables are defined inside a function, they're relative to the function and the function only. When the function returns, the variable defined inside it are no longer available.
-
-## Closures
-When defining a function, the scope of all the parent contexts are captured and are always accessible by the function's body. When functions are defined in the global scope, this means that they can always access global variables
-
-```py
 name = "Francesco";
+age = 24;
 
-fun printName()
-    print(name);
-
-printName(); # Prints "Francesco"
-
-name = "Giovanni";
-
-printName(); # Prints "Giovanni"
-```
-
-A function that's defined inside another one will be able to access both the scope of the parent function and the global scope
-```py
-name1 = "Giovanni";
-fun outerFunc() {
-    name2 = "Francesco";
-    fun innerFunc() {
-        print(name1, " and ", name2, " are friends!\n");
-    }
+fun printVars() {
+    print(name, age);
 }
 
-outerFunc(); # Prints: Giovanni and Francesco are friends!
+printVars(); # prints: Francesco24
 ```
+An alternative way of saying this is that functions create closures. This mechanism also works recursively, functions defined within other functions can access both the parent function's variables and global variables.
+```
+X = 1;
 
-But this mechanism is cooler than that! This also applies when the function is returned
-```py
-name1 = "Giovanni";
-fun outerFunc() {
-    name2 = "Francesco";
-    fun innerFunc() {
-        print(name1, " and ", name2, " are friends!\n");
+fun wrapper() {
+
+    Y = 2;
+
+    fun printVars() {
+        print(X, Y);
     }
-    return innerFunc;
+
+    printVars();
 }
 
-innerFunc = outerFunc();
-innerFunc(); # Prints the same thing
+wrapper(); # prints: 12
 ```
+A cool implication of closures is the ability to create parametric definitions of functions. This is done by returning from a function a function defined inside it
+```
+fun createDivisibilityCheck(n) {
+    fun isDivisibleByN(k) {
+        return k % n == 0;
+    }
 
-But functions may never modify the captures scopes. Variables can only be defined relative to the local scope.
+    return isDivisibleByN;
+}
 
-## Type hints
-Type hints are a lightweight way to check that a function is called with the proper arguments. All of the checks are done at runtime. Each argument may be associated to one or more types. If the function is called with a type other than the specified ones, a runtime error is triggered.
+isDivisibleBy2 = createDivisibilityCheck(2);
+isDivisibleBy3 = createDivisibilityCheck(3);
 
-```py
+isDivisibleBy2(100); # true
+isDivisibleBy2(107); # false
+
+isDivisibleBy3(39);  # true
+isDivisibleBy3(100); # false
+``` 
+in this example, `isDivisibleBy2` and `isDivisibleBy3` share their implementation. What changes, is the closure of their parent scopes.
+
+## Type assertions
+Type assertions are a way to check that a function is called with the proper arguments. All of the checks are done at runtime. Each argument may be associated to one or more types. If the function is called with a type other than the specified ones, a runtime error is triggered.
+
+```
 fun add(a: int, b: int)
     return a + b;
 
 c = add(2, 3.0); # Error!! Second argument is a float but an int was expected.
 ```
 
-```py
+```
 fun add(a: int, b: int | float)
     return a + b;
 
 c = add(2, 3.0); # Now this is ok!
 ```
 
-To allow a function to be `none` when using type hints, you can use the `None` type
-```py
+To allow a function to be `none` when using type assertions, you can use the `None` type or the `?` operator
+```
 fun someFunction(optionalNumber: int | float | None) {
+    # ..do stuff..
+}
+fun someFunction2(optionalNumber: ?(int | float)) {
     # ..do stuff..
 }
 ```
 
-Default arguments are evaluated before the type hints, therefore when `none` is provided as argument value, no error is triggered if a proper default argument was specified, even when it wasn't allowed as a type. If the default value doesn't result in a valid type, an error is triggered.
+Default arguments are evaluated before the type assertions, therefore when `none` is provided as argument value, no error is triggered if a proper default argument was specified, even when it wasn't allowed as a type. If the default value doesn't result in a valid type, an error is triggered.
 
-```py
+```
 fun someFunction(a: int = 4) {}
 someFunction(none); # No error. The argument value will be 4.
 
