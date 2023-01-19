@@ -124,13 +124,6 @@ fun stringFromMap(map: Map, can_use_method=true) {
 	return s;
 }
 
-fun integerFromDigit(char: String) {
-    res = ord(char) - ord('0');
-    if res < 0 or res > 9:
-    	error("String isn't a digit");
-    return res;
-}
-
 fun GenericIterator(T) return {
 	set : T,
 	keys : List,
@@ -189,6 +182,13 @@ return {
 		if T == NFunc: return "NFunc";
 		if T == String: return value;
 		error(cat("Don't know how to convert ", typename(value), " to a string"));
+	}
+
+	fun integerFromDigit(char: String) {
+    	res = ord(char) - ord('0');
+	    if res < 0 or res > 9:
+    		error("String isn't a digit");
+    	return res;
 	}
 
 	fun isCallable(x)

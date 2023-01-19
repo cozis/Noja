@@ -163,7 +163,7 @@ static int bin_accept(Runtime *runtime, Object **argv, unsigned int argc, Object
 	int fd = pargs[0].as_int;
 	
 	struct sockaddr_in new_addr;
-	socklen_t new_addr_size;
+	socklen_t new_addr_size = sizeof(new_addr);
 	int new_fd = accept(fd, (struct sockaddr*) &new_addr, &new_addr_size);
 	if (new_fd < 0)
 		return returnValues2(error, runtime, rets, "ns", strerror(errno));

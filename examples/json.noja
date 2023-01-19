@@ -251,6 +251,43 @@ fun parse(src: String) {
     return val, err;
 }
 
+fun readFile(name: String) {
+    stream, error = files.openFile(name, files.READ);
+    if error != none:
+        return error;
+
+    text = "";
+    size = 256;
+    do {
+        
+        size = size * 2;
+        buff = buffer.new(size);
+
+        read_bytes, error = files.read(stream, buff);
+        if error != none:
+            return error;
+
+        text2, error = buffer.toString(buff);
+        if error != none:
+            return none, error;
+        assert(text2 != none);
+        
+        text = string.cat(text, text2);
+
+    } while count(buff) == read_bytes;
+
+    return text;
+}
+
+fun parseFile(name: String) {
+    text, error = readFile(name);
+    if error != none:
+        return none, error;
+    assert(text != none);
+    result, error = parse(text);
+    return result, error;
+}
+
 fun test() {
 
     compareAny = import("compare.noja").compareAny;
@@ -330,4 +367,4 @@ fun test() {
     print(" total: ", total,  "\n");
 }
 
-return {parse: parse, test: test};
+return {parse: parse, parseFile: parseFile, test: test};

@@ -91,11 +91,14 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
             Error_Report(error, 0, "Argument #%d is not a string", i+1);
             return -1;
         }
+        
+        size_t length;
+        Object_GetString(argv[i], &length);
+        total_count += length;
 
-        total_count += Object_Count(argv[i], error);
-
-        if(error->occurred)
-            return -1;
+        // The Object_Count of a string doesn't match the
+        // byte count, but the second argument of Object_GetString
+        // does.
     }
 
     char starting[128];
@@ -112,8 +115,6 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
         }
     }
 
-    Object *result = NULL;
-
     for(unsigned int i = 0, written = 0; i < argc; i += 1)
     {
         size_t length;
@@ -125,7 +126,7 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     buffer[total_count] = '\0';
 
-    result = Object_FromString(buffer, total_count, Runtime_GetHeap(runtime), error);
+    Object *result = Object_FromString(buffer, total_count, Runtime_GetHeap(runtime), error);
         
     if(starting != buffer)
         free(buffer);

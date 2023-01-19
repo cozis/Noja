@@ -489,12 +489,12 @@ static inline TokenKind next(Context *ctx, const char *file, int line)
 	Token *prev = ctx->token;
 
 	ctx->token = ctx->token->next;
-
+/*
 	fprintf(stderr, "NEXT [%.*s] -> [%.*s] from %s:%d\n", 
 		      prev->length, ctx->src +       prev->offset,
 		ctx->token->length, ctx->src + ctx->token->offset, 
 		file, line);
-
+*/
 	return current(ctx);
 }
 

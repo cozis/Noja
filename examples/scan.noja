@@ -8,12 +8,12 @@ Scanner = {
     consumeSpaces: Callable
 };
 
+fun isSpace(c: String)
+    return c == ' '
+        or c == '\t'
+        or c == '\n';
+
 fun newScanner(src: String) {
-    
-    fun isSpace(c: String)
-        return c == ' '
-            or c == '\t'
-            or c == '\n';
     
     scan = {
         src: src, 

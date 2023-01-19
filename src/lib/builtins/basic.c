@@ -61,6 +61,38 @@ static int bin_getCurrentWorkingDirectory(Runtime *runtime, Object **argv, unsig
 	return returnValues2(error, runtime, rets, "s", path);
 }
 
+static int bin_getCurrentScriptDirectory(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+{
+	UNUSED(argc);
+	UNUSED(argv);
+	ASSERT(argc == 0);
+	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
+	if (path == NULL)
+		return returnValues2(error, runtime, rets, "n");
+
+	size_t len = strlen(path);
+
+	while (path[len-1] != '/') // This underflows if path has len 0 or doesn't contain a "/".
+		len--;
+	
+	Object *obj = Object_FromString(path, len, Runtime_GetHeap(runtime), error);
+	if (obj == NULL)
+		return -1;
+	rets[0] = obj;
+	return 1;
+}
+
+static int bin_getCurrentScriptLocation(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
+{
+	UNUSED(argc);
+	UNUSED(argv);
+	ASSERT(argc == 0);
+	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
+	if (path == NULL)
+		return returnValues2(error, runtime, rets, "n");
+	return returnValues2(error, runtime, rets, "s", path);
+}
+
 static int bin_typename(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
 	UNUSED(argc);
@@ -364,5 +396,7 @@ StaticMapSlot bins_basic[] = {
 	{ "typename", SM_FUNCT, .as_funct = bin_typename, .argc = 1, },
 	{ "keysof", SM_FUNCT, .as_funct = bin_keysof, .argc = 1, },
 	{ "getCurrentWorkingDirectory", SM_FUNCT, .as_funct = bin_getCurrentWorkingDirectory, .argc = 0 },
+	{ "getCurrentScriptDirectory",  SM_FUNCT, .as_funct = bin_getCurrentScriptDirectory,  .argc = 0 },
+	{ "getCurrentScriptLocation",   SM_FUNCT, .as_funct = bin_getCurrentScriptLocation,   .argc = 0 },
 	{ NULL, SM_END, {}, {} },
 };

@@ -299,9 +299,9 @@ void *Heap_RawMalloc(Heap *heap, int size, Error *err)
 			Error_Report(err, 1, "Out of heap");
 			return NULL;
 		}
-
+		
 		OflowAlloc *oflow = malloc(sizeof(OflowAlloc) + size);
-
+		
 		if(oflow == 0)
 			return 0;
 
@@ -355,68 +355,73 @@ _Bool Heap_StartCollection(Heap *heap, Error *error)
 	return 1;
 }
 
-_Bool Heap_StopCollection(Heap *heap)
+static bool callDestructors(Heap *heap)
 {
-	assert(heap->collecting == 1);
+	int i = 0;
 
-	if(heap->collection_failed)
+	while(i < heap->pend_used)
 	{
-		free(heap->old_body);
-		return 0;
-	}
+		Object *obj = heap->pend[i].object;
 
-	/* Call destructors here */
-	{
-		int i = 0;
-	
-		while(i < heap->pend_used)
+		if(obj->flags & Object_MOVED)
 		{
-			Object *obj = heap->pend[i].object;
-
-			if(obj->flags & Object_MOVED)
-			{
-				heap->pend[i].object = ((MovedObject*) heap->pend[i].object)->new_location;
-				i += 1;
-			}
-			else
-			{
-				// We need to call the destructor.
-
-				heap->pend[i].destructor(obj, heap->error);
-						
-				if(heap->error->occurred) 
-					return 0; // There will be leaks.
-				
-				heap->pend[i] = heap->pend[heap->pend_used-1];
-				heap->pend_used -= 1;
-			}
+			heap->pend[i].object = ((MovedObject*) heap->pend[i].object)->new_location;
+			i += 1;
 		}
-
-		if(heap->pend_size / 2 > heap->pend_used)
+		else
 		{
-			// Downsize
-			void *temp = realloc(heap->pend, heap->pend_size / 2 * sizeof(PendingDestruct));
+			// We need to call the destructor.
 
-			if(temp != NULL)
-			{
-				heap->pend = temp;
-				heap->pend_size /= 2;
-			}
+			heap->pend[i].destructor(obj, heap->error);
+					
+			if(heap->error->occurred) 
+				return false; // There will be leaks.
+			
+			heap->pend[i] = heap->pend[heap->pend_used-1];
+			heap->pend_used -= 1;
 		}
 	}
 
+	if(heap->pend_size / 2 > heap->pend_used)
+	{
+		// Downsize
+		void *temp = realloc(heap->pend, heap->pend_size / 2 * sizeof(PendingDestruct));
+
+		if(temp != NULL)
+		{
+			heap->pend = temp;
+			heap->pend_size /= 2;
+		}
+	}
+
+	return true;
+}
+
+static void freeOverflowAllocations(Heap *heap)
+{
 	while(heap->old_oflow)
 	{
 		OflowAlloc *prev = heap->old_oflow->prev;
 		free(heap->old_oflow);
 		heap->old_oflow = prev;
 	}
+}
+
+_Bool Heap_StopCollection(Heap *heap)
+{
+	assert(heap->collecting == 1);
+
+	if(!callDestructors(heap))
+		return false;
+	
+	freeOverflowAllocations(heap);
 
 	free(heap->old_body);
 
 	heap->collecting = 0;
 	heap->objcount = heap->movedcount;
-	return 1;
+
+	return !heap->collection_failed;
 }
 
 void Heap_CollectExtension(void **referer, unsigned int size, void *userp)

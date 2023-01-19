@@ -32,6 +32,7 @@
 #define RUNTIME_H
 
 #include <stdio.h> // meh.. just for the definition of FILE.
+#include "timing.h"
 #include "../utils/error.h"
 #include "../utils/stack.h"
 #include "../objects/objects.h"
@@ -40,19 +41,34 @@
 typedef struct xRuntime Runtime;
 typedef struct xSnapshot Snapshot;
 
-Runtime*	Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*));
-Runtime*	Runtime_New2(int stack_size, Heap *heap, _Bool free_heap, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*));
-void 		Runtime_Free(Runtime *runtime);
-_Bool 		Runtime_Pop(Runtime *runtime, Error *error, unsigned int n);
-_Bool 		Runtime_Push(Runtime *runtime, Error *error, Object *obj);
-Heap*		Runtime_GetHeap(Runtime *runtime);
-Stack*		Runtime_GetStack(Runtime *runtime);
-Object*		Runtime_GetBuiltins(Runtime *runtime);
-void 		Runtime_SetBuiltins(Runtime *runtime, Object *builtins);
-int 		Runtime_GetCurrentIndex(Runtime *runtime);
-Executable *Runtime_GetCurrentExecutable(Runtime *runtime);
-size_t      Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize);
-const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime);
+typedef struct {
+    bool (*func)(Runtime*, void*);
+    void  *data;
+} RuntimeCallback;
+
+typedef struct {
+    bool time;
+    size_t stack;
+    RuntimeCallback callback;
+} RuntimeConfig;
+
+Runtime*	 Runtime_New(int heap_size, RuntimeConfig config);
+Runtime*	 Runtime_New2(Heap *heap, bool free_it, RuntimeConfig config);
+void 		 Runtime_Free(Runtime *runtime);
+_Bool 		 Runtime_Pop(Runtime *runtime, Error *error, unsigned int n);
+_Bool 		 Runtime_Push(Runtime *runtime, Error *error, Object *obj);
+void         Runtime_Interrupt(Runtime *runtime);
+Heap*		 Runtime_GetHeap(Runtime *runtime);
+Stack*		 Runtime_GetStack(Runtime *runtime);
+Object*		 Runtime_GetBuiltins(Runtime *runtime);
+void 		 Runtime_SetBuiltins(Runtime *runtime, Object *builtins);
+int 		 Runtime_GetCurrentIndex(Runtime *runtime);
+Executable  *Runtime_GetCurrentExecutable(Runtime *runtime);
+size_t       Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize);
+const char  *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime);
+TimingTable *Runtime_GetTimingTable(Runtime *runtime);
+RuntimeConfig Runtime_GetDefaultConfigs();
+
 Snapshot   *Snapshot_New(Runtime *runtime);
 void 	    Snapshot_Free(Snapshot *snapshot);
 void 	    Snapshot_Print(Snapshot *snapshot, FILE *fp);
@@ -90,8 +106,9 @@ struct StaticMapSlot {
 };
 
 Object *Object_NewStaticMap(StaticMapSlot slots[], void (*initfn)(StaticMapSlot[]), Runtime *runt, Error *error);
-Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error);
+Object *Object_FromNojaFunction(Runtime *runtime, const char *name, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error);
 Object *Object_FromNativeFunction(Runtime *runtime, int (*callback)(Runtime*, Object**, unsigned int, Object*[static MAX_RETS], Error*), int argc, Heap *heap, Error *error);
+
 typedef struct {
     Error base;
     Runtime *runtime;

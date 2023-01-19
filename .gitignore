@@ -16,3 +16,5 @@ lib*.a
 embedder
 
 *_n.c
+
+profiling-results.txt

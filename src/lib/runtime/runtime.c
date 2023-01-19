@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "runtime.h"
 #include "../utils/path.h"
 #include "../utils/defs.h"
@@ -49,16 +50,25 @@ struct xFrame {
 };
 
 struct xRuntime {
-	void *callback_userp;
-	_Bool (*callback_addr)(Runtime*, void*);
+	bool interrupt;
+	RuntimeCallback callback;
 	_Bool free_heap;
 	Object *builtins;
 	int    depth;
 	Frame *frame;
 	Stack *stack;
 	Heap  *heap;
+	TimingTable *timing;
 };
 
+RuntimeConfig Runtime_GetDefaultConfigs()
+{
+    return (RuntimeConfig) {
+        .stack = 1024,
+        .callback = { .func = NULL, .data = NULL },
+        .time = false,
+    };
+}
 
 // Returns the length written in buff (not considering the zero byte)
 size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
@@ -153,50 +163,69 @@ Executable *Runtime_GetCurrentExecutable(Runtime *runtime)
 		return runtime->frame->exe;
 }
 
-Runtime *Runtime_New2(int stack_size, Heap *heap, _Bool free_heap, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
+TimingTable *Runtime_GetTimingTable(Runtime *runtime)
 {
-	if(stack_size < 0)
-		stack_size = 1024;
+	return runtime->timing;
+}
 
+void Runtime_Interrupt(Runtime *runtime)
+{
+	runtime->interrupt = true;
+}
+
+Runtime *Runtime_New2(Heap *heap, _Bool free_it, RuntimeConfig config)
+{
 	Runtime *runtime = malloc(sizeof(Runtime));
+	if (runtime == NULL)
+		return NULL;
 
-	if(runtime != NULL)
-	{
-		runtime->heap = heap;
-		runtime->stack = Stack_New(stack_size);
-
-		if(runtime->stack == NULL)
-		{
-			Heap_Free(runtime->heap);
-			free(runtime);
-		}
-
-		runtime->free_heap = free_heap;
-		runtime->callback_userp = callback_userp;
-		runtime->callback_addr = callback_addr;
-		runtime->builtins = NULL;
-		runtime->frame = NULL;
-		runtime->depth = 0;
+	runtime->stack = Stack_New(config.stack);
+	if(runtime->stack == NULL) {
+		if (free_it)
+			Heap_Free(heap);
+		free(runtime);
+		return NULL;
 	}
+
+	TimingTable *timing_table = NULL;
+	if (config.time) {
+		timing_table = TimingTable_new();
+		if (timing_table == NULL) {
+			if (free_it)
+				Heap_Free(heap);
+			free(runtime);
+			return NULL;
+		}
+	}
+	
+
+	runtime->interrupt = false;
+	runtime->timing = timing_table;
+	runtime->heap = heap;
+	runtime->free_heap = free_it;
+	runtime->callback = config.callback;
+	runtime->builtins = NULL;
+	runtime->frame = NULL;
+	runtime->depth = 0;
 
 	return runtime;
 }
 
-Runtime *Runtime_New(int stack_size, int heap_size, void *callback_userp, _Bool (*callback_addr)(Runtime*, void*))
+Runtime *Runtime_New(int heap_size, RuntimeConfig config)
 {
 	if(heap_size < 0)
 		heap_size = 65536;
 
 	Heap *heap = Heap_New(heap_size);
+	if(heap == NULL) return NULL;
 
-	if(heap == NULL)
-		return NULL;
-
-	return Runtime_New2(stack_size, heap, 1, callback_userp, callback_addr);
+	return Runtime_New2(heap, 1, config);
 }
 
 void Runtime_Free(Runtime *runtime)
 {
+	if (runtime->timing != NULL)
+		TimingTable_free(runtime->timing);
 	if(runtime->free_heap)
 		Heap_Free(runtime->heap);
 	Stack_Free(runtime->stack);
@@ -839,6 +868,7 @@ static _Bool step(Runtime *runtime, Error *error)
 		{
 			ASSERT(opc == 1);
 			ASSERT(ops[0].type == OPTP_STRING);
+			const char *name = ops[0].as_string;
 
 			if(runtime->frame->used == 0)
 			{
@@ -849,7 +879,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			Object *val = Stack_Top(runtime->stack, 0);
 			ASSERT(val != NULL);
 
-			Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
+			Object *key = Object_FromString(name, -1, runtime->heap, error);
 
 			if(key == NULL)
 				return 0;
@@ -1204,16 +1234,17 @@ static _Bool step(Runtime *runtime, Error *error)
 
 		case OPCODE_PUSHFUN:
 		{
-			ASSERT(opc == 2);
+			ASSERT(opc == 3);
 			ASSERT(ops[0].type == OPTP_IDX);
 			ASSERT(ops[1].type == OPTP_INT);
+			ASSERT(ops[2].type == OPTP_STRING);
 
 			Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
 
 			if(closure == NULL)
 				return 0;
 
-			Object *obj = Object_FromNojaFunction(runtime, runtime->frame->exe, ops[0].as_int, ops[1].as_int, closure, runtime->heap, error);
+			Object *obj = Object_FromNojaFunction(runtime, ops[2].as_string, runtime->frame->exe, ops[0].as_int, ops[1].as_int, closure, runtime->heap, error);
 
 			if(obj == NULL)
 				return 0;
@@ -1470,34 +1501,23 @@ int run(Runtime *runtime, Error *error,
 
 	// Run the code.
 
-	if(runtime->callback_addr != NULL)
-	{
-		if(!runtime->callback_addr(runtime, runtime->callback_userp))
-			Error_Report(error, 0, "Forced abortion");
-		else
-			while(step(runtime, error))
-			{
-				if(!runtime->callback_addr(runtime, runtime->callback_userp))
-				{
-					Error_Report(error, 0, "Forced abortion");
-					break;
-				}
 
-				//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
-
-				if(Heap_GetUsagePercentage(runtime->heap) > 100)
-					if(!collect(runtime, error))
-						break;
-			}
-	}
+	if(runtime->interrupt || (runtime->callback.func != NULL && !runtime->callback.func(runtime, runtime->callback.data)))
+		Error_Report(error, 0, "Forced abortion");
 	else
 		while(step(runtime, error))
 		{
+			if(runtime->interrupt || (runtime->callback.func != NULL && !runtime->callback.func(runtime, runtime->callback.data)))
+			{
+				Error_Report(error, 0, "Forced abortion");
+				break;
+			}
+
+			//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
+
 			if(Heap_GetUsagePercentage(runtime->heap) > 100)
 				if(!collect(runtime, error))
 					break;
-
-			//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
 		}
 
 	// If an error occurred, we want to return NULL.

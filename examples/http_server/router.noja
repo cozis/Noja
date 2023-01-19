@@ -5,6 +5,8 @@ Router = {table: Map, plug: Callable, solve: Callable};
 
 fun loadFile(path: String) {
 
+	print("path=", path, "\n");
+
 	stream, error = files.openFile(path, files.READ);
 	if error != none:
 		return none, error;
@@ -83,8 +85,8 @@ fun new() {
 			if isCallable(method_item):
 				res = method_item(req);
 			else {
-				cwd  = getCurrentWorkingDirectory();
-				file = path.join(cwd, method_item);
+				csd  = getCurrentScriptDirectory();
+				file = path.join(csd, method_item);
 				data, error = loadFile(file);
 				if error == none: 
 					res = respond(200, data);

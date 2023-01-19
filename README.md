@@ -67,10 +67,10 @@ The `noja` executable will be generated, which is a CLI that runs Noja code.
 ## Usage
 You can run files by doing:
 ```sh
-location/of/noja run <filename>
+location/of/noja <filename>
 ```
 
 or you can run strings by doing:
 ```sh
-location/of/noja run inline <string>
+location/of/noja -i <string>
 ```

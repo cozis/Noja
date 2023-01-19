@@ -5,6 +5,7 @@
 #include "compiler/compile.h"
 #include "assembler/assemble.h"
 #include "builtins/basic.h"
+#include "runtime/timing.h"
 #include "noja.h"
 
 static void print_error(const char *type, Error *error)
@@ -33,10 +34,23 @@ static void print_error(const char *type, Error *error)
     fprintf(stderr, "\n");
 }
 
-static _Bool interpret(Executable *exe)
-{
-    Runtime *runt = Runtime_New(-1, 1024*1024, NULL, NULL);
+#include <signal.h>
 
+Runtime *runt = NULL;
+
+static void signalHandler(int signo)
+{
+    (void) signo;
+    if (runt != NULL)
+       Runtime_Interrupt(runt);
+}
+
+static _Bool interpret(Executable *exe, bool time, size_t heap)
+{
+    RuntimeConfig config = Runtime_GetDefaultConfigs();
+    config.time = time;
+
+    runt = Runtime_New(heap, config);
     if(runt == NULL)
     {
         Error error;
@@ -46,6 +60,8 @@ static _Bool interpret(Executable *exe)
         Error_Free(&error);
         return 0;
     }
+    signal(SIGINT,  signalHandler);
+    signal(SIGTERM, signalHandler);
 
     // We use a [RuntimeError] instead of a simple [Error]
     // because the [RuntimeError] makes a snapshot of the
@@ -158,6 +174,37 @@ static _Bool interpret(Executable *exe)
         RuntimeError_Free(&error);
     }
 
+    TimingTable *table = Runtime_GetTimingTable(runt);
+    if (table != NULL) {
+
+        const char *file = "profiling-results.txt";
+
+        FILE *stream = fopen(file, "wb");
+        if (stream == NULL) {
+            fprintf(stderr, "Failed to serialize profiling results\n");
+        } else {
+            
+            const FunctionExecutionSummary *summary;
+            size_t count;
+            
+            summary = TimingTable_getSummary(table, &count);
+            assert(summary != NULL);
+            
+            for (size_t i = 0; i < count; i++) {
+                if (summary[i].calls > 0) {
+                    fprintf(stream, "%20s - %s - %ld calls - %.2lfus\n",
+                           summary[i].name,
+                           Source_GetName(summary[i].src),
+                           summary[i].calls,
+                           summary[i].time * 1000000);
+                }
+            }
+            
+            fclose(stream);
+            fprintf(stderr, "Wrote profiling result to %s\n", file);
+        }
+    }
+
     Runtime_Free(runt);
     return retc > -1;
 }
@@ -193,7 +240,7 @@ static _Bool disassemble(Source *src)
     return 1;
 }
 
-static _Bool interpret_file(const char *file)
+static _Bool interpret_file(const char *file, bool time, size_t heap)
 {
     Error error;
     Error_Init(&error);
@@ -213,14 +260,14 @@ static _Bool interpret_file(const char *file)
         return 0;
     }
 
-    _Bool r = interpret(exe);
+    _Bool r = interpret(exe, time, heap);
 
     Executable_Free(exe);
     Source_Free(src);
     return r;
 }
 
-static _Bool interpret_code(const char *code)
+static _Bool interpret_code(const char *code, bool time, size_t heap)
 {
     Error error;
     Error_Init(&error);
@@ -241,14 +288,14 @@ static _Bool interpret_code(const char *code)
         return 0;
     }
 
-    _Bool r = interpret(exe);
+    _Bool r = interpret(exe, time, heap);
 
     Executable_Free(exe);
     Source_Free(src);
     return r;
 }
 
-static _Bool interpret_asm_file(const char *file)
+static _Bool interpret_asm_file(const char *file, bool time, size_t heap)
 {
     Error error;
     Error_Init(&error);
@@ -262,7 +309,7 @@ static _Bool interpret_asm_file(const char *file)
         Error_Free(&error);
         return 0;
     }
-
+    
     Executable *exe = assemble(src, &error);
     if(exe == NULL) {
         print_error("Assemblation", &error);
@@ -271,7 +318,7 @@ static _Bool interpret_asm_file(const char *file)
         return 0;
     }
 
-    _Bool r = interpret(exe);
+    _Bool r = interpret(exe, time, heap);
 
     Executable_Free(exe);
     Source_Free(src);
@@ -279,7 +326,7 @@ static _Bool interpret_asm_file(const char *file)
     return r;
 }
 
-static _Bool interpret_asm_code(const char *code)
+static _Bool interpret_asm_code(const char *code, bool time, size_t heap)
 {
     Error error;
     Error_Init(&error);
@@ -302,7 +349,7 @@ static _Bool interpret_asm_code(const char *code)
         return 0;
     }
 
-    _Bool r = interpret(exe);
+    _Bool r = interpret(exe, time, heap);
 
     Executable_Free(exe);
     Source_Free(src);
@@ -352,14 +399,14 @@ static _Bool disassemble_code(const char *code)
     return r;
 }
 
-_Bool NOJA_runString(const char *str)
+_Bool NOJA_runString(const char *str, size_t heap)
 {
-    return interpret_code(str);
+    return interpret_code(str, false, heap);
 }
 
-_Bool NOJA_runFile(const char *file)
+_Bool NOJA_runFile(const char *file, size_t heap)
 {
-    return interpret_file(file);
+    return interpret_file(file, false, heap);
 }
 
 _Bool NOJA_dumpFileBytecode(const char *file)
@@ -372,12 +419,32 @@ _Bool NOJA_dumpStringBytecode(const char *str)
     return disassemble_code(str);
 }
 
-_Bool NOJA_runAssemblyFile(const char *file)
+_Bool NOJA_runAssemblyFile(const char *file, size_t heap)
 {
-    return interpret_asm_file(file);
+    return interpret_asm_file(file, false, heap);
 }
 
-_Bool NOJA_runAssemblyString(const char *str)
+_Bool NOJA_runAssemblyString(const char *str, size_t heap)
 {
-    return interpret_asm_code(str);
+    return interpret_asm_code(str, false, heap);
+}
+
+_Bool NOJA_profileString(const char *str, size_t heap)
+{
+    return interpret_code(str, true, heap);
+}
+
+_Bool NOJA_profileFile(const char *file, size_t heap)
+{
+    return interpret_file(file, true, heap);
+}
+
+_Bool NOJA_profileAssemblyFile(const char *file, size_t heap)
+{
+    return interpret_asm_file(file, true, heap);
+}
+
+_Bool NOJA_profileAssemblyString(const char *str, size_t heap)
+{
+    return interpret_asm_code(str, true, heap);
 }

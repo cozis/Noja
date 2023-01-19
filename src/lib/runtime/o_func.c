@@ -28,18 +28,22 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
+#include <time.h>
 #include <assert.h>
 #include <stdlib.h>
 #include "../utils/defs.h"
 #include "../objects/objects.h"
+#include "timing.h"
 #include "runtime.h"
 
 typedef struct {
 	Object base;
+	const char *name;
 	Runtime *runtime;
 	Executable *exe;
 	int index, argc;
 	Object *closure;
+	TimingID timing_id;
 } FunctionObject;
 
 static _Bool free_(Object *self, Error *error)
@@ -108,10 +112,28 @@ static int call(Object *self, Object **argv, unsigned int argc, Object *rets[sta
 		// The right amount of arguments was provided.
 		argv2 = argv;
 
+	clock_t begin;
+	TimingID timing_id;
+	TimingTable *timing_table = Runtime_GetTimingTable(func->runtime);
+	if (timing_table != NULL) {
+		begin = clock();
+
+		// Need to save the object's member
+	    // before the run function since it
+	    // may trigger a GC cycle invalidating
+	    // the object pointer.
+		timing_id = func->timing_id;
+	}
+
 	int retc = run(func->runtime, error, func->exe, func->index, func->closure, argv2, expected_argc, rets);
 
-	// NOTE: Every object reference is invalidated from here.
+	if (timing_table != NULL) {
+		double time = (double) (clock() - begin) / CLOCKS_PER_SEC;
+		TimingTable_sumCallTime(timing_table, timing_id, time);
+	}
 
+	// NOTE: Every object reference is invalidated from here.
+	
 	if(argv2 != argv)
 		free(argv2);
 
@@ -157,7 +179,7 @@ static TypeObject t_func = {
  *   The newly created object. If an error occurred, NULL is returned
  *   and information about the error is stored in the [error] argument.
  */
-Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error)
+Object *Object_FromNojaFunction(Runtime *runtime, const char *name, Executable *exe, int index, int argc, Object *closure, Heap *heap, Error *error)
 {
 	assert(runtime != NULL);
 	assert(exe != NULL);
@@ -180,10 +202,19 @@ Object *Object_FromNojaFunction(Runtime *runtime, Executable *exe, int index, in
 	}
 
 	func->runtime = runtime;
+	func->name = name; // Should this be copied?
 	func->exe = exe_copy;
 	func->index = index;
 	func->argc = argc;
 	func->closure = closure;
+
+	TimingTable *table = Runtime_GetTimingTable(runtime);
+	if (table != NULL) {
+		#warning "TODO: Calculate line number"
+		size_t line = 0;
+		Source *src = Executable_GetSource(exe);
+		func->timing_id = TimingTable_newEntry(table, src, line, name);
+	}
 
 	return (Object*) func;
 }
