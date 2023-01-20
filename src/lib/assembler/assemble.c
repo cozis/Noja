@@ -56,7 +56,8 @@ static bool parseLabelAndOpcode(Context *ctx, bool *no_label,
         char c = ctx->str[ctx->cur];
         if(!isalpha(c) && c != '_') {
             // ERROR: Missing opcode
-            Error_Report(error, 0, "Missing opcode");
+            Error_Report(error, ErrorType_SYNTAX, "Missing opcode");
+            #warning "should there be a return here?"
         }
         
         label_or_opcode.offset = ctx->cur;
@@ -77,7 +78,7 @@ static bool parseLabelAndOpcode(Context *ctx, bool *no_label,
         skipSpaces(ctx);
 
         if(ctx->cur == ctx->len || (!isalpha(ctx->str[ctx->cur]) && ctx->str[ctx->cur] != '_')) {
-            Error_Report(error, 0, "Missing opcode after label");
+            Error_Report(error, ErrorType_SYNTAX, "Missing opcode after label");
             return false;
         }
 
@@ -111,7 +112,7 @@ static bool parseStringOperand(Context *ctx, Error *error, BPAlloc *alloc, Opera
         ctx->cur += 1;
 
     if(ctx->cur == ctx->len) {
-        Error_Report(error, 0, "End of source inside a string literal");
+        Error_Report(error, ErrorType_SYNTAX, "End of source inside a string literal");
         return false;
     }
 
@@ -123,7 +124,7 @@ static bool parseStringOperand(Context *ctx, Error *error, BPAlloc *alloc, Opera
     
     char *copy = BPAlloc_Malloc(alloc, literal_length+1);
     if(copy == NULL) {
-        Error_Report(error, 1, "No memory");
+        Error_Report(error, ErrorType_INTERNAL, "No memory");
         return false;
     }
 
@@ -151,7 +152,7 @@ static bool parseIntegerOperand(Context *ctx, Error *error, Operand *op)
 
         // Will this overflow?
         if(buffer > (LLONG_MAX - d) / 10) {
-            Error_Report(error, 0, "Integer literal is too big to be represented in %d bits", 8*sizeof(buffer));
+            Error_Report(error, ErrorType_SEMANTIC, "Integer literal is too big to be represented in %d bits", 8*sizeof(buffer));
             return false;
         }
 
@@ -254,7 +255,7 @@ static bool parseOperands(Context *ctx, BPAlloc *alloc, Error *error,
 
                 Promise *promise = LabelList_GetLabel(list, ctx->str + offset, length);
                 if(promise == NULL) {
-                    Error_Report(error, 1, "No memory");
+                    Error_Report(error, ErrorType_INTERNAL, "No memory");
                     return false;
                 }
 
@@ -263,12 +264,12 @@ static bool parseOperands(Context *ctx, BPAlloc *alloc, Error *error,
 
             } else {
                 // ERROR: Unexpected character
-                Error_Report(error, 0, "Unexpected character '%c'", c);
+                Error_Report(error, ErrorType_SYNTAX, "Unexpected character '%c'", c);
                 return false;
             }
 
             if(*opc == opc_max) {
-                Error_Report(error, 0, "Too many operands");
+                Error_Report(error, ErrorType_SEMANTIC, "Too many operands");
                 return false;
             }
             opv[*opc] = op;
@@ -281,7 +282,7 @@ static bool parseOperands(Context *ctx, BPAlloc *alloc, Error *error,
 
             c = ctx->str[ctx->cur];
             if(c != ',') {
-                Error_Report(error, 0, "Unexpected character '%c' (',' or ';' were expected)", c);
+                Error_Report(error, ErrorType_SYNTAX, "Unexpected character '%c' (',' or ';' were expected)", c);
                 return false;
             }
 
@@ -301,20 +302,20 @@ Executable *assemble(Source *src, Error *error)
 
     BPAlloc *alloc = BPAlloc_Init(-1);
     if(alloc == NULL) {
-        Error_Report(error, 1, "No memory");
+        Error_Report(error, ErrorType_INTERNAL, "No memory");
         return NULL;
     }
 
     LabelList *list = LabelList_New(alloc);
     if(list == NULL) {
-        Error_Report(error, 1, "No memory");
+        Error_Report(error, ErrorType_INTERNAL, "No memory");
         BPAlloc_Free(alloc);
         return NULL;
     }
 
     ExeBuilder *builder = ExeBuilder_New(alloc);
     if(builder == NULL) {
-        Error_Report(error, 1, "No memory");
+        Error_Report(error, ErrorType_INTERNAL, "No memory");
         LabelList_Free(list);
         BPAlloc_Free(alloc);
         return NULL;
@@ -342,7 +343,7 @@ Executable *assemble(Source *src, Error *error)
         if(no_label == false) {
             long long int value = ExeBuilder_InstrCount(builder);
             if(!LabelList_SetLabel(list, ctx.str + label.offset, label.length, value)) {
-                Error_Report(error, 1, "Out of memory");
+                Error_Report(error, ErrorType_INTERNAL, "Out of memory");
                 goto done;
             }
         }
@@ -352,7 +353,7 @@ Executable *assemble(Source *src, Error *error)
         Opcode opcode;
         const char *name = ctx.str + opcode_name.offset;
         if(!Executable_GetOpcodeBinaryFromName(name, opcode_name.length, &opcode)) {
-            Error_Report(error, 0, "Opcode %.*s doesn't exist", (int) opcode_name.length, name);
+            Error_Report(error, ErrorType_SEMANTIC, "Opcode %.*s doesn't exist", (int) opcode_name.length, name);
             goto done;
         }
 
@@ -377,7 +378,7 @@ Executable *assemble(Source *src, Error *error)
 
     size_t unresolved_count = LabelList_GetUnresolvedCount(list);
     if(unresolved_count > 0) {
-        Error_Report(error, 0, "%d unresolved labels", unresolved_count);
+        Error_Report(error, ErrorType_SEMANTIC, "%d unresolved labels", unresolved_count);
         goto done;
     }
 

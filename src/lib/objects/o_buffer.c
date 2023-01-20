@@ -96,7 +96,7 @@ Object *Object_NewBuffer(size_t size, Heap *heap, Error *error)
 		Payload *payload = malloc(sizeof(Payload) + size);
 		if(payload == NULL)
 		{
-			Error_Report(error, 1, "No memory");
+			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
 		payload->refs = 1;
@@ -134,19 +134,19 @@ Object *Object_SliceBuffer(Object *obj, size_t offset, size_t length, Heap *heap
 {
 	if(!Object_IsBuffer(obj))
 	{
-		Error_Report(error, 0, "Not a " TYPENAME_BUFFER);
+		Error_Report(error, ErrorType_RUNTIME, "Not a " TYPENAME_BUFFER);
 		return NULL;
 	}
 
 	Payload *payload = ((BufferObject*) obj)->payload;
 
 	if(offset >= payload->size) {
-		Error_Report(error, 0, "Offset out of range");
+		Error_Report(error, ErrorType_RUNTIME, "Offset out of range");
 		return NULL;
 	}
 
 	if(offset + length > payload->size) {
-		Error_Report(error, 0, "Length out of range");
+		Error_Report(error, ErrorType_RUNTIME, "Length out of range");
 		return NULL;
 	}
 
@@ -187,7 +187,7 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 
 	if(!Object_IsInt(key))
 	{
-		Error_Report(error, 0, "Non integer key");
+		Error_Report(error, ErrorType_RUNTIME, "Non integer key");
 		return NULL;
 	}
 
@@ -197,7 +197,7 @@ static Object *buffer_select(Object *self, Object *key, Heap *heap, Error *error
 
 	if(idx < 0 || (size_t) idx >= buffer->length)
 	{
-		Error_Report(error, 0, "Index out of range");
+		Error_Report(error, ErrorType_RUNTIME, "Index out of range");
 		return NULL;
 	}
 
@@ -222,24 +222,24 @@ static _Bool buffer_insert(Object *self, Object *key, Object *val, Heap *heap, E
 
 	if(!Object_IsInt(key))
 	{
-		Error_Report(error, 0, "Non integer key");
+		Error_Report(error, ErrorType_RUNTIME, "Non integer key");
 		return NULL;
 	}
 	if(!Object_IsInt(val))
 	{
-		Error_Report(error, 0, "Non integer value");
+		Error_Report(error, ErrorType_RUNTIME, "Non integer value");
 		return NULL;
 	}
 	int idx = Object_GetInt(key);
 	long long int qword = Object_GetInt(val);
 	if(idx < 0 || (size_t) idx >= buffer->length)
 	{
-		Error_Report(error, 0, "Out of range index");
+		Error_Report(error, ErrorType_RUNTIME, "Out of range index");
 		return NULL;
 	}
 	if(qword > 255 || qword < 0)
 	{
-		Error_Report(error, 0, "Not in range [0, 255]");
+		Error_Report(error, ErrorType_RUNTIME, "Not in range [0, 255]");
 		return NULL;
 	}
 

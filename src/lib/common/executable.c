@@ -450,7 +450,7 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 
 	if(exeb->promc > 0)
 	{
-		Error_Report(error, 1, "There are still %d unfulfilled promises", exeb->promc);
+		Error_Report(error, ErrorType_INTERNAL, "There are still %d unfulfilled promises", exeb->promc);
 		return 0;
 	}
 
@@ -465,7 +465,7 @@ Executable *ExeBuilder_Finalize(ExeBuilder *exeb, Error *error)
 
 		if(temp == NULL)
 		{
-			Error_Report(error, 1, "No memory");
+			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
 
@@ -524,7 +524,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 #ifndef NDEBUG
 	if (info == NULL) {
-		Error_Report(error, 1, "Missing instruction table entry for opcode %d", opcode);
+		Error_Report(error, ErrorType_INTERNAL, "Missing instruction table entry for opcode %d", opcode);
 		return 0;
 	}
 #endif
@@ -532,12 +532,12 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 	if(opc != info->opcount)
 	{
 		// ERROR: Too many operands were provided.
-		Error_Report(error, 1, 
+		Error_Report(error, ErrorType_INTERNAL, 
 			"Instruction %s expects %d operands, but %d were provided", 
 			info->name, info->opcount, opc);
 		return 0;
 	}
-
+	
 	ASSERT(opc <= MAX_OPS);
 
 	{
@@ -545,7 +545,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 		if(instr == NULL)
 		{
-			Error_Report(error, 1, "No memory");
+			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			return 0;
 		}
 
@@ -570,13 +570,13 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 					if(expected_type == OPTP_STRING)
 					{
-						Error_Report(error, 1, "Promise values can't be provided as string operands");
+						Error_Report(error, ErrorType_INTERNAL, "Promise values can't be provided as string operands");
 						return 0;
 					}
 							
 					if(Promise_Size(opv[i].as_promise) != operand_type_sizes[expected_type])
 					{
-						Error_Report(error, 1, 
+						Error_Report(error, ErrorType_INTERNAL, 
 							"Provided promise has a value size of %d, "
 							"but since %s %s was expected, the promise "
 							"size must be %d",
@@ -590,7 +590,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 				else if(expected_type != provided_type)
 				{
 					// ERROR: Wrong operand type provided.
-					Error_Report(error, 1, 
+					Error_Report(error, ErrorType_INTERNAL, 
 						"Instruction %s expects %s %s as operand %d, but %s %s was provided instead", 
 						info->name, 
 						operand_type_arts[expected_type], 
@@ -612,7 +612,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 						
 				if(!BucketList_Append(exeb->data, opv[i].as_string, strlen(opv[i].as_string)+1))
 				{
-					Error_Report(error, 1, "No memory");
+					Error_Report(error, ErrorType_INTERNAL, "No memory");
 					return 0;
 				}
 				break;
@@ -628,7 +628,7 @@ _Bool ExeBuilder_Append(ExeBuilder *exeb, Error *error, Opcode opcode, Operand *
 
 				if(!Promise_Subscribe2(opv[i].as_promise, &instr->operands[i], exeb, promise_callback))
 				{
-					Error_Report(error, 1, "No memory");
+					Error_Report(error, ErrorType_INTERNAL, "No memory");
 					return 0;
 				}
 				break;

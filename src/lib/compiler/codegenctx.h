@@ -9,7 +9,7 @@ void            CodegenContext_EmitInstr(CodegenContext *ctx, Opcode opcode, Ope
 void            CodegenContext_SetJumpDest(CodegenContext *ctx, jmp_buf *env);
 void            CodegenContext_Free(CodegenContext *ctx);
 Executable     *CodegenContext_MakeExecutableAndFree(CodegenContext *ctx, Source *src);
-void            CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, const char *func, int line, bool internal, const char *format, ...);
+void            CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, const char *func, int line, ErrorType type, const char *format, ...);
 #define         CodegenContext_ReportErrorAndJump(ctx, int, fmt, ...) CodegenContext_ReportErrorAndJump_(ctx, __FILE__, __func__, __LINE__, int, fmt, ## __VA_ARGS__) 
 int             CodegenContext_InstrCount(CodegenContext *ctx);
 

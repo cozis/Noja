@@ -212,7 +212,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 
 	if(!Object_IsInt(key))
 	{
-		Error_Report(error, 0, "Non integer key");
+		Error_Report(error, ErrorType_RUNTIME, "Non integer key");
 		return NULL;
 	}
 
@@ -222,7 +222,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 
 	if(idx < 0 || idx >= list->count)
 	{
-		Error_Report(error, 0, "Out of range index");
+		Error_Report(error, ErrorType_RUNTIME, "Out of range index");
 		return NULL;
 	}
 
@@ -266,7 +266,7 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 
 	if(!Object_IsInt(key))
 	{
-		Error_Report(error, 0, "Non integer key");
+		Error_Report(error, ErrorType_RUNTIME, "Non integer key");
 		return NULL;
 	}
 
@@ -274,7 +274,7 @@ static _Bool insert(Object *self, Object *key, Object *val, Heap *heap, Error *e
 
 	if(idx < 0 || idx > list->count)
 	{
-		Error_Report(error, 0, "Out of range index");
+		Error_Report(error, ErrorType_RUNTIME, "Out of range index");
 		return NULL;
 	}
 

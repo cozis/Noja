@@ -17,7 +17,7 @@ Label *Label_New(CodegenContext *ctx)
     if(promise != NULL)
         return (Label*) promise;
     
-    CodegenContext_ReportErrorAndJump(ctx, 1, "No memory");
+    CodegenContext_ReportErrorAndJump(ctx, ErrorType_INTERNAL, "No memory");
     UNREACHABLE;
     return NULL; // For the compiler warning.
 }
@@ -54,12 +54,12 @@ static void okNowJump(CodegenContext *ctx)
 }
 
 void CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, 
-                                        const char *func, int line, bool internal, 
+                                        const char *func, int line, ErrorType type, 
                                         const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    _Error_Report2(ctx->error, internal, file, func, line, format, args);
+    _Error_Report2(ctx->error, type, file, func, line, format, args);
     va_end(args);
 
     okNowJump(ctx);
@@ -74,12 +74,12 @@ void CodegenContext_SetJumpDest(CodegenContext *ctx, jmp_buf *env)
 }
 
 CodegenContext *CodegenContext_New(Error *error, BPAlloc *alloc)
-{   
+{
     bool own_alloc;
     if(alloc == NULL) {
         alloc = BPAlloc_Init(-1);
         if(alloc == NULL) {
-            Error_Report(error, 1, "No memory");
+            Error_Report(error, ErrorType_INTERNAL, "No memory");
             return false;
         }
         own_alloc = true;
@@ -91,7 +91,7 @@ CodegenContext *CodegenContext_New(Error *error, BPAlloc *alloc)
     if(ctx == NULL) {
         if(own_alloc)
             BPAlloc_Free(alloc);
-        Error_Report(error, 1, "No memory");
+        Error_Report(error, ErrorType_INTERNAL, "No memory");
         return NULL;
     }
 

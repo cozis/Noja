@@ -1,9 +1,5 @@
 
-vars, err = import("imported.noja");
-if vars == none: {
-    print("Import failed!! (", err, ")\n");
-    return none;
-}
+vars = import("imported.noja");
 
 me = {name: vars.myName, age: vars.myAge};
 

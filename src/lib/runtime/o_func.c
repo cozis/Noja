@@ -91,7 +91,7 @@ static int call(Object *self, Object **argv, unsigned int argc, Object *rets[sta
 
 		if(argv2 == NULL)
 		{
-			Error_Report(error, 1, "No memory");
+			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			return -1;
 		}
 
@@ -197,7 +197,7 @@ Object *Object_FromNojaFunction(Runtime *runtime, const char *name, Executable *
 
 	if(exe_copy == NULL)
 	{
-		Error_Report(error, 1, "Failed to copy executable");
+		Error_Report(error, ErrorType_INTERNAL, "Failed to copy executable");
 		return NULL;
 	}
 

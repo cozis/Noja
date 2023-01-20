@@ -96,7 +96,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 
 	if(!Object_IsInt(key))
 	{
-		Error_Report(error, 0, "Non integer key");
+		Error_Report(error, ErrorType_RUNTIME, "Non integer key");
 		return NULL;
 	}
 	int idx = Object_GetInt(key);
@@ -105,7 +105,7 @@ static Object *select_(Object *self, Object *key, Heap *heap, Error *error)
 
 	if(idx < 0 || idx >= str->count)
 	{
-		Error_Report(error, 0, "Out of range index");
+		Error_Report(error, ErrorType_RUNTIME, "Out of range index");
 		return NULL;
 	}
 
@@ -147,7 +147,7 @@ Object *Object_FromString(const char *str, int len, Heap *heap, Error *error)
 
 	if(count < 0)
 	{
-		Error_Report(error, 0, "Invalid UTF-8 sequence");
+		Error_Report(error, ErrorType_RUNTIME, "Invalid UTF-8 sequence");
 		return NULL;
 	}
 

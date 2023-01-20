@@ -52,17 +52,17 @@ void Error_Free(Error *err)
 	memset(err, 0, sizeof (Error));
 }
 
-void _Error_Report(Error *err, _Bool internal, 
+void _Error_Report(Error *err, ErrorType type, 
 	const char *file, const char *func, int line, 
 	const char *fmt, ...)
 {
 	va_list va;
 	va_start(va, fmt);
-	_Error_Report2(err, internal, file, func, line, fmt, va);
+	_Error_Report2(err, type, file, func, line, fmt, va);
 	va_end(va);
 }
 
-void _Error_Report2(Error *err, _Bool internal, 
+void _Error_Report2(Error *err, ErrorType type, 
 	const char *file, const char *func, int line, 
 	const char *fmt, va_list va)
 {
@@ -80,7 +80,7 @@ void _Error_Report2(Error *err, _Bool internal,
 	ASSERT(err->occurred == 0);
 
 	err->occurred = 1;
-	err->internal = internal;
+	err->type = type;
 	err->file = file;
 	err->func = func;
 	err->line = line;
@@ -135,4 +135,36 @@ void Error_Panic_(const char *file, int line,
 	fprintf(fp, " (reported in %s:%d)", file, line);
 	va_end(args);
 	abort();
+}
+
+void Error_Print(Error *error, ErrorType type_if_unspecified)
+{
+    ErrorType type = error->type;
+    if (type == ErrorType_UNSPECIFIED)
+        type = type_if_unspecified;
+
+    const char *name;
+    switch (error->type) {
+        case ErrorType_INTERNAL: name = "Internal Error"; break;
+        case ErrorType_SYNTAX:   name =   "Syntax Error"; break;
+        case ErrorType_SEMANTIC: name = "Semantic Error"; break;
+        case ErrorType_RUNTIME:  name =  "Runtime Error"; break;
+        default: name = "Error"; break;
+    }
+
+    fprintf(stderr, "%s: %s.", name, error->message);
+
+#ifdef DEBUG
+    if(error->file != NULL)
+    {
+        if(error->line > 0 && error->func != NULL)
+            fprintf(stderr, " (Reported in %s:%d in %s)", error->file, error->line, error->func);
+        else if(error->line > 0 && error->func == NULL)
+            fprintf(stderr, " (Reported in %s:%d)", error->file, error->line);
+        else if(error->line < 1 && error->func != NULL)
+            fprintf(stderr, " (Reported in %s in %s)", error->file, error->func);
+    }
+#endif
+    
+    fprintf(stderr, "\n");
 }

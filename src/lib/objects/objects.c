@@ -123,7 +123,7 @@ Object *Object_Copy(Object *obj, Heap *heap, Error *err)
 
 	if(type->copy == NULL)
 	{
-		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
+		Error_Report(err, ErrorType_RUNTIME, "Object %s doesn't implement %s", Object_GetName(obj), __func__);
 		return NULL;
 	}
 
@@ -139,7 +139,7 @@ int Object_Call(Object *obj, Object **argv, unsigned int argc, Object *rets[stat
 
 	if(type->call == NULL)
 	{
-		Error_Report(err, 0, "Object of type %s isn't callable", Object_GetName(obj), __func__);
+		Error_Report(err, ErrorType_RUNTIME, "Object of type %s isn't callable", Object_GetName(obj), __func__);
 		return -1;
 	}
 
@@ -179,7 +179,7 @@ Object *Object_Select(Object *coll, Object *key, Heap *heap, Error *err)
 
 	if(type->select == NULL)
 	{
-		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+		Error_Report(err, ErrorType_RUNTIME, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 		return NULL;
 	}
 
@@ -197,7 +197,7 @@ Object *Object_Delete(Object *coll, Object *key, Heap *heap, Error *err)
 
 	if(type->delete == NULL)
 	{
-		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+		Error_Report(err, ErrorType_RUNTIME, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 		return NULL;
 	}
 
@@ -215,7 +215,7 @@ _Bool Object_Insert(Object *coll, Object *key, Object *val, Heap *heap, Error *e
 
 	if(type->insert == NULL)
 	{
-		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+		Error_Report(err, ErrorType_RUNTIME, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 		return 0;
 	}
 
@@ -232,7 +232,7 @@ int	Object_Count(Object *coll, Error *err)
 
 	if(type->count == NULL)
 	{
-		Error_Report(err, 0, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
+		Error_Report(err, ErrorType_RUNTIME, "Object %s doesn't implement %s", Object_GetName(coll), __func__);
 		return -1;
 	}
 

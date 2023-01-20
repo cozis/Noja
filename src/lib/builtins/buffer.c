@@ -11,7 +11,7 @@ static int bin_new(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     if(!Object_IsInt(argv[0]))
     {
-        Error_Report(error, 0, "Argument is not an int");
+        Error_Report(error, ErrorType_RUNTIME, "Argument is not an int");
         return -1;
     }
     
@@ -33,13 +33,13 @@ static int bin_sliceUp(Runtime *runtime, Object **argv, unsigned int argc, Objec
 
     if(!Object_IsInt(argv[1]))
     {
-        Error_Report(error, 0, "Argument 1 is not an int");
+        Error_Report(error, ErrorType_RUNTIME, "Argument 1 is not an int");
         return -1;
     }
 
     if(!Object_IsInt(argv[2]))
     {
-        Error_Report(error, 0, "Argument 2 is not an int");
+        Error_Report(error, ErrorType_RUNTIME, "Argument 2 is not an int");
         return -1;
     }
 
@@ -78,7 +78,7 @@ static int bin_toString(Runtime *runtime, Object **argv, unsigned int argc, Obje
 
     if(!Object_IsBuffer(argv[0]))
     {
-        Error_Report(error, 0, "Argument is not a buffer");
+        Error_Report(error, ErrorType_RUNTIME, "Argument is not a buffer");
         return -1;
     }
 

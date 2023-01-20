@@ -19,7 +19,7 @@ static int bin_ord(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     if(!Object_IsString(argv[0]))
     {
-        Error_Report(error, 0, "Argument #%d is not a string", 1);
+        Error_Report(error, ErrorType_RUNTIME, "Argument #%d is not a string", 1);
         return -1;
     }
 
@@ -30,7 +30,7 @@ static int bin_ord(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     if(length == 0)
     {
-        Error_Report(error, 0, "Argument #%d is an empty string", 1);
+        Error_Report(error, ErrorType_RUNTIME, "Argument #%d is an empty string", 1);
         return -1;
     }
 
@@ -55,7 +55,7 @@ static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     if(!Object_IsInt(argv[0]))
     {
-        Error_Report(error, 0, "Argument #%d is not an integer", 1);
+        Error_Report(error, ErrorType_RUNTIME, "Argument #%d is not an integer", 1);
         return -1;
     }
 
@@ -67,7 +67,7 @@ static int bin_chr(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
     if(k<0)
     {
-        Error_Report(error, 0, "Argument #%d is not valid utf-32", 1);
+        Error_Report(error, ErrorType_RUNTIME, "Argument #%d is not valid utf-32", 1);
         return -1;
     }
     
@@ -88,7 +88,7 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     {
         if(!Object_IsString(argv[i]))
         {
-            Error_Report(error, 0, "Argument #%d is not a string", i+1);
+            Error_Report(error, ErrorType_RUNTIME, "Argument #%d is not a string", i+1);
             return -1;
         }
         
@@ -110,7 +110,7 @@ static int bin_cat(Runtime *runtime, Object **argv, unsigned int argc, Object *r
 
         if(buffer == NULL)
         {
-            Error_Report(error, 1, "No memory");
+            Error_Report(error, ErrorType_INTERNAL, "No memory");
             return -1;
         }
     }
@@ -157,7 +157,7 @@ static int bin_slice(Runtime *runtime, Object **argv, unsigned int argc, Object 
     if (pargs[1].defined) {
         int64_t n = pargs[1].as_int;
         if (n < 0) {
-            Error_Report(error, 0, "starting offset of string slice must be non-negative");
+            Error_Report(error, ErrorType_RUNTIME, "starting offset of string slice must be non-negative");
             return -1;
         }
         offset = (size_t) n;
@@ -167,7 +167,7 @@ static int bin_slice(Runtime *runtime, Object **argv, unsigned int argc, Object 
     if (pargs[2].defined) {
         int64_t n = pargs[2].as_int;
         if (n < 0) {
-            Error_Report(error, 0, "length of string slice must be non-negative");
+            Error_Report(error, ErrorType_RUNTIME, "length of string slice must be non-negative");
             return -1;
         }
         length = (size_t) n;
@@ -175,11 +175,11 @@ static int bin_slice(Runtime *runtime, Object **argv, unsigned int argc, Object 
         length = srclen - offset;
 
     if (offset > srclen) {
-        Error_Report(error, 0, "string slice offset is out of bounds");
+        Error_Report(error, ErrorType_RUNTIME, "string slice offset is out of bounds");
         return -1;
     }
     if (offset + length > srclen) {
-        Error_Report(error, 0, "string slice length is out of bounds");
+        Error_Report(error, ErrorType_RUNTIME, "string slice length is out of bounds");
         return -1;
     }
 

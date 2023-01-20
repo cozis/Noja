@@ -85,6 +85,6 @@ static _Bool file_free(Object *self, Error *error)
 	if(fclose(fob->fp) == 0)
 		return 1;
 
-	Error_Report(error, 0, "Failed to close stream");
+	Error_Report(error, ErrorType_RUNTIME, "Failed to close stream");
 	return 0;
 }

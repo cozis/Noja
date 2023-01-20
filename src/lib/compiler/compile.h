@@ -3,10 +3,5 @@
 #include "../utils/error.h"
 #include "../utils/source.h"
 #include "../common/executable.h"
-typedef enum {
-    CompilationErrorType_SYNTAX,
-    CompilationErrorType_SEMANTIC,
-    CompilationErrorType_INTERNAL,
-} CompilationErrorType;
-Executable *compile(Source *src, Error *error, CompilationErrorType *errtyp);
+Executable *compile(Source *src, Error *error);
 #endif /* COMPILE_H */

@@ -124,7 +124,7 @@ static int bin_read(Runtime *runtime, Object **argv, unsigned int argc, Object *
 	if (pargs[2].defined) {
 		int n = pargs[2].as_int;
 		if (n < 0) {
-			Error_Report(error, 0, "Argument count must be a non-negative integer");
+			Error_Report(error, ErrorType_RUNTIME, "Argument count must be a non-negative integer");
 			return -1;
 		}
 		count = MIN((size_t) n, dstlen);
@@ -160,7 +160,7 @@ static int bin_write(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	if (pargs[2].defined) {
 		int n = pargs[2].as_int;
 		if (n < 0) {
-			Error_Report(error, 0, "Argument count must be a non-negative integer");
+			Error_Report(error, ErrorType_RUNTIME, "Argument count must be a non-negative integer");
 			return -1;
 		}
 		count = MIN((size_t) n, srclen);
@@ -181,7 +181,7 @@ static int bin_openDir(Runtime *runtime, Object **argv, unsigned int argc, Objec
 
 	if(!Object_IsString(argv[0]))
 	{
-		Error_Report(error, 0, "Expected first argument to be a string, but it's a %s", Object_GetName(argv[0]));
+		Error_Report(error, ErrorType_RUNTIME, "Expected first argument to be a string, but it's a %s", Object_GetName(argv[0]));
 		return -1;
 	}
 
@@ -216,7 +216,7 @@ static int bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, O
 
 	if(!Object_IsDir(argv[0]))
 	{
-		Error_Report(error, 0, "Expected first argument to be a directory, but it's a %s", Object_GetName(argv[0]));
+		Error_Report(error, ErrorType_RUNTIME, "Expected first argument to be a directory, but it's a %s", Object_GetName(argv[0]));
 		return -1;
 	}
 
@@ -233,7 +233,7 @@ static int bin_nextDirItem(Runtime *runtime, Object **argv, unsigned int argc, O
 			return 0; // Nothing left to read.
 
 		// An error occurred.
-		Error_Report(error, 1, "Failed to read directory item");
+		Error_Report(error, ErrorType_INTERNAL, "Failed to read directory item");
 		return -1;
 	}
 

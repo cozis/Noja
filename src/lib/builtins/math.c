@@ -49,7 +49,7 @@
 		}										\
 		else 									\
 		{										\
-			Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0])); \
+			Error_Report(error, ErrorType_RUNTIME, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0])); \
 			return -1;							\
 		}										\
 	}
@@ -62,13 +62,13 @@
 												\
 		if(!Object_IsFloat(argv[0]))			\
 		{										\
-			Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0])); \
+			Error_Report(error, ErrorType_RUNTIME, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0])); \
 			return -1;							\
 		}										\
 												\
 		if(!Object_IsFloat(argv[1]))			\
 		{										\
-			Error_Report(error, 0, "Expected second argument to be a float, but it's a %s", Object_GetName(argv[1])); \
+			Error_Report(error, ErrorType_RUNTIME, "Expected second argument to be a float, but it's a %s", Object_GetName(argv[1])); \
 			return -1;							\
 		}										\
 												\
@@ -110,7 +110,7 @@ static int bin_ceil(Runtime *runtime, Object **argv, unsigned int argc, Object *
 	}
 	else
 	{
-		Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));
+		Error_Report(error, ErrorType_RUNTIME, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));
 		return -1;
 	}
 }
@@ -131,7 +131,7 @@ static int bin_floor(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	}
 	else
 	{
-		Error_Report(error, 0, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));
+		Error_Report(error, ErrorType_RUNTIME, "Expected first argument to be a float, but it's a %s", Object_GetName(argv[0]));
 		return -1;
 	}
 }

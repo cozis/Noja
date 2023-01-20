@@ -86,32 +86,6 @@
 
 // NOTE: From https://gist.github.com/RabaDabaDoba/145049536f815903c79944599c6f952a
 
-static void print_error(const char *type, Error *error)
-{
-    if(type == NULL)
-        fprintf(stderr, RED "Error" CRESET);
-    else if(error->internal)
-        fprintf(stderr, RED "Internal Error" CRESET);
-    else
-        fprintf(stderr, RED "%s Error" CRESET, type);
-
-    fprintf(stderr, " :: %s.", error->message);
-
-#ifdef DEBUG
-    if(error->file != NULL)
-    {
-        if(error->line > 0 && error->func != NULL)
-            fprintf(stderr, " (Reported in %s:%d in %s)", error->file, error->line, error->func);
-        else if(error->line > 0 && error->func == NULL)
-            fprintf(stderr, " (Reported in %s:%d)", error->file, error->line);
-        else if(error->line < 1 && error->func != NULL)
-            fprintf(stderr, " (Reported in %s in %s)", error->file, error->func);
-    }
-#endif
-    
-    fprintf(stderr, "\n");
-}
-
 typedef enum {
     TokenType_END,
     TokenType_TEXT,
@@ -310,14 +284,14 @@ static bool parseTestCaseSource(Source *source, TestCase *testcase)
 
         testcase->source = Source_FromString("<input>", str + source_offset, source_length, &error);
         if(testcase->source == NULL) {
-            print_error(NULL, &error);
+            Error_Print(&error, ErrorType_UNSPECIFIED);
             Error_Free(&error);
             return false;
         }
 
         testcase->bytecode = Source_FromString("<output>", str + bytecode_offset, bytecode_length, &error);
         if(testcase->bytecode == NULL) {
-            print_error(NULL, &error);
+            Error_Print(&error, ErrorType_UNSPECIFIED);
             Source_Free(testcase->source);
             Error_Free(&error);
             return false;
@@ -331,17 +305,9 @@ static Executable *compile_source_and_print_error_on_failure(Source *src)
 {
     Error error;
     Error_Init(&error);
-    CompilationErrorType errtyp;
-    Executable *exe = compile(src, &error, &errtyp);
+    Executable *exe = compile(src, &error);
     if(exe == NULL) {
-        const char *errname;
-        switch(errtyp) {
-            default:
-            case CompilationErrorType_INTERNAL: errname = NULL; break;
-            case CompilationErrorType_SYNTAX:   errname = "Syntax"; break;
-            case CompilationErrorType_SEMANTIC: errname = "Semantic"; break;
-        }
-        print_error(errname, &error);
+        Error_Print(&error, ErrorType_UNSPECIFIED);
         Error_Free(&error);
         return NULL;
     }
@@ -364,7 +330,7 @@ static TestResult runTest(const char *file)
 
         source = Source_FromFile(file, &error);
         if(source == NULL) {
-            print_error(NULL, &error);
+            Error_Print(&error, ErrorType_UNSPECIFIED);
             Error_Free(&error);
             return TestResult_ABORT;
         }
@@ -395,7 +361,7 @@ static TestResult runTest(const char *file)
 
         exe2 = assemble(testcase.bytecode, &error);
         if(exe2 == NULL) {
-            print_error("Assemblation", &error);
+            Error_Print(&error, ErrorType_UNSPECIFIED);
             Error_Free(&error);
             Executable_Free(exe1);
             Source_Free(testcase.source);

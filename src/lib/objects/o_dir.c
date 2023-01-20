@@ -86,6 +86,6 @@ static _Bool dir_free(Object *obj, Error *error)
 	if(closedir(dob->dir) == 0)
 		return 1;
 
-	Error_Report(error, 0, "Failed to close directory");
+	Error_Report(error, ErrorType_RUNTIME, "Failed to close directory");
 	return 0;
 }

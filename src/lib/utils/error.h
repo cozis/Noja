@@ -32,8 +32,17 @@
 #define ERROR_H
 #include <stdarg.h>
 
+typedef enum {
+	ErrorType_SYNTAX,
+	ErrorType_SEMANTIC,
+	ErrorType_RUNTIME,
+	ErrorType_INTERNAL,
+	ErrorType_UNSPECIFIED = 0,
+} ErrorType;
+
 typedef struct Error Error;
 struct Error {
+	ErrorType type;
 	void 		(*on_report)(Error *err);
 	_Bool  		occurred, 
 				internal, 
@@ -49,9 +58,10 @@ struct Error {
 void 	Error_Init(Error *err);
 void 	Error_Init2(Error *err, void (*on_report)(Error *err));
 void 	Error_Free(Error *err);
-#define Error_Report(err, internal, fmt, ...) _Error_Report(err, internal, __FILE__, __func__, __LINE__, fmt, ## __VA_ARGS__)
-void   _Error_Report (Error *err, _Bool internal, const char *file, const char *func, int line, const char *fmt, ...);
-void   _Error_Report2(Error *err, _Bool internal, const char *file, const char *func, int line, const char *fmt, va_list va);
+#define Error_Report(err, typ, fmt, ...) _Error_Report(err, typ, __FILE__, __func__, __LINE__, fmt, ## __VA_ARGS__)
+void   _Error_Report (Error *err, ErrorType typ, const char *file, const char *func, int line, const char *fmt, ...);
+void   _Error_Report2(Error *err, ErrorType typ, const char *file, const char *func, int line, const char *fmt, va_list va);
 void    Error_Panic_(const char *file, int line, const char *fmt, ...);
 #define Error_Panic(fmt, ...) Error_Panic_(__FILE__, __LINE__, fmt, ## __VA_ARGS__)
+void    Error_Print(Error *error, ErrorType type_if_unspecified);
 #endif

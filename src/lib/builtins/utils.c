@@ -6,7 +6,7 @@ int returnValuesVA(Error *error, Heap *heap, Object *rets[static MAX_RETS], cons
 	while (fmt[i] != '\0') {
 
 		if (retc == MAX_RETS) {
-			Error_Report(error, 1, "Return value limit reached");
+			Error_Report(error, ErrorType_INTERNAL, "Return value limit reached");
 			return -1;
 		}
 		
@@ -19,7 +19,7 @@ int returnValuesVA(Error *error, Heap *heap, Object *rets[static MAX_RETS], cons
 			case 's': ret = Object_FromString(va_arg(va, char*), -1, heap, error); break;
 			case 'F': ret = Object_FromStream(va_arg(va, FILE*), heap, error); break;
 			default:
-			Error_Report(error, 1, "Invalid format specifier '%c'", fmt[i]);
+			Error_Report(error, ErrorType_INTERNAL, "Invalid format specifier '%c'", fmt[i]);
 			return -1;
 		}
 
@@ -43,7 +43,7 @@ bool parseArgs(Error *error,
 	while (fmt[i] != '\0') {
 
 		if (current_arg == argc) {
-			Error_Report(error, 0, "Missing arguments");
+			Error_Report(error, ErrorType_RUNTIME, "Missing arguments");
 			return false;
 		}
 		Object *arg = argv[current_arg];
@@ -53,11 +53,11 @@ bool parseArgs(Error *error,
 			may_be_none = true;
 			i++;
 			if (fmt[i] == '\0') {
-				Error_Report(error, 1, "Format terminated unexpectedly");
+				Error_Report(error, ErrorType_INTERNAL, "Format terminated unexpectedly");
 				return false;
 			}
 		}
-
+		
 		if (may_be_none && Object_IsNone(arg)) {
 			pargs[current_arg].defined = false;
 		} else {
@@ -69,7 +69,7 @@ bool parseArgs(Error *error,
 				
 				case 'b': /* Boolean */ 
 				if (!Object_IsBool(arg)) {
-					Error_Report(error, 0, "Argument %d was expected to be bool, but a %s was provided", current_arg+1, arg->type->name);
+					Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be bool, but a %s was provided", current_arg+1, arg->type->name);
 					return false;
 				}
 				pargs[current_arg].defined = true;
@@ -79,7 +79,7 @@ bool parseArgs(Error *error,
 				case 'B': /* Buffer */
 				{
 					if (!Object_IsBuffer(arg)) {
-						Error_Report(error, 0, "Argument %d was expected to be a buffer, but a %s was provided", current_arg+1, arg->type->name);
+						Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be a buffer, but a %s was provided", current_arg+1, arg->type->name);
 						return false;
 					}
 					void  *data;
@@ -93,7 +93,7 @@ bool parseArgs(Error *error,
 
 				case 'i': /* Integer */
 				if (!Object_IsInt(arg)) {
-					Error_Report(error, 0, "Argument %d was expected to be an int, but a %s was provided", current_arg+1, arg->type->name);
+					Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be an int, but a %s was provided", current_arg+1, arg->type->name);
 					return false;
 				}
 				pargs[current_arg].defined = true;
@@ -102,7 +102,7 @@ bool parseArgs(Error *error,
 
 				case 'f': /* Float */
 				if (!Object_IsFloat(arg)) {
-					Error_Report(error, 0, "Argument %d was expected to be a float, but a %s was provided", current_arg+1, arg->type->name);
+					Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be a float, but a %s was provided", current_arg+1, arg->type->name);
 					return false;
 				}
 				pargs[current_arg].defined = true;
@@ -111,7 +111,7 @@ bool parseArgs(Error *error,
 
 				case 'l': /* List */
 				if (!Object_IsList(arg)) {
-					Error_Report(error, 0, "Argument %d was expected to be a list, but a %s was provided", current_arg+1, arg->type->name);
+					Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be a list, but a %s was provided", current_arg+1, arg->type->name);
 					return false;
 				}
 				pargs[current_arg].defined = true;
@@ -119,7 +119,7 @@ bool parseArgs(Error *error,
 
 				case 'm': /* Map */
 				if (!Object_IsMap(arg)) {
-					Error_Report(error, 0, "Argument %d was expected to be a map, but a %s was provided", current_arg+1, arg->type->name);
+					Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be a map, but a %s was provided", current_arg+1, arg->type->name);
 					return false;
 				}
 				break;
@@ -127,7 +127,7 @@ bool parseArgs(Error *error,
 				case 's': /* String */
 				{
 					if (!Object_IsString(arg)) {
-						Error_Report(error, 0, "Argument %d was expected to be a string, but a %s was provided", current_arg+1, arg->type->name);
+						Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be a string, but a %s was provided", current_arg+1, arg->type->name);
 						return false;
 					}
 					const void *data;
@@ -141,7 +141,7 @@ bool parseArgs(Error *error,
 
 				case 'F': /* File */
 				if (!Object_IsFile(arg)) {
-					Error_Report(error, 0, "Argument %d was expected to be a file, but a %s was provided", current_arg+1, arg->type->name);
+					Error_Report(error, ErrorType_RUNTIME, "Argument %d was expected to be a file, but a %s was provided", current_arg+1, arg->type->name);
 					return false;
 				}
 				pargs[current_arg].defined = true;
@@ -149,7 +149,7 @@ bool parseArgs(Error *error,
 				break;
 
 				default:
-				Error_Report(error, 1, "Invalid argument parser format specifier '%c'", fmt[i]);
+				Error_Report(error, ErrorType_INTERNAL, "Invalid argument parser format specifier '%c'", fmt[i]);
 				return false;
 			}
 		}

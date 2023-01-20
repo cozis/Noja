@@ -5,15 +5,14 @@
 #include "codegen.h"
 #include "compile.h"
 
-Executable *compile(Source *src, Error *error, CompilationErrorType *errtyp)
+Executable *compile(Source *src, Error *error)
 {   
     // Create a bump-pointer allocator to hold the AST.
     BPAlloc *alloc = BPAlloc_Init(-1);
 
     if(alloc == NULL)
     {
-        *errtyp = CompilationErrorType_INTERNAL;
-        Error_Report(error, 1, "No memory");
+        Error_Report(error, ErrorType_INTERNAL, "No memory");
         return NULL;
     }
 
@@ -24,10 +23,6 @@ Executable *compile(Source *src, Error *error, CompilationErrorType *errtyp)
     if(ast == NULL)
     {
         assert(error->occurred);
-        if(error->internal)
-            *errtyp = CompilationErrorType_INTERNAL;
-        else
-            *errtyp = CompilationErrorType_SYNTAX;
         BPAlloc_Free(alloc);
         return NULL;
     }
@@ -41,10 +36,6 @@ Executable *compile(Source *src, Error *error, CompilationErrorType *errtyp)
     if(exe == NULL)
     {
         assert(error->occurred);
-        if(error->internal)
-            *errtyp = CompilationErrorType_INTERNAL;
-        else
-            *errtyp = CompilationErrorType_SEMANTIC;
         return NULL;
     }
 

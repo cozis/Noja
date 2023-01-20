@@ -54,7 +54,7 @@ static int bin_getCurrentWorkingDirectory(Runtime *runtime, Object **argv, unsig
 
 	char path[1024];
 	if(getcwd(path, sizeof(path)) == NULL) {
-		Error_Report(error, 1, "Couldn't get current working directory because a buffer is too small");
+		Error_Report(error, ErrorType_INTERNAL, "Couldn't get current working directory because a buffer is too small");
 		return -1;
 	}
 
@@ -139,19 +139,19 @@ static int bin_import(Runtime *runtime,
 	
 	if(path[0] == '/') {
 		if(path_len >= sizeof(full_path)) {
-			Error_Report(error, 1, "Internal buffer is too small");
+			Error_Report(error, ErrorType_INTERNAL, "Internal buffer is too small");
 			return -1;
 		}
 		strcpy(full_path, path);
 	} else {
 		size_t written = Runtime_GetCurrentScriptFolder(runtime, full_path, sizeof(full_path));
 		if(written == 0) {
-			Error_Report(error, 1, "Internal buffer is too small");
+			Error_Report(error, ErrorType_INTERNAL, "Internal buffer is too small");
 			return -1;
 		}
 
 		if(written + path_len >= sizeof(full_path)) {
-			Error_Report(error, 1, "Internal buffer is too small");
+			Error_Report(error, ErrorType_INTERNAL, "Internal buffer is too small");
 			return -1;
 		}
 
@@ -163,8 +163,7 @@ static int bin_import(Runtime *runtime,
 	if(src == NULL)
 		return -1;
 	
-	CompilationErrorType errtyp;
-    Executable *exe = compile(src, error, &errtyp);
+    Executable *exe = compile(src, error);
     if(exe == NULL) {
 		Source_Free(src);
 		return -1;
@@ -241,7 +240,7 @@ static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object 
 			if(tmp == NULL)
 			{
 				if(str != maybe) free(str);
-				Error_Report(error, 1, "No memory");
+				Error_Report(error, ErrorType_INTERNAL, "No memory");
 				return -1;
 			}
 
@@ -275,13 +274,13 @@ static int bin_assert(Runtime *runtime, Object **argv, unsigned int argc, Object
 	{
 		if(!Object_IsBool(argv[i]))
 		{
-			Error_Report(error, 0, "Argument %d isn't a boolean", i);
+			Error_Report(error, ErrorType_RUNTIME, "Argument %d isn't a boolean", i);
 			return -1;
 		}
 
 		if(!Object_GetBool(argv[i]))
 		{
-			Error_Report(error, 0, "Assertion failed");
+			Error_Report(error, ErrorType_RUNTIME, "Assertion failed");
 			return -1;
 		}
 	}
@@ -298,7 +297,7 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 	if(!Object_IsString(argv[0])) 
 	{
-		Error_Report(error, 0, "Argument is not a string");
+		Error_Report(error, ErrorType_RUNTIME, "Argument is not a string");
 		return -1;
 	}
 
@@ -308,7 +307,7 @@ static int bin_error(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	string = Object_GetString(argv[0], &length);
 	ASSERT(string != NULL);
 
-	Error_Report(error, 0, "%s", string);
+	Error_Report(error, ErrorType_RUNTIME, "%s", string);
 	return -1;
 }
 

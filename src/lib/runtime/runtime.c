@@ -250,7 +250,7 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 
 	if(runtime->depth == 0)
 	{
-		Error_Report(error, 0, "There are no frames on the stack");
+		Error_Report(error, ErrorType_RUNTIME, "There are no frames on the stack");
 		return 0;
 	}
 
@@ -258,13 +258,13 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 	
 	if(runtime->frame->used == MAX_FRAME_STACK)
 	{
-		Error_Report(error, 0, "Frame stack limit of %d reached", MAX_FRAME_STACK);
+		Error_Report(error, ErrorType_RUNTIME, "Frame stack limit of %d reached", MAX_FRAME_STACK);
 		return 0;
 	}
 
 	if(!Stack_Push(runtime->stack, obj))
 	{
-		Error_Report(error, 0, "Out of stack");
+		Error_Report(error, ErrorType_RUNTIME, "Out of stack");
 		return 0;	
 	}
 
@@ -279,7 +279,7 @@ _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 
 	if(runtime->depth == 0)
 	{
-		Error_Report(error, 0, "There are no frames on the stack");
+		Error_Report(error, ErrorType_RUNTIME, "There are no frames on the stack");
 		return 0;
 	}
 
@@ -287,7 +287,7 @@ _Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
 
 	if((unsigned int) runtime->frame->used < n)
 	{
-		Error_Report(error, 0, "Frame has not enough values on the stack");
+		Error_Report(error, ErrorType_RUNTIME, "Frame has not enough values on the stack");
 		return 0;
 	}
 
@@ -434,7 +434,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 			case OPCODE_DIV: 							\
 			if((y) == 0) 								\
 			{ 											\
-				Error_Report(error, 0, "Division by zero"); \
+				Error_Report(error, ErrorType_RUNTIME, "Division by zero"); \
 				return NULL; 							\
 			} 											\
 			(z) = (x) / (y); 							\
@@ -466,7 +466,7 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 		}
 		else
 		{
-			Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+			Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
 			return NULL;
 		}
 	}
@@ -492,13 +492,13 @@ static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, E
 		}
 		else
 		{
-			Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+			Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
 			return NULL;
 		}
 	}
 	else
 	{
-		Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+		Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
 		return NULL;
 	}
 
@@ -541,7 +541,7 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 		}
 		else
 		{
-			Error_Report(error, 0, "Relational operation on a non-numeric object");
+			Error_Report(error, ErrorType_RUNTIME, "Relational operation on a non-numeric object");
 			return NULL;
 		}
 	}
@@ -562,13 +562,13 @@ static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *h
 		}
 		else
 		{
-			Error_Report(error, 0, "Relational operation on a non-numeric object");
+			Error_Report(error, ErrorType_RUNTIME, "Relational operation on a non-numeric object");
 			return NULL;
 		}
 	}
 	else
 	{
-		Error_Report(error, 0, "Relational operation on a non-numeric object");
+		Error_Report(error, ErrorType_RUNTIME, "Relational operation on a non-numeric object");
 		return NULL;
 	}
 
@@ -584,10 +584,10 @@ static _Bool step(Runtime *runtime, Error *error)
 	Opcode opcode;	
 	Operand ops[3];
 	int     opc = sizeof(ops) / sizeof(ops[0]);
-
+	
 	if(!Executable_Fetch(runtime->frame->exe, runtime->frame->index, &opcode, ops, &opc))
 	{
-		Error_Report(error, 1, "Invalid instruction index");
+		Error_Report(error, ErrorType_INTERNAL, "Invalid instruction index");
 		return 0;
 	}
 	
@@ -605,7 +605,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute POS");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute POS");
 				return 0;
 			}
 
@@ -619,7 +619,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NEG");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute NEG");
 				return 0;
 			}
 
@@ -644,7 +644,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			}
 			else
 			{
-				Error_Report(error, 0, "Negation operand on a non-numeric object");
+				Error_Report(error, ErrorType_RUNTIME, "Negation operand on a non-numeric object");
 				return 0;
 			}
 
@@ -662,7 +662,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NOT");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute NOT");
 				return 0;
 			}
 
@@ -675,7 +675,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(!Object_IsBool(top))
 			{
-				Error_Report(error, 0, "NOT operand isn't a boolean");
+				Error_Report(error, ErrorType_RUNTIME, "NOT operand isn't a boolean");
 				return 0;
 			}
 
@@ -696,7 +696,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute NLB");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute NLB");
 				return 0;
 			}
 
@@ -784,7 +784,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			ASSERT(lop != NULL);
 
 			if (!Object_IsInt(rop) || !Object_IsInt(lop)) {
-				Error_Report(error, 0, "Arithmetic operation on a non-numeric object");
+				Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
 				return 0;
 			}
 
@@ -872,7 +872,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 0, "Frame has not enough values on the stack");
+				Error_Report(error, ErrorType_RUNTIME, "Frame has not enough values on the stack");
 				return 0;
 			}
 
@@ -913,7 +913,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used < 2)
 			{
-				Error_Report(error, 1, "Frame doesn't own enough objects to execute CHECKTYPE");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't own enough objects to execute CHECKTYPE");
 				return 0;
 			}
 
@@ -936,7 +936,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				Object_Print(arg, provided_fp);
 				fclose(allowed_fp);
 				fclose(provided_fp);
-				Error_Report(error, 0, "Argument %d \"%s\" has an unallowed type. Was expected something with type %s but was provided %s", 
+				Error_Report(error, ErrorType_RUNTIME, "Argument %d \"%s\" has an unallowed type. Was expected something with type %s but was provided %s", 
 							 arg_index+1, arg_name, allowed, provided);
 				return 0;
 			}
@@ -955,7 +955,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used < argc + 1)
 			{
-				Error_Report(error, 1, "Frame doesn't own enough objects to execute call");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't own enough objects to execute call");
 				return 0;
 			}
 
@@ -967,7 +967,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			int max_argc = sizeof(argv) / sizeof(argv[0]);
 			if(argc > max_argc)
 			{
-				Error_Report(error, 1, "Static buffer only allows function calls with up to %d arguments", max_argc);
+				Error_Report(error, ErrorType_INTERNAL, "Static buffer only allows function calls with up to %d arguments", max_argc);
 				return 0;
 			}
 
@@ -1020,7 +1020,7 @@ static _Bool step(Runtime *runtime, Error *error)
 				const char *name = "SELECT";
 				if (opcode == OPCODE_SELECT2)
 					name = "SELECT2";
-				Error_Report(error, 1, "Frame has not enough values on the stack to run %s instruction", name);
+				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run %s instruction", name);
 				return 0;
 			}
 
@@ -1063,7 +1063,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used < 3)
 			{
-				Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT instruction");
+				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run INSERT instruction");
 				return 0;
 			}
 
@@ -1087,7 +1087,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used < 3)
 			{
-				Error_Report(error, 1, "Frame has not enough values on the stack to run INSERT2 instruction");
+				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run INSERT2 instruction");
 				return 0;
 			}
 
@@ -1180,7 +1180,7 @@ static _Bool step(Runtime *runtime, Error *error)
 			{
 				if(error->occurred == 0)
 					// There's no such variable.
-					Error_Report(error, 0, "Reference to undefined variable \"%s\"", ops[0].as_string);
+					Error_Report(error, ErrorType_RUNTIME, "Reference to undefined variable \"%s\"", ops[0].as_string);
 				return 0;
 			}
 
@@ -1302,7 +1302,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used < 1)
 			{
-				Error_Report(error, 1, "Frame has not enough values on the stack to run PUSHTYP instruction");
+				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run PUSHTYP instruction");
 				return 0;
 			}
 
@@ -1356,7 +1356,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
 				return 0;
 			}
 
@@ -1369,7 +1369,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(!Object_IsBool(top))
 			{
-				Error_Report(error, 0, "Not a boolean");
+				Error_Report(error, ErrorType_RUNTIME, "Not a boolean");
 				return 0;
 			}
 
@@ -1388,7 +1388,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(runtime->frame->used == 0)
 			{
-				Error_Report(error, 1, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
+				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
 				return 0;
 			}
 
@@ -1401,7 +1401,7 @@ static _Bool step(Runtime *runtime, Error *error)
 
 			if(!Object_IsBool(top))
 			{
-				Error_Report(error, 0, "Not a boolean");
+				Error_Report(error, ErrorType_RUNTIME, "Not a boolean");
 				return 0;
 			}
 
@@ -1460,7 +1460,7 @@ int run(Runtime *runtime, Error *error,
 
 	if(runtime->depth == MAX_FRAMES)
 	{
-		Error_Report(error, 1, "Maximum nested call limit of %d was reached", MAX_FRAMES);
+		Error_Report(error, ErrorType_INTERNAL, "Maximum nested call limit of %d was reached", MAX_FRAMES);
 		return -1;
 	}
 
@@ -1481,7 +1481,7 @@ int run(Runtime *runtime, Error *error,
 
 		if(frame.exe == NULL)
 		{
-			Error_Report(error, 1, "Failed to copy executable");
+			Error_Report(error, ErrorType_INTERNAL, "Failed to copy executable");
 			return -1;
 		}
 	
@@ -1503,13 +1503,13 @@ int run(Runtime *runtime, Error *error,
 
 
 	if(runtime->interrupt || (runtime->callback.func != NULL && !runtime->callback.func(runtime, runtime->callback.data)))
-		Error_Report(error, 0, "Forced abortion");
+		Error_Report(error, ErrorType_RUNTIME, "Forced abortion");
 	else
 		while(step(runtime, error))
 		{
 			if(runtime->interrupt || (runtime->callback.func != NULL && !runtime->callback.func(runtime, runtime->callback.data)))
 			{
-				Error_Report(error, 0, "Forced abortion");
+				Error_Report(error, ErrorType_RUNTIME, "Forced abortion");
 				break;
 			}
 

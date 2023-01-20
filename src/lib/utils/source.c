@@ -88,14 +88,14 @@ Source *Source_FromFile(const char *file, Error *error)
 	assert(file != NULL);
 
 	if(file[0] == '\0') {
-		Error_Report(error, 0, "Empty file name");
+		Error_Report(error, ErrorType_UNSPECIFIED, "Empty file name");
 		return NULL;
 	}
 
 	char maybe[1024];
 	const char *abs_path = Path_MakeAbsolute(file, maybe, sizeof(maybe));
 	if(abs_path == NULL) {
-		Error_Report(error, 0, "Internal buffer is too small");
+		Error_Report(error, ErrorType_UNSPECIFIED, "Internal buffer is too small");
 		return NULL;
 	}
 
@@ -111,15 +111,15 @@ Source *Source_FromFile(const char *file, Error *error)
 		if(fp == NULL)
 		{
 			if(errno == ENOENT)
-				Error_Report(error, 0, "File \"%s\" doesn't exist", file);
+				Error_Report(error, ErrorType_UNSPECIFIED, "File \"%s\" doesn't exist", file);
 			else
-				Error_Report(error, 1, "Call to fopen failed (%s, errno = %d)", strerror(errno), errno);
+				Error_Report(error, ErrorType_INTERNAL, "Call to fopen failed (%s, errno = %d)", strerror(errno), errno);
 			return NULL;
 		}
 
 		if(fseek(fp, 0, SEEK_END))
 		{
-			Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
+			Error_Report(error, ErrorType_INTERNAL, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
 			fclose(fp);
 			return NULL;	
 		}
@@ -128,14 +128,14 @@ Source *Source_FromFile(const char *file, Error *error)
 
 		if(size < 0)
 		{
-			Error_Report(error, 1, "Call to ftell failed (%s, errno = %d)", strerror(errno), errno);
+			Error_Report(error, ErrorType_INTERNAL, "Call to ftell failed (%s, errno = %d)", strerror(errno), errno);
 			fclose(fp);
 			return NULL;	
 		}
 
 		if(fseek(fp, 0, SEEK_SET))
 		{
-			Error_Report(error, 1, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
+			Error_Report(error, ErrorType_INTERNAL, "Call to fseek failed (%s, errno = %d)", strerror(errno), errno);
 			fclose(fp);
 			return NULL;
 		}
@@ -150,7 +150,7 @@ Source *Source_FromFile(const char *file, Error *error)
 
 		if(s == NULL)
 		{
-			Error_Report(error, 1, "No memory");
+			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			fclose(fp);
 			return NULL;
 		}
@@ -171,7 +171,7 @@ Source *Source_FromFile(const char *file, Error *error)
 
 		if(p != size)
 		{
-			Error_Report(error, 1, "Call to fread failed, %d bytes out of %d were read (%s, errno = %d)", p, size, strerror(errno), errno);
+			Error_Report(error, ErrorType_INTERNAL, "Call to fread failed, %d bytes out of %d were read (%s, errno = %d)", p, size, strerror(errno), errno);
 			fclose(fp);
 			free(s);
 			return NULL;
@@ -197,7 +197,7 @@ Source *Source_FromString(const char *name, const char *body, int size, Error *e
 
 	if(memory == NULL)
 	{
-		Error_Report(error, 1, "No memory");
+		Error_Report(error, ErrorType_INTERNAL, "No memory");
 		return NULL;
 	}
 

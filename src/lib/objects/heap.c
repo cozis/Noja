@@ -222,7 +222,7 @@ void *Heap_Malloc(Heap *heap, TypeObject *type, Error *err)
 				
 			if(heap->pend == NULL)
 			{
-				Error_Report(err, 1, "No memory");
+				Error_Report(err, ErrorType_INTERNAL, "No memory");
 				return NULL;
 			}
 
@@ -237,7 +237,7 @@ void *Heap_Malloc(Heap *heap, TypeObject *type, Error *err)
 
 			if(new_pend == NULL)
 			{
-				Error_Report(err, 1, "No memory");
+				Error_Report(err, ErrorType_INTERNAL, "No memory");
 				return NULL;
 			}
 
@@ -273,7 +273,7 @@ void *Heap_Malloc(Heap *heap, TypeObject *type, Error *err)
 		heap->pend[heap->pend_used++] = (PendingDestruct) { .object = obj, .destructor = obj->type->free };
 
 	heap->objcount += 1;
-
+	
 	return (Object*) addr;
 }
 
@@ -296,7 +296,7 @@ void *Heap_RawMalloc(Heap *heap, int size, Error *err)
 	{
 		if(heap->collecting)
 		{
-			Error_Report(err, 1, "Out of heap");
+			Error_Report(err, ErrorType_INTERNAL, "Out of heap");
 			return NULL;
 		}
 		
@@ -336,7 +336,7 @@ _Bool Heap_StartCollection(Heap *heap, Error *error)
 
 	if(new_body == NULL)
 	{
-		Error_Report(error, 1, "No memory");
+		Error_Report(error, ErrorType_INTERNAL, "No memory");
 		return 0;
 	}
 
