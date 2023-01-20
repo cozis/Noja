@@ -34,5 +34,5 @@
 #include "../utils/bpalloc.h"
 #include "../common/executable.h"
 #include "AST.h"
-Executable *codegen(AST *ast, BPAlloc *alloc, Error *error);
+Executable *codegen(AST *ast, BPAlloc *alloc, Error *error, int *error_offset);
 #endif /* CODEGEN_H */

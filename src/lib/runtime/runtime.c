@@ -28,9 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <stdbool.h>
 #include "runtime.h"
 #include "../utils/path.h"
@@ -40,14 +37,35 @@
 #define MAX_FRAME_STACK 16
 #define MAX_FRAMES 16
 
-typedef struct xFrame Frame;
-struct xFrame {
-	Frame  *prev;
+typedef enum {
+	FrameType_NATIVE,
+	FrameType_NORMAL,
+	FrameType_FAILED,
+} FrameType;
+
+typedef struct Frame Frame;
+struct Frame {
+	Frame    *prev;
+	FrameType type;
+};
+
+typedef struct {
+	Frame base;
 	Object *locals;
 	Object *closure;
 	Executable *exe;
 	int index, used;
-};
+} NormalFrame;
+
+typedef struct {
+	Frame base;
+} NativeFrame;
+
+typedef struct {
+	Frame base;
+	Source *source;
+	size_t  offset;
+} FailedFrame;
 
 struct xRuntime {
 	bool interrupt;
@@ -59,82 +77,38 @@ struct xRuntime {
 	Stack *stack;
 	Heap  *heap;
 	TimingTable *timing;
+
+	FailedFrame failed_frame;
 };
+
+bool Runtime_plugBuiltins(Runtime *runtime, Object *object, Error *error)
+{
+	if (runtime->builtins == NULL) {
+		runtime->builtins = object;
+	} else {
+		Heap *heap = Runtime_GetHeap(runtime);
+		Object *old_builtins;
+		Object *new_builtins;
+
+		old_builtins = runtime->builtins;
+		new_builtins = Object_NewClosure(object, old_builtins, heap, error);
+		if (new_builtins == NULL)
+			return false;
+
+		runtime->builtins = new_builtins;
+	}
+
+	return true;
+}
 
 RuntimeConfig Runtime_GetDefaultConfigs()
 {
     return (RuntimeConfig) {
+    	.heap  = 1024*1024,
         .stack = 1024,
         .callback = { .func = NULL, .data = NULL },
         .time = false,
     };
-}
-
-// Returns the length written in buff (not considering the zero byte)
-size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
-{
-	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
-	if(path == NULL) {
-		if(getcwd(buff, buffsize) == NULL)
-			return 0;
-		size_t cwdlen = strlen(buff);
-		if (buff[cwdlen-1] == '/')
-			return cwdlen;
-		else {
-			if (cwdlen+1 >= buffsize)
-				return 0;
-			buff[cwdlen] = '/';
-			return cwdlen+1;
-		}
-	}
-	
-	// This following block is a custom implementation
-	// of [dirname], which doesn't write into the input
-	// string and is way buggier. It will for sure give
-	// problems in the future!!
-	size_t dir_len;
-	{
-		// This is buggy code!!
-		size_t path_len = strlen(path);
-		ASSERT(path_len > 0); // Not empty
-		ASSERT(Path_IsAbsolute(path)); // Is absolute
-		ASSERT(path[path_len-1] != '/'); // Doesn't end with a slash.
-
-		size_t popped = 0;
-		while(path[path_len-1-popped] != '/')
-			popped += 1;
-		
-		ASSERT(path_len > popped);
-
-		dir_len = path_len - popped;
-		
-		ASSERT(dir_len < path_len);
-		ASSERT(path[dir_len-1] == '/');
-	}
-
-	if(dir_len >= buffsize)
-		return 0;
-
-	memcpy(buff, path, dir_len);
-	buff[dir_len] = '\0';
-	return dir_len;
-}
-
-const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime)
-{
-	Executable *exe = Runtime_GetCurrentExecutable(runtime);
-	ASSERT(exe != NULL);
-
-	Source *src = Executable_GetSource(exe);
-	if(src == NULL)
-		return NULL;
-
-	const char *path = Source_GetAbsolutePath(src);
-	if(path == NULL)
-		return NULL;
-
-	ASSERT(path[0] != '\0');
-	return path;
 }
 
 Stack *Runtime_GetStack(Runtime *runtime)
@@ -149,18 +123,115 @@ Heap *Runtime_GetHeap(Runtime *runtime)
 
 int Runtime_GetCurrentIndex(Runtime *runtime)
 {
-	if(runtime->depth == 0)
+	Frame *frame = runtime->frame;
+	if(frame == NULL || frame->type != FrameType_NORMAL)
 		return -1;
+	return ((NormalFrame*) frame)->index;
+}
+
+static Source *getFrameSource(Frame *frame)
+{
+	switch (frame->type) {
+		case FrameType_NORMAL: return Executable_GetSource(((NormalFrame*) frame)->exe);
+		case FrameType_NATIVE: return NULL;
+		case FrameType_FAILED: return ((FailedFrame*) frame)->source;
+	}
+	UNREACHABLE;
+	return NULL;
+}
+
+static int getFrameOffset(Frame *frame)
+{
+	switch (frame->type) {
+		case FrameType_NORMAL: 
+		{
+			NormalFrame *normal_frame = (NormalFrame*) frame;
+			return Executable_GetInstrOffset(normal_frame->exe, normal_frame->index);
+		}
+
+		case FrameType_NATIVE: return -1;
+		case FrameType_FAILED: return ((FailedFrame*) frame)->offset;
+	}
+	UNREACHABLE;
+	return -1;
+}
+
+static void printFrame(Frame *frame, int depth, FILE *stream)
+{
+	Source *source = getFrameSource(frame);
+	int     offset = getFrameOffset(frame);
+
+	int line;
+	const char *name;
+
+
+	if (source == NULL)
+		// Executable has no associate source object
+		name = "(no source)";
+	else {
+		name = Source_GetName(source);
+		if (name == NULL)
+			// Executable has a source but the source
+			// doesn't have a name.
+			name = "(unnamed)";
+	}
+	
+	if(source == NULL || offset < 0)
+		line = 0;
+	else {
+		line = 1;
+
+		const char *body = Source_GetBody(source);
+
+		int i = 0;
+	
+		while(i < offset)
+		{
+			if(body[i] == '\n')
+				line += 1;
+
+			i += 1;
+		}
+	}
+
+	if(line == 0)
+		fprintf(stream, "\t#%d %s\n", depth, name);
 	else
-		return runtime->frame->index;
+		fprintf(stream, "\t#%d %s:%d\n", depth, name, line);
+}
+
+void Runtime_PrintStackTrace(Runtime *runtime, FILE *stream)
+{
+	fprintf(stream, "Stack trace:\n");
+	Frame *frame = runtime->frame;
+	if (frame == NULL)
+		fprintf(stderr, "\t(No active frames)\n");
+	else {
+		size_t depth = 0;
+		do {
+			printFrame(frame, depth, stream);
+			frame = frame->prev;
+			depth++;
+		} while (frame != NULL);
+	}
+}
+
+Executable *Runtime_GetMostRecentExecutable(Runtime *runtime)
+{
+	Frame *frame = runtime->frame;
+	while (frame != NULL && frame->type != FrameType_NORMAL)
+		frame = frame->prev;
+	if (frame == NULL)
+		return NULL;
+	return ((NormalFrame*) frame)->exe;
 }
 
 Executable *Runtime_GetCurrentExecutable(Runtime *runtime)
 {
-	if(runtime->depth == 0)
+	if(runtime->depth == 0 || runtime->frame->type != FrameType_NORMAL)
 		return 	NULL;
-	else
-		return runtime->frame->exe;
+	
+	return ((NormalFrame*) runtime->frame)->exe;
 }
 
 TimingTable *Runtime_GetTimingTable(Runtime *runtime)
@@ -173,16 +244,21 @@ void Runtime_Interrupt(Runtime *runtime)
 	runtime->interrupt = true;
 }
 
-Runtime *Runtime_New2(Heap *heap, _Bool free_it, RuntimeConfig config)
+Runtime *Runtime_New(RuntimeConfig config)
 {
 	Runtime *runtime = malloc(sizeof(Runtime));
 	if (runtime == NULL)
 		return NULL;
 
+	runtime->heap = Heap_New(config.heap);
+	if(runtime->heap == NULL) {
+		free(runtime);
+		return NULL;
+	}
+
 	runtime->stack = Stack_New(config.stack);
 	if(runtime->stack == NULL) {
-		if (free_it)
-			Heap_Free(heap);
+		Heap_Free(runtime->heap);
 		free(runtime);
 		return NULL;
 	}
@@ -191,18 +267,15 @@ Runtime *Runtime_New2(Heap *heap, _Bool free_it, RuntimeConfig config)
 	if (config.time) {
 		timing_table = TimingTable_new();
 		if (timing_table == NULL) {
-			if (free_it)
-				Heap_Free(heap);
+			Stack_Free(runtime->stack);
+			Heap_Free(runtime->heap);
 			free(runtime);
 			return NULL;
 		}
 	}
-	
 
 	runtime->interrupt = false;
 	runtime->timing = timing_table;
-	runtime->heap = heap;
-	runtime->free_heap = free_it;
 	runtime->callback = config.callback;
 	runtime->builtins = NULL;
 	runtime->frame = NULL;
@@ -211,35 +284,15 @@ Runtime *Runtime_New2(Heap *heap, _Bool free_it, RuntimeConfig config)
 	return runtime;
 }
 
-Runtime *Runtime_New(int heap_size, RuntimeConfig config)
-{
-	if(heap_size < 0)
-		heap_size = 65536;
-
-	Heap *heap = Heap_New(heap_size);
-	if(heap == NULL) return NULL;
-
-	return Runtime_New2(heap, 1, config);
-}
-
 void Runtime_Free(Runtime *runtime)
 {
+	while (runtime->frame != NULL)
+		Runtime_PopFrame(runtime);
 	if (runtime->timing != NULL)
 		TimingTable_free(runtime->timing);
-	if(runtime->free_heap)
-		Heap_Free(runtime->heap);
 	Stack_Free(runtime->stack);
+	Heap_Free(runtime->heap);
 	free(runtime);
-}
-
-Object *Runtime_GetBuiltins(Runtime *runtime)
-{
-	return runtime->builtins;
-}
-
-void Runtime_SetBuiltins(Runtime *runtime, Object *builtins)
-{
-	runtime->builtins = builtins;
 }
 
 _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
@@ -248,15 +301,25 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 	ASSERT(error != NULL);
 	ASSERT(obj != NULL);
 
-	if(runtime->depth == 0)
+	Frame *frame = runtime->frame;
+	if(frame == NULL)
 	{
 		Error_Report(error, ErrorType_RUNTIME, "There are no frames on the stack");
 		return 0;
 	}
+	if (frame->type == FrameType_NATIVE) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't push on the stack from a native function");
+		return 0;
+	}
+	if (frame->type == FrameType_FAILED) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't push on the stack after a compilation error");
+		return 0;
+	}
 
-	ASSERT(runtime->frame->used <= MAX_FRAME_STACK);
-	
-	if(runtime->frame->used == MAX_FRAME_STACK)
+	ASSERT(frame->type == FrameType_NORMAL);
+	NormalFrame *normal_frame = (NormalFrame*) frame;
+
+	if(normal_frame->used == MAX_FRAME_STACK)
 	{
 		Error_Report(error, ErrorType_RUNTIME, "Frame stack limit of %d reached", MAX_FRAME_STACK);
 		return 0;
@@ -265,1288 +328,333 @@ _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)
 	if(!Stack_Push(runtime->stack, obj))
 	{
 		Error_Report(error, ErrorType_RUNTIME, "Out of stack");
-		return 0;	
+		return 0;
 	}
 
-	runtime->frame->used += 1;
+	normal_frame->used++;
 	return 1;
 }
 
-_Bool Runtime_Pop(Runtime *runtime, Error *error, unsigned int n)
+_Bool Runtime_Pop(Runtime *runtime, Error *error, Object **p, unsigned int n)
 {
 	ASSERT(runtime != NULL);
 	ASSERT(error != NULL);
 
-	if(runtime->depth == 0)
+	Frame *frame = runtime->frame;
+
+	if (frame == NULL)
 	{
 		Error_Report(error, ErrorType_RUNTIME, "There are no frames on the stack");
 		return 0;
 	}
+	if (frame->type == FrameType_NATIVE) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't pop from the stack from a native function");
+		return 0;
+	}
+	if (frame->type == FrameType_FAILED) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't pop from the stack after a compilation error");
+		return 0;
+	}
 
-	ASSERT(runtime->frame->used >= 0);
+	ASSERT(frame->type == FrameType_NORMAL);
+	NormalFrame *normal_frame = (NormalFrame*) frame;
 
-	if((unsigned int) runtime->frame->used < n)
+	ASSERT(normal_frame->used >= 0);
+	if((unsigned int) normal_frame->used < n)
 	{
 		Error_Report(error, ErrorType_RUNTIME, "Frame has not enough values on the stack");
 		return 0;
 	}
+
+	if (p != NULL)
+		for (unsigned int i = 0; i < n; i++)
+			p[i] = Stack_Top(runtime->stack, -i);
 
 	// The frame has something on the stack,
 	// this means that the stack isn't empty
 	// and popping won't fail.
 	(void) Stack_Pop(runtime->stack, n);
 
-	runtime->frame->used -= n;
+	normal_frame->used -= n;
 
-	ASSERT(runtime->frame->used >= 0);
+	ASSERT(normal_frame->used >= 0);
 	
 	return 1;
 }
 
-typedef struct {
-	Executable *exe;
-	int 		index;
-} SnapshotNode;
-
-struct xSnapshot {
-	int depth;
-	SnapshotNode nodes[];
-};
-
-Snapshot *Snapshot_New(Runtime *runtime)
+Object *Runtime_Top(Runtime *runtime, int n)
 {
-	ASSERT(runtime->depth >= 0);
-
-	Snapshot *snapshot = malloc(sizeof(Snapshot) + sizeof(SnapshotNode) * runtime->depth);
-
-	if(snapshot == NULL)
+	if (runtime->frame->type != FrameType_NORMAL)
 		return NULL;
 
-	{
-		Frame *f = runtime->frame;
+	NormalFrame *normal_frame = (NormalFrame*) runtime->frame;
 
-		snapshot->depth = 0;
-
-		while(snapshot->depth < runtime->depth)
-		{
-			ASSERT(f != NULL);
-
-			SnapshotNode *node = snapshot->nodes + snapshot->depth;
-
-			node->exe   = Executable_Copy(f->exe);
-			node->index = f->index;
-
-			if(node->exe == NULL)
-				goto abort;
-
-			f = f->prev;
-			snapshot->depth += 1;
-		}
-
-		ASSERT(f == NULL);
-	}
-
-	return snapshot;
-
-abort:
-	Snapshot_Free(snapshot);
-	return NULL;
-}
-
-void Snapshot_Free(Snapshot *snapshot)
-{
-	for(int i = 0; i < snapshot->depth; i += 1)
-	{
-		Executable *exe = snapshot->nodes[i].exe;		
-		Executable_Free(exe);
-	}
-	free(snapshot);
-}
-
-void Snapshot_Print(Snapshot *snapshot, FILE *fp)
-{
-	ASSERT(snapshot != NULL);
-	ASSERT(fp != NULL);
-
-	fprintf(fp, "Stack trace:\n");
-
-	for(int i = 0; i < snapshot->depth; i += 1)
-	{
-		SnapshotNode node = snapshot->nodes[i];
-
-		Executable *exe = node.exe;
-		Source     *src = Executable_GetSource(exe);
-
-		const char *name;
-		{
-			name = NULL;
-
-			if(src != NULL) 
-				name = Source_GetName(src);
-
-			if(name == NULL)
-				name = "(unnamed)";
-		}
-
-		int line;
-		{
-			if(src == NULL)
-				line = 0;
-			else
-				{
-					line = 1;
-
-					const char *body = Source_GetBody(src);
-					int offset = Executable_GetInstrOffset(exe, node.index);
-
-					int i = 0;
-				
-					while(i < offset)
-					{
-						if(body[i] == '\n')
-							line += 1;
-
-						i += 1;
-					}
-				}
-		}
-
-		if(line == 0)
-			fprintf(fp, "\t#%d %s\n", i, name);
-		else
-			fprintf(fp, "\t#%d %s:%d\n", i, name, line);
-	}
-
-	//fprintf(fp, "  (Snapshot can't be printed yet)\n");
-}
-
-static Object *do_math_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, Error *error)
-{
-	ASSERT(lop != NULL);
-	ASSERT(rop != NULL);
-
-	#define APPLY(x, y, z, id) 							\
-		switch(opcode)									\
-		{												\
-			case OPCODE_ADD: (z) = (x) + (y); break;	\
-			case OPCODE_SUB: (z) = (x) - (y); break;	\
-			case OPCODE_MUL: (z) = (x) * (y); break;	\
-			case OPCODE_DIV: 							\
-			if((y) == 0) 								\
-			{ 											\
-				Error_Report(error, ErrorType_RUNTIME, "Division by zero"); \
-				return NULL; 							\
-			} 											\
-			(z) = (x) / (y); 							\
-			break;										\
-			default: UNREACHABLE; break;				\
-		}
-
-	Object *res;
-
-	if(Object_IsInt(lop))
-	{
-		long long int raw_lop = Object_GetInt(lop);
-
-		if(Object_IsInt(rop))
-		{
-			// int + int
-			long long int raw_rop = Object_GetInt(rop);
-			long long int raw_res = 0;
-			APPLY(raw_lop, raw_rop, raw_res, id)
-			res = Object_FromInt(raw_res, heap, error);
-		}
-		else if(Object_IsFloat(rop))
-		{
-			// int + float
-			double raw_rop = Object_GetFloat(rop);
-			double raw_res = 0;
-			APPLY((double) raw_lop, raw_rop, raw_res, id)
-			res = Object_FromFloat(raw_res, heap, error);
-		}
-		else
-		{
-			Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
-			return NULL;
-		}
-	}
-	else if(Object_IsFloat(lop))
-	{
-		double raw_lop = Object_GetFloat(lop);
-
-		if(Object_IsInt(rop))
-		{
-			// float + int
-			long long int raw_rop = Object_GetInt(rop);
-			double raw_res = 0;
-			APPLY(raw_lop, (double) raw_rop, raw_res, id)
-			res = Object_FromFloat(raw_res, heap, error);
-		}
-		else if(Object_IsFloat(rop))
-		{
-			// float + float
-			double raw_rop = Object_GetFloat(rop);
-			double raw_res = 0;
-			APPLY(raw_lop, raw_rop, raw_res, id)
-			res = Object_FromFloat(raw_res, heap, error);
-		}
-		else
-		{
-			Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
-			return NULL;
-		}
-	}
-	else
-	{
-		Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
+	if (normal_frame->used + n <= 0)
 		return NULL;
-	}
 
-	#undef APPLY
-
-	return res;
-}
-
-static Object *do_relational_op(Object *lop, Object *rop, Opcode opcode, Heap *heap, Error *error)
-{
-	ASSERT(lop != NULL);
-	ASSERT(rop != NULL);
-
-	#define APPLY(x, y, z, id) 							\
-		switch(opcode)									\
-		{												\
-			case OPCODE_LSS: (z) = (x) <  (y); break;	\
-			case OPCODE_GRT: (z) = (x) >  (y); break;	\
-			case OPCODE_LEQ: (z) = (x) <= (y); break;	\
-			case OPCODE_GEQ: (z) = (x) >= (y); break;	\
-			default: UNREACHABLE; break;				\
-		}
-
-	_Bool res = 0;
-
-	if(Object_IsInt(lop))
-	{
-		long long int raw_lop = Object_GetInt(lop);
-		if(Object_IsInt(rop))
-		{
-			// int + int
-			long long int raw_rop = Object_GetInt(rop);
-			APPLY(raw_lop, raw_rop, res, id)
-		}
-		else if(Object_IsFloat(rop))
-		{
-			// int + float
-			double raw_rop = Object_GetFloat(rop);
-			APPLY((double) raw_lop, raw_rop, res, id)
-		}
-		else
-		{
-			Error_Report(error, ErrorType_RUNTIME, "Relational operation on a non-numeric object");
-			return NULL;
-		}
-	}
-	else if(Object_IsFloat(lop))
-	{
-		double raw_lop = Object_GetFloat(lop);
-		if(Object_IsInt(rop))
-		{
-			// float + int
-			long long int raw_rop = Object_GetInt(rop);
-			APPLY(raw_lop, (double) raw_rop, res, id)
-		}
-		else if(Object_IsFloat(rop))
-		{
-			// float + float
-			double raw_rop = Object_GetFloat(rop);
-			APPLY(raw_lop, raw_rop, res, id)
-		}
-		else
-		{
-			Error_Report(error, ErrorType_RUNTIME, "Relational operation on a non-numeric object");
-			return NULL;
-		}
-	}
-	else
-	{
-		Error_Report(error, ErrorType_RUNTIME, "Relational operation on a non-numeric object");
-		return NULL;
-	}
-
-	#undef APPLY
-
-	return Object_FromBool(res, heap, error);
-}
-
-static _Bool step(Runtime *runtime, Error *error)
-{
-	ASSERT(runtime != NULL);
-	ASSERT(error->occurred == 0);
-	Opcode opcode;	
-	Operand ops[3];
-	int     opc = sizeof(ops) / sizeof(ops[0]);
+	Object *top = Stack_Top(runtime->stack, n);
+	ASSERT(top != NULL);
 	
-	if(!Executable_Fetch(runtime->frame->exe, runtime->frame->index, &opcode, ops, &opc))
-	{
-		Error_Report(error, ErrorType_INTERNAL, "Invalid instruction index");
-		return 0;
-	}
-	
-	runtime->frame->index += 1;
-
-	switch(opcode)
-	{
-		case OPCODE_NOPE:
-		// Do nothing.
-		return 1;
-
-		case OPCODE_POS:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute POS");
-				return 0;
-			}
-
-			/* Do nothing */
-			return 1;
-		}
-
-		case OPCODE_NEG:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute NEG");
-				return 0;
-			}
-
-			Object *top = Stack_Top(runtime->stack, 0);
-			ASSERT(top != NULL);
-
-			if(!Runtime_Pop(runtime, error, 1))
-				return 0;
-
-			Heap *heap = Runtime_GetHeap(runtime);
-			ASSERT(heap != NULL);
-
-			if(Object_IsInt(top))
-			{
-				long long n = Object_GetInt(top);
-				top = Object_FromInt(-n, heap, error);
-			}
-			else if(Object_IsFloat(top))
-			{
-				double f = Object_GetFloat(top);
-				top = Object_FromFloat(-f, heap, error);
-			}
-			else
-			{
-				Error_Report(error, ErrorType_RUNTIME, "Negation operand on a non-numeric object");
-				return 0;
-			}
-
-			if(top == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, top))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_NOT:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute NOT");
-				return 0;
-			}
-
-			Object *top = Stack_Top(runtime->stack, 0);
-
-			if(!Runtime_Pop(runtime, error, 1))
-				return 0;
-
-			ASSERT(top != NULL);
-
-			if(!Object_IsBool(top))
-			{
-				Error_Report(error, ErrorType_RUNTIME, "NOT operand isn't a boolean");
-				return 0;
-			}
-
-			_Bool v = Object_GetBool(top);
-
-			Object *negated = Object_FromBool(!v, runtime->heap, error);
-			if(negated == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, negated))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_NLB:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute NLB");
-				return 0;
-			}
-
-			Object *top = Stack_Top(runtime->stack, 0);
-
-			if(!Runtime_Pop(runtime, error, 1))
-				return 0;
-
-			ASSERT(top != NULL);
-
-			Object *nullable = Object_NewNullable(top, runtime->heap, error);
-			if(nullable == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, nullable))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_STP:
-		{
-			ASSERT(opc == 0);
-
-			Object *rop = Stack_Top(runtime->stack,  0);
-			Object *lop = Stack_Top(runtime->stack, -1);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			// We managed to pop rop and lop,
-			// so we know they're not NULL.
-			ASSERT(rop != NULL);
-			ASSERT(lop != NULL);
-
-			Object *res = Object_NewSum(lop, rop, runtime->heap, error);
-			if(res == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, res))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_ADD:
-		case OPCODE_SUB:
-		case OPCODE_MUL:
-		case OPCODE_DIV:
-		{
-			ASSERT(opc == 0);
-
-			Object *rop = Stack_Top(runtime->stack,  0);
-			Object *lop = Stack_Top(runtime->stack, -1);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			// We managed to pop rop and lop,
-			// so we know they're not NULL.
-			ASSERT(rop != NULL);
-			ASSERT(lop != NULL);
-
-			Object *res = do_math_op(lop, rop, opcode, runtime->heap, error);
-
-			if(res == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, res))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_MOD:
-		{
-			ASSERT(opc == 0);
-
-			Object *rop = Stack_Top(runtime->stack,  0);
-			Object *lop = Stack_Top(runtime->stack, -1);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			// We managed to pop rop and lop,
-			// so we know they're not NULL.
-			ASSERT(rop != NULL);
-			ASSERT(lop != NULL);
-
-			if (!Object_IsInt(rop) || !Object_IsInt(lop)) {
-				Error_Report(error, ErrorType_RUNTIME, "Arithmetic operation on a non-numeric object");
-				return 0;
-			}
-
-			long long int x, y, z;
-			y = Object_GetInt(rop);
-			x = Object_GetInt(lop);
-			z = x % y;
-
-			Object *res = Object_FromInt(z, runtime->heap, error);
-			if(res == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, res))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_EQL:
-		case OPCODE_NQL:
-		{
-			ASSERT(opc == 0);
-
-			Object *rop = Stack_Top(runtime->stack,  0);
-			Object *lop = Stack_Top(runtime->stack, -1);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			// We managed to pop rop and lop,
-			// so we know they're not NULL.
-			ASSERT(rop != NULL);
-			ASSERT(lop != NULL);
-
-			_Bool rawres = Object_Compare(lop, rop, error);
-
-			if(error->occurred == 1)
-				return 0;
-
-			if(opcode == OPCODE_NQL)
-				rawres = !rawres;
-
-			Object *res = Object_FromBool(rawres, runtime->heap, error);
-
-			if(res == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, res))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_LSS:
-		case OPCODE_GRT:
-		case OPCODE_LEQ:
-		case OPCODE_GEQ:
-		{
-			ASSERT(opc == 0);
-
-			Object *rop = Stack_Top(runtime->stack,  0);
-			Object *lop = Stack_Top(runtime->stack, -1);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			// We managed to pop rop and lop,
-			// so we know they're not NULL.
-			ASSERT(rop != NULL);
-			ASSERT(lop != NULL);
-
-			Object *res = do_relational_op(lop, rop, opcode, runtime->heap, error);
-
-			if(res == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, res))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_ASS:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_STRING);
-			const char *name = ops[0].as_string;
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_RUNTIME, "Frame has not enough values on the stack");
-				return 0;
-			}
-
-			Object *val = Stack_Top(runtime->stack, 0);
-			ASSERT(val != NULL);
-
-			Object *key = Object_FromString(name, -1, runtime->heap, error);
-
-			if(key == NULL)
-				return 0;
-
-			if(!Object_Insert(runtime->frame->locals, key, val, runtime->heap, error))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_POP:
-		{
-			ASSERT(opc == 1);
-
-			if(!Runtime_Pop(runtime, error, ops[0].as_int))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_CHECKTYPE:
-		{
-			ASSERT(opc == 2);
-			ASSERT(ops[0].type == OPTP_INT);
-			ASSERT(ops[1].type == OPTP_STRING);
-			
-			const char *arg_name; 
-			int arg_index;
-			
-			arg_index = ops[0].as_int;
-			arg_name  = ops[1].as_string;
-			ASSERT(arg_name != NULL);
-
-			if(runtime->frame->used < 2)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't own enough objects to execute CHECKTYPE");
-				return 0;
-			}
-
-			Object *typ = Stack_Top(runtime->stack,  0);
-			Object *arg = Stack_Top(runtime->stack, -1);
-			ASSERT(typ != NULL);
-			ASSERT(arg != NULL);
-
-			// Pop type
-			if(!Runtime_Pop(runtime, error, 1))
-				return 0;
-
-			if (!Object_IsTypeOf(typ, arg, runtime->heap, error)) {
-				char provided[512];
-				char allowed[512];
-				FILE *provided_fp = fmemopen(provided, sizeof(provided), "wb");
-				FILE  *allowed_fp = fmemopen(allowed, sizeof(allowed), "wb");
-				// TODO: Check for errors from [fmemopen]
-				Object_Print(typ, allowed_fp);
-				Object_Print(arg, provided_fp);
-				fclose(allowed_fp);
-				fclose(provided_fp);
-				Error_Report(error, ErrorType_RUNTIME, "Argument %d \"%s\" has an unallowed type. Was expected something with type %s but was provided %s", 
-							 arg_index+1, arg_name, allowed, provided);
-				return 0;
-			}
-			return 1;
-		}
-
-		case OPCODE_CALL:
-		{
-			ASSERT(opc == 2);
-			ASSERT(ops[0].type == OPTP_INT);
-			ASSERT(ops[1].type == OPTP_INT);
-
-			int argc = ops[0].as_int;
-			int retc = ops[1].as_int;
-			ASSERT(argc >= 0 && retc > 0);
-
-			if(runtime->frame->used < argc + 1)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't own enough objects to execute call");
-				return 0;
-			}
-
-			Object *callable = Stack_Top(runtime->stack, 0);
-			ASSERT(callable != NULL);
-
-			Object *argv[32];
-
-			int max_argc = sizeof(argv) / sizeof(argv[0]);
-			if(argc > max_argc)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Static buffer only allows function calls with up to %d arguments", max_argc);
-				return 0;
-			}
-
-			for(int i = 0; i < argc; i += 1)
-			{
-				argv[i] = Stack_Top(runtime->stack, -(i+1));
-				ASSERT(argv[i] != NULL);
-			}
-
-			ASSERT(error->occurred == 0);
-			(void) Runtime_Pop(runtime, error, argc+1);
-			ASSERT(error->occurred == 0);
-
-			Object *rets[8];
-			int num_rets = Object_Call(callable, argv, argc, rets, runtime->heap, error);
-
-			if(num_rets < 0)
-				return 0;
-
-			// NOTE: Every local object reference is invalidated from here.
-
-			ASSERT(error->occurred == 0);
-
-			for(int g = 0; g < MIN(num_rets, retc); g += 1)
-				if(!Runtime_Push(runtime, error, rets[g]))
-					return 0;
-
-			for(int g = 0; g < retc - num_rets; g += 1)
-			{
-				Object *temp = Object_NewNone(Runtime_GetHeap(runtime), error);
-
-				if(temp == NULL)
-					return NULL;
-
-				if(!Runtime_Push(runtime, error, temp))
-					return 0;
-			}
-			return 1;
-		}
-
-		case OPCODE_SELECT:
-		case OPCODE_SELECT2:
-		{
-			ASSERT(opc == 0);
-
-			int to_be_popped = (opcode == OPCODE_SELECT) ? 2 : 1;
-
-			if(runtime->frame->used < to_be_popped)
-			{
-				const char *name = "SELECT";
-				if (opcode == OPCODE_SELECT2)
-					name = "SELECT2";
-				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run %s instruction", name);
-				return 0;
-			}
-
-			Object *col = Stack_Top(runtime->stack, -1);
-			Object *key = Stack_Top(runtime->stack,  0);
-
-			ASSERT(col != NULL && key != NULL);
-
-			if(!Runtime_Pop(runtime, error, to_be_popped))
-				return 0;
-
-			ASSERT(error->occurred == 0);
-
-			Error dummy;
-			Error_Init(&dummy); // We want to catch the error reported by this Object_Select.
-
-			Object *val = Object_Select(col, key, runtime->heap, &dummy);
-
-			if(val == NULL)
-				{
-					Error_Free(&dummy);
-
-					val = Object_NewNone(runtime->heap, error);
-					if(val == NULL)
-						return 0;
-				}
-
-			ASSERT(error->occurred == 0);
-
-			if(!Runtime_Push(runtime, error, val))
-				return 0;
-
-			ASSERT(error->occurred == 0);
-			return 1;
-		}
-
-		case OPCODE_INSERT:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used < 3)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run INSERT instruction");
-				return 0;
-			}
-
-			Object *col = Stack_Top(runtime->stack, -2);
-			Object *key = Stack_Top(runtime->stack, -1);
-			Object *val = Stack_Top(runtime->stack,  0);
-
-			ASSERT(col != NULL && key != NULL && val != NULL);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			if(!Object_Insert(col, key, val, runtime->heap, error))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_INSERT2:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used < 3)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run INSERT2 instruction");
-				return 0;
-			}
-
-			Object *val = Stack_Top(runtime->stack, -2);
-			Object *col = Stack_Top(runtime->stack, -1);
-			Object *key = Stack_Top(runtime->stack,  0);
-
-			ASSERT(col != NULL && key != NULL && val != NULL);
-
-			if(!Runtime_Pop(runtime, error, 2))
-				return 0;
-
-			if(!Object_Insert(col, key, val, runtime->heap, error))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHINT:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_INT);
-
-			Object *obj = Object_FromInt(ops[0].as_int, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHFLT:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_FLOAT);
-
-			Object *obj = Object_FromFloat(ops[0].as_float, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHSTR:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_STRING);
-
-			Object *obj = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHVAR:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_STRING);
-
-			Object *key = Object_FromString(ops[0].as_string, -1, runtime->heap, error);
-				
-			if(key == NULL)
-				return 0;
-
-			Object *locations[] = {
-				runtime->frame->locals,
-				runtime->frame->closure,
-				Runtime_GetBuiltins(runtime),
-			};
-				
-			Object *obj = NULL;
-
-			for(int p = 0; obj == NULL && (unsigned int) p < sizeof(locations)/sizeof(locations[0]); p += 1)
-			{
-				if(locations[p] == NULL)
-					continue;
-
-				obj = Object_Select(locations[p], key, Runtime_GetHeap(runtime), error);
-			}
-
-			if(obj == NULL)
-			{
-				if(error->occurred == 0)
-					// There's no such variable.
-					Error_Report(error, ErrorType_RUNTIME, "Reference to undefined variable \"%s\"", ops[0].as_string);
-				return 0;
-			}
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-
-			return 1;
-		}
-
-		case OPCODE_PUSHNNE:
-		{
-			ASSERT(opc == 0);
-
-			Object *obj = Object_NewNone(runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHTRU:
-		{
-			ASSERT(opc == 0);
-
-			Object *obj = Object_FromBool(1, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHFLS:
-		{
-			ASSERT(opc == 0);
-
-			Object *obj = Object_FromBool(0, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHFUN:
-		{
-			ASSERT(opc == 3);
-			ASSERT(ops[0].type == OPTP_IDX);
-			ASSERT(ops[1].type == OPTP_INT);
-			ASSERT(ops[2].type == OPTP_STRING);
-
-			Object *closure = Object_NewClosure(runtime->frame->closure, runtime->frame->locals, Runtime_GetHeap(runtime), error);
-
-			if(closure == NULL)
-				return 0;
-
-			Object *obj = Object_FromNojaFunction(runtime, ops[2].as_string, runtime->frame->exe, ops[0].as_int, ops[1].as_int, closure, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHLST:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_INT);
-
-			Object *obj = Object_NewList(ops[0].as_int, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHMAP:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_INT);
-
-			Object *obj = Object_NewMap(ops[0].as_int, runtime->heap, error);
-
-			if(obj == NULL)
-				return 0;
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHNNETYP:
-		{
-			ASSERT(opc == 0);
-
-			Object *obj = (Object*) Object_GetNoneType();
-			ASSERT(obj != NULL);
-
-			if(!Runtime_Push(runtime, error, obj))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_PUSHTYP:
-		{
-			ASSERT(opc == 0);
-
-			if(runtime->frame->used < 1)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run PUSHTYP instruction");
-				return 0;
-			}
-
-			Object *top = Stack_Top(runtime->stack, 0);
-			ASSERT(top != NULL);
-
-			Object *typ = (Object*) Object_GetType(top);
-			ASSERT(typ != NULL);
-			
-			if(!Runtime_Push(runtime, error, typ))
-				return 0;
-			return 1;
-		}
-
-		case OPCODE_EXIT:
-		{
-			ASSERT(opc == 0);
-
-			Object *vars = runtime->frame->locals;
-			ASSERT(vars != NULL);
-
-			if(!Runtime_Push(runtime, error, vars))
-				return 0;
-			return 0;
-		}
-
-		case OPCODE_RETURN:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_INT);
-			int retc = ops[0].as_int;
-			UNUSED(retc);
-			ASSERT(retc >= 0);
-			ASSERT(retc <= MAX_RETS);
-			ASSERT(retc == runtime->frame->used);
-			return 0;
-		}
-
-		case OPCODE_JUMP:
-		ASSERT(opc == 1);
-		ASSERT(ops[0].type == OPTP_IDX);
-		runtime->frame->index = ops[0].as_int;
-		return 1;
-
-		case OPCODE_JUMPIFANDPOP:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_IDX);
-				
-			long long int target = ops[0].as_int;
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
-				return 0;
-			}
-
-			Object *top = Stack_Top(runtime->stack, 0);
-
-			if(!Runtime_Pop(runtime, error, 1))
-				return 0;			
-
-			ASSERT(top != NULL);
-
-			if(!Object_IsBool(top))
-			{
-				Error_Report(error, ErrorType_RUNTIME, "Not a boolean");
-				return 0;
-			}
-
-			if(Object_GetBool(top))
-				runtime->frame->index = target;
-
-			return 1;
-		}
-
-		case OPCODE_JUMPIFNOTANDPOP:
-		{
-			ASSERT(opc == 1);
-			ASSERT(ops[0].type == OPTP_IDX);
-				
-			long long int target = ops[0].as_int;
-
-			if(runtime->frame->used == 0)
-			{
-				Error_Report(error, ErrorType_INTERNAL, "Frame doesn't have enough items on the stack to execute JUMPIFNOTANDPOP");
-				return 0;
-			}
-
-			Object *top = Stack_Top(runtime->stack, 0);
-
-			if(!Runtime_Pop(runtime, error, 1))
-				return 0;			
-
-			ASSERT(top != NULL);
-
-			if(!Object_IsBool(top))
-			{
-				Error_Report(error, ErrorType_RUNTIME, "Not a boolean");
-				return 0;
-			}
-
-			if(!Object_GetBool(top))
-				runtime->frame->index = target;
-
-			return 1;
-		}
-
-		default:
-		UNREACHABLE;
-		return 0;
-	}
-
-	return 1;
+	return top;
 }
 
-static _Bool collect(Runtime *runtime, Error *error)
+void Runtime_SetInstructionIndex(Runtime *runtime, int index)
+{
+	ASSERT(runtime->frame->type == FrameType_NORMAL);
+	((NormalFrame*) runtime->frame)->index = index;
+}
+
+bool Runtime_SetVariable(Runtime *runtime, Error *error, const char *name, Object *value) 
 {
 	Frame *frame = runtime->frame;
+	if (frame == NULL) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't assign a variable while there's no active frame");
+		return false;
+	}
+	if (frame->type == FrameType_NATIVE) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't set a variable from a native function");
+		return 0;
+	}
+	if (frame->type == FrameType_FAILED) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't set a variable after a compilation error");
+		return 0;
+	}
 
-	if(!Heap_StartCollection(runtime->heap, error))
+	ASSERT(frame->type == FrameType_NORMAL);
+	NormalFrame *normal_frame = (NormalFrame*) frame;
+
+	Heap *heap = Runtime_GetHeap(runtime);
+	Object *key = Object_FromString(name, -1, heap, error);
+	if(key == NULL)
+		return false;
+
+	return Object_Insert(normal_frame->locals, key, value, heap, error);
+}
+
+bool Runtime_GetVariable(Runtime *runtime, Error *error, const char *name, Object **value)
+{
+	ASSERT(value != NULL);
+
+	Frame *frame = runtime->frame;
+	if (frame == NULL) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't load a variable while there is no active frame");
+		return 0;
+	}
+	if (frame->type == FrameType_NATIVE) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't load a variable from a native function");
+		return 0;
+	}
+	if (frame->type == FrameType_FAILED) {
+		Error_Report(error, ErrorType_INTERNAL, "Can't load a variable after a compilation error");
+		return 0;
+	}
+
+	ASSERT(frame->type == FrameType_NORMAL);
+	NormalFrame *normal_frame = (NormalFrame*) frame;
+
+	Heap *heap = Runtime_GetHeap(runtime);
+	Object *key = Object_FromString(name, -1, heap, error);
+	if(key == NULL)
+		return false;
+
+	Object *locations[] = {
+		normal_frame->locals,
+		normal_frame->closure,
+		runtime->builtins,
+	};
+		
+	Object *obj = NULL;
+
+	for(int p = 0; obj == NULL && (unsigned int) p < sizeof(locations)/sizeof(locations[0]); p += 1)
+	{
+		if(locations[p] == NULL)
+			continue;
+
+		obj = Object_Select(locations[p], key, heap, error);
+	}
+
+	*value = obj;
+	return true;
+}
+
+Object *Runtime_GetClosure(Runtime *runtime)
+{
+	ASSERT(runtime->frame != NULL && runtime->frame->type == FrameType_NORMAL);
+	NormalFrame *normal_frame = (NormalFrame*) runtime->frame;
+	return normal_frame->closure;
+}
+
+Object *Runtime_GetLocals(Runtime *runtime)
+{
+	ASSERT(runtime->frame != NULL && runtime->frame->type == FrameType_NORMAL);
+	NormalFrame *normal_frame = (NormalFrame*) runtime->frame;
+	return normal_frame->locals;
+}
+
+size_t Runtime_GetFrameStackUsage(Runtime *runtime)
+{
+	if (runtime->frame->type != FrameType_NORMAL)
+		return 0;
+	return ((NormalFrame*) runtime->frame)->used;
+}
+
+static bool appendFrame(Runtime *runtime, Error *error, Frame *frame)
+{
+	if(runtime->depth == MAX_FRAMES) {
+		Error_Report(error, ErrorType_INTERNAL, "Maximum nested call limit of %d was reached", MAX_FRAMES);
+		return false;
+	}
+	frame->prev = runtime->frame;
+	runtime->frame = frame;
+	runtime->depth++;
+	return true;
+}
+
+bool Runtime_PushFailedFrame(Runtime *runtime, Error *error, Source *source, int offset)
+{
+	FailedFrame *failed_frame = &runtime->failed_frame;
+
+	Source *source_copy = Source_Copy(source);
+	if (source_copy == NULL) {
+		Error_Report(error, ErrorType_INTERNAL, "Failed to copy source object");
+		return false;
+	}
+
+	failed_frame->base.type = FrameType_FAILED;
+	failed_frame->base.prev = NULL;
+	failed_frame->source = source;
+	failed_frame->offset = offset;
+
+	if (!appendFrame(runtime, error, (Frame*) failed_frame)) {
+		Source_Free(source_copy);
+		return false;
+	}
+	return true;
+}
+
+bool Runtime_PushNativeFrame(Runtime *runtime, Error *error)
+{
+	NativeFrame *native_frame = malloc(sizeof(NativeFrame));
+	if (native_frame == NULL) {
+		Error_Report(error, ErrorType_INTERNAL, "Out of memory");
+		return false;
+	}
+	
+	native_frame->base.type = FrameType_NATIVE;
+	native_frame->base.prev = NULL;
+
+	if (!appendFrame(runtime, error, (Frame*) native_frame)) {
+		free(native_frame);
+		return false;
+	}
+	return true;
+}
+
+bool Runtime_PushFrame(Runtime *runtime, Error *error, Object *closure, Executable *exe, int index)
+{
+	NormalFrame *frame = malloc(sizeof(NormalFrame));
+	if (frame == NULL) {
+		Error_Report(error, ErrorType_INTERNAL, "Out of memory");
+		return false;
+	}
+	
+	Object *locals = Object_NewMap(-1, runtime->heap, error);
+	if (locals == NULL) {
+		free(frame);
+		return false;
+	}
+
+	Executable *exe_copy = Executable_Copy(exe);
+	if (exe_copy == NULL) {
+		free(frame);
+		Error_Report(error, ErrorType_INTERNAL, "Failed to copy executable");
+		return false;
+	}
+
+	frame->base.type = FrameType_NORMAL;
+	frame->base.prev = NULL;
+	frame->closure = closure;
+	frame->exe = exe_copy;
+	frame->index = index;
+	frame->used = 0;
+	frame->locals = locals;
+
+	if (!appendFrame(runtime, error, (Frame*) frame)) {
+		free(frame);
+		Executable_Free(exe_copy);
+		return false;
+	}
+	return true;
+}
+
+bool Runtime_PopFrame(Runtime *runtime)
+{
+	Frame *frame = runtime->frame;
+	if (frame == NULL)
+		return false;
+	runtime->frame = frame->prev;
+	runtime->depth--;
+	switch(frame->type) {
+		case FrameType_NORMAL: {
+			NormalFrame *normal_frame = (NormalFrame*) frame;
+			Stack_Pop(runtime->stack, normal_frame->used);
+			Executable_Free(normal_frame->exe);
+			free(frame);
+			break;
+		}
+		case FrameType_NATIVE: {
+			NativeFrame *native_frame = (NativeFrame*) frame;
+			UNUSED(native_frame);
+			free(frame);
+			break;
+		}
+		case FrameType_FAILED: {
+			FailedFrame *failed_frame = (FailedFrame*) frame;
+			Source_Free(failed_frame->source);
+			break;
+		}
+	}
+	return true;
+}
+
+RuntimeCallback Runtime_GetCallback(Runtime *runtime)
+{
+	return runtime->callback;
+}
+
+bool Runtime_WasInterrupted(Runtime *runtime)
+{
+	return runtime->interrupt;
+}
+
+bool Runtime_CollectGarbage(Runtime *runtime, Error *error)
+{
+	Frame *frame = runtime->frame;
+	Heap *heap = runtime->heap;
+
+	if(!Heap_StartCollection(heap, error))
 		return 0;
 
 	Heap_CollectReference(&runtime->builtins,  runtime->heap);
 
 	while(frame)
 	{
-		Heap_CollectReference(&frame->locals,  runtime->heap);
-		Heap_CollectReference(&frame->closure, runtime->heap);
+		if (frame->type == FrameType_NORMAL) {
+			NormalFrame *normal_frame = (NormalFrame*) frame;
+			Heap_CollectReference(&normal_frame->locals,  heap);
+			Heap_CollectReference(&normal_frame->closure, heap);
+		}
 		frame = frame->prev;
 	}
 
-	for(unsigned int i = 0; i < Stack_Size(runtime->stack); i += 1)
+	Stack *stack = Runtime_GetStack(runtime);
+	for(unsigned int i = 0; i < Stack_Size(stack); i += 1)
 	{
-		Object **ref = (Object**) Stack_TopRef(runtime->stack, -i);
+		Object **ref = (Object**) Stack_TopRef(stack, -i);
 		ASSERT(ref != NULL);
 
 		Heap_CollectReference(ref, runtime->heap);
 	}
 
 	return Heap_StopCollection(runtime->heap);
-}
-
-int run(Runtime *runtime, Error *error, 
-	    Executable *exe, int index, 
-	    Object *closure, 
-	    Object **argv, int argc, 
-	    Object *rets[static MAX_RETS])
-{
-	ASSERT(runtime != NULL);
-	ASSERT(error != NULL);
-	ASSERT(exe != NULL);
-	ASSERT(index >= 0);
-	ASSERT(argc >= 0);
-
-	if(runtime->depth == MAX_FRAMES)
-	{
-		Error_Report(error, ErrorType_INTERNAL, "Maximum nested call limit of %d was reached", MAX_FRAMES);
-		return -1;
-	}
-
-	ASSERT(runtime->depth < MAX_FRAMES);
-		
-	// Initialize the frame.
-	Frame frame;
-	{
-		frame.prev = NULL;
-		frame.closure = closure;
-		frame.locals = Object_NewMap(-1, runtime->heap, error);
-		frame.exe  = Executable_Copy(exe);
-		frame.index = index;
-		frame.used  = 0;
-
-		if(frame.locals == NULL)
-			return -1;
-
-		if(frame.exe == NULL)
-		{
-			Error_Report(error, ErrorType_INTERNAL, "Failed to copy executable");
-			return -1;
-		}
-	
-		// Add the frame to the runtime.
-		frame.prev = runtime->frame;
-		runtime->frame = &frame;
-		runtime->depth += 1;
-	}
-
-	// This is what the function will return.
-	int retc = -1;
-
-	// Push the initial values of the frame.
-	for(int i = 0; i < argc; i += 1)
-		if(!Runtime_Push(runtime, error, argv[i]))
-			goto cleanup;
-
-	// Run the code.
-
-
-	if(runtime->interrupt || (runtime->callback.func != NULL && !runtime->callback.func(runtime, runtime->callback.data)))
-		Error_Report(error, ErrorType_RUNTIME, "Forced abortion");
-	else
-		while(step(runtime, error))
-		{
-			if(runtime->interrupt || (runtime->callback.func != NULL && !runtime->callback.func(runtime, runtime->callback.data)))
-			{
-				Error_Report(error, ErrorType_RUNTIME, "Forced abortion");
-				break;
-			}
-
-			//printf("%2.2f%% percent.\n", Heap_GetUsagePercentage(runtime->heap));
-
-			if(Heap_GetUsagePercentage(runtime->heap) > 100)
-				if(!collect(runtime, error))
-					break;
-		}
-
-	// If an error occurred, we want to return NULL.
-	if(error->occurred == 0)
-	{
-		retc = frame.used;
-		ASSERT(retc <= MAX_RETS);
-
-		for(int i = 0; i < retc; i += 1)
-		{
-			rets[i] = Stack_Top(runtime->stack, i - retc + 1);
-			ASSERT(rets[i] != NULL);
-		}
-	}
-
-cleanup:
-	// Remove the frame-owned items from the stack.
-	// This can't fail.
-	(void) Stack_Pop(runtime->stack, frame.used);
-
-	// Deinitialize the frame.
-	{
-	 	// Remove the frame from the runtime.
-		runtime->frame = runtime->frame->prev;
-		runtime->depth -= 1;
-
-		// Deallocate the fields.
-		Executable_Free(frame.exe);
-	}
-
-	return retc;
 }

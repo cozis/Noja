@@ -30,6 +30,8 @@
 
 #ifndef ERROR_H
 #define ERROR_H
+
+#include <stdio.h>
 #include <stdarg.h>
 
 typedef enum {
@@ -63,5 +65,5 @@ void   _Error_Report (Error *err, ErrorType typ, const char *file, const char *f
 void   _Error_Report2(Error *err, ErrorType typ, const char *file, const char *func, int line, const char *fmt, va_list va);
 void    Error_Panic_(const char *file, int line, const char *fmt, ...);
 #define Error_Panic(fmt, ...) Error_Panic_(__FILE__, __LINE__, fmt, ## __VA_ARGS__)
-void    Error_Print(Error *error, ErrorType type_if_unspecified);
+void    Error_Print(Error *error, ErrorType type_if_unspecified, FILE *stream);
 #endif

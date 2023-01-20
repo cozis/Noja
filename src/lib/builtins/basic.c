@@ -44,7 +44,7 @@
 #include "../common/defs.h"
 #include "../objects/objects.h"
 #include "../runtime/runtime.h"
-#include "../compiler/compile.h"
+#include "../runtime/run.h"
 
 static int bin_getCurrentWorkingDirectory(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
@@ -133,56 +133,7 @@ static int bin_import(Runtime *runtime,
 		return -1;
 
 	const char *path = pargs[0].as_string.data;
-	size_t  path_len = pargs[0].as_string.size;
-
-	char full_path[1024];
-	
-	if(path[0] == '/') {
-		if(path_len >= sizeof(full_path)) {
-			Error_Report(error, ErrorType_INTERNAL, "Internal buffer is too small");
-			return -1;
-		}
-		strcpy(full_path, path);
-	} else {
-		size_t written = Runtime_GetCurrentScriptFolder(runtime, full_path, sizeof(full_path));
-		if(written == 0) {
-			Error_Report(error, ErrorType_INTERNAL, "Internal buffer is too small");
-			return -1;
-		}
-
-		if(written + path_len >= sizeof(full_path)) {
-			Error_Report(error, ErrorType_INTERNAL, "Internal buffer is too small");
-			return -1;
-		}
-
-		memcpy(full_path + written, path, path_len);
-		full_path[written + path_len] = '\0';
-	}
-
-	Source *src = Source_FromFile(full_path, error);
-	if(src == NULL)
-		return -1;
-	
-    Executable *exe = compile(src, error);
-    if(exe == NULL) {
-		Source_Free(src);
-		return -1;
-    }
-
-	Object *sub_rets[8];
-	int retc = run(runtime, error, exe, 0, NULL, NULL, 0, sub_rets);
-    if(retc < 0)
-    {
-		Source_Free(src);
-		Executable_Free(exe);
-		return -1;
-    }
-    ASSERT(retc == 1);
-	
-	Source_Free(src);
-	Executable_Free(exe);
-    rets[0] = sub_rets[0];
-    return 1;
+	return runFileRelativeToScript(runtime, path, rets, error);
 }
 
 static int bin_type(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)

@@ -31,8 +31,12 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <stdbool.h>
-#include "../lib/noja.h"
+#include "../lib/runtime/run.h"
+#include "../lib/runtime/runtime.h"
+#include "../lib/runtime/builtins_api.h"
+#include "../lib/runtime/serialize_profiling.h"
 
 static void usage(FILE *stream, const char *name) 
 {
@@ -57,11 +61,20 @@ static void help(FILE *stream, const char *name)
 }
 
 typedef enum {
-	Mode_DISASSEMBLy,
+	Mode_DISASSEMBLY,
 	Mode_ASSEMBLY,
 	Mode_DEFAULT,
 	Mode_HELP,
 } Mode;
+
+Runtime *runtime = NULL;
+
+static void signalHandler(int signo)
+{
+    (void) signo;
+    if (runtime != NULL)
+       Runtime_Interrupt(runtime);
+}
 
 int main(int argc, char **argv)
 {
@@ -80,7 +93,7 @@ int main(int argc, char **argv)
 		
 		} else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--disassembly")) {
 
-			mode = Mode_DISASSEMBLy;
+			mode = Mode_DISASSEMBLY;
 
 		} else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--inline")) {
 			
@@ -131,47 +144,78 @@ int main(int argc, char **argv)
 		code = 0; 
 		break;
 		
-		case Mode_DEFAULT: 
-		if (input == NULL) {
-			fprintf(stderr, "No input file");
-			code = -1;
-			break;
-		}
-		if (profile) {
-			if (no_file) code = NOJA_profileString(input, heap) ? 0 : -1;
-			else         code = NOJA_profileFile(input, heap)   ? 0 : -1;
-		} else {
-			if (output != NULL)
-				fprintf(stderr, "Ignoring option -o\n");
-			if (no_file) code = NOJA_runString(input, heap) ? 0 : -1;
-			else         code = NOJA_runFile(input, heap)   ? 0 : -1;
-		}
-		break;
-		
+		case Mode_DEFAULT:
 		case Mode_ASSEMBLY:
-		if (input == NULL) {
-			fprintf(stderr, "No assembly input file");
-			code = -1;
+		{
+			if (input == NULL) {
+				fprintf(stderr, "No input file");
+				code = -1;
+				break;
+			}
+			
+			RuntimeConfig config = Runtime_GetDefaultConfigs();
+			config.time = profile;
+			config.heap = heap;
+
+			runtime = Runtime_New(config);
+			if (runtime == NULL) {
+				fprintf(stderr, "Failed to initialize runtime");
+				code = -1;
+				break;
+			}
+			signal(SIGINT,  signalHandler);
+		   signal(SIGTERM, signalHandler);
+
+			Error error;
+		   Error_Init(&error);
+
+		   if (!Runtime_plugDefaultBuiltins(runtime, (Error*) &error)) {
+		   	Error_Print(&error, ErrorType_RUNTIME, stderr);
+		   	Error_Free(&error);
+		   	Runtime_PrintStackTrace(runtime, stderr);
+		    	Runtime_Free(runtime);
+		    	code = -1;
+		    	break;
+		   }
+
+		   bool ok;
+		   if (mode == Mode_ASSEMBLY) {
+		    	if (no_file)
+			    	ok = runBytecodeString(runtime, input, (Error*) &error);
+			   else
+					ok = runBytecodeFile(runtime, input, (Error*) &error);
+		   } else {
+			   if (no_file)
+				  	ok = runString(runtime, input, (Error*) &error);
+			   else
+					ok = runFile(runtime, input, (Error*) &error);
+			}
+
+			if (ok == false) {
+				Error_Print(&error, ErrorType_RUNTIME, stderr);
+		    	Error_Free(&error);
+		    	Runtime_PrintStackTrace(runtime, stderr);
+		    	Runtime_Free(runtime);
+		    	code = -1;
+		    	break;
+			}
+			
+			code = 0;
+			if (output == NULL)
+				Runtime_SerializeProfilingResultsToStream(runtime, stdout);
+			else
+				Runtime_SerializeProfilingResultsToFile(runtime, output);
+			Runtime_Free(runtime);
 			break;
 		}
-		if (profile) {
-			if (no_file) code = NOJA_profileAssemblyString(input, heap) ? 0 : -1;
-			else         code = NOJA_profileAssemblyFile(input, heap)   ? 0 : -1;
-		} else {
-			if (output != NULL)
-				fprintf(stderr, "Ignoring option -o\n");
-			if (no_file) code = NOJA_runAssemblyString(input, heap) ? 0 : -1;
-			else         code = NOJA_runAssemblyFile(input, heap)   ? 0 : -1;
-		}
-		break;
-		case Mode_DISASSEMBLy:
+		
+		case Mode_DISASSEMBLY:
 		if (input == NULL) {
 			fprintf(stderr, "No disassembly input file");
 			code = -1;
 			break;
 		}
-		if (no_file) code = NOJA_dumpStringBytecode(input) ? 0 : -1;
-		else         code = NOJA_dumpFileBytecode(input)   ? 0 : -1;
+		/* .. */
 		break;
 	}
 

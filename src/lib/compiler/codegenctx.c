@@ -9,6 +9,7 @@ struct CodegenContext {
     bool own_alloc;
     bool env_set;
     jmp_buf *env;
+    int *error_offset;
 };
 
 Label *Label_New(CodegenContext *ctx)
@@ -17,7 +18,7 @@ Label *Label_New(CodegenContext *ctx)
     if(promise != NULL)
         return (Label*) promise;
     
-    CodegenContext_ReportErrorAndJump(ctx, ErrorType_INTERNAL, "No memory");
+    CodegenContext_ReportErrorAndJump(ctx, -1, ErrorType_INTERNAL, "No memory");
     UNREACHABLE;
     return NULL; // For the compiler warning.
 }
@@ -54,14 +55,14 @@ static void okNowJump(CodegenContext *ctx)
 }
 
 void CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, 
-                                        const char *func, int line, ErrorType type, 
-                                        const char *format, ...)
+                                        const char *func, int line, int error_offset,
+                                        ErrorType type, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
     _Error_Report2(ctx->error, type, file, func, line, format, args);
     va_end(args);
-
+    *ctx->error_offset = error_offset;
     okNowJump(ctx);
     UNREACHABLE;
 }

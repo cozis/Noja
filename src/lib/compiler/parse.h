@@ -34,5 +34,5 @@
 #include "../utils/source.h"
 #include "../utils/error.h"
 #include "AST.h"
-AST *parse(Source *src, BPAlloc *alloc, Error *error);
+AST *parse(Source *src, BPAlloc *alloc, Error *error, int *error_offset);
 #endif

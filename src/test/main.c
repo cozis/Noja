@@ -284,14 +284,14 @@ static bool parseTestCaseSource(Source *source, TestCase *testcase)
 
         testcase->source = Source_FromString("<input>", str + source_offset, source_length, &error);
         if(testcase->source == NULL) {
-            Error_Print(&error, ErrorType_UNSPECIFIED);
+            Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
             Error_Free(&error);
             return false;
         }
 
         testcase->bytecode = Source_FromString("<output>", str + bytecode_offset, bytecode_length, &error);
         if(testcase->bytecode == NULL) {
-            Error_Print(&error, ErrorType_UNSPECIFIED);
+            Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
             Source_Free(testcase->source);
             Error_Free(&error);
             return false;
@@ -303,11 +303,12 @@ static bool parseTestCaseSource(Source *source, TestCase *testcase)
 
 static Executable *compile_source_and_print_error_on_failure(Source *src)
 {
+    int error_offset;
     Error error;
     Error_Init(&error);
-    Executable *exe = compile(src, &error);
+    Executable *exe = compile(src, &error, &error_offset);
     if(exe == NULL) {
-        Error_Print(&error, ErrorType_UNSPECIFIED);
+        Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
         Error_Free(&error);
         return NULL;
     }
@@ -330,7 +331,7 @@ static TestResult runTest(const char *file)
 
         source = Source_FromFile(file, &error);
         if(source == NULL) {
-            Error_Print(&error, ErrorType_UNSPECIFIED);
+            Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
             Error_Free(&error);
             return TestResult_ABORT;
         }
@@ -358,10 +359,10 @@ static TestResult runTest(const char *file)
     {
         Error error;
         Error_Init(&error);
-
-        exe2 = assemble(testcase.bytecode, &error);
+        int error_offset;
+        exe2 = assemble(testcase.bytecode, &error, &error_offset);
         if(exe2 == NULL) {
-            Error_Print(&error, ErrorType_UNSPECIFIED);
+            Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
             Error_Free(&error);
             Executable_Free(exe1);
             Source_Free(testcase.source);

@@ -129,6 +129,7 @@ typedef struct {
 	Token   *token;
 	BPAlloc *alloc;
 	Error   *error;
+	int *error_offset;
 } Context;
 
 static Node *parse_statement(Context *ctx);
@@ -152,6 +153,7 @@ static inline _Bool isoper(char c)
 			c == '%';
 }
 
+#warning "update doc arguments"
 /* Symbol: tokenize
  * 
  *   Build a list of tokens that represents the 
@@ -175,7 +177,7 @@ static inline _Bool isoper(char c)
  *   structure is filled out.
  *
  */
-static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
+static Token *tokenize(Source *src, BPAlloc *alloc, Error *error, int *error_offset)
 {
 	const char *str = Source_GetBody(src);
 	int 		len = Source_GetSize(src);
@@ -209,6 +211,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 		if(tok == NULL)
 		{
 			// Error: No memory.
+			*error_offset = i;
 			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -295,6 +298,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 
 			if(i == len)
 			{
+				*error_offset = i;
 				Error_Report(error, 0, "Source ended inside string literal");
 				return NULL;
 			}
@@ -377,6 +381,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
 		if(tok == NULL)
 		{
 			// Error: No memory.
+			*error_offset = i;
 			Error_Report(error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -427,7 +432,7 @@ static Token *tokenize(Source *src, BPAlloc *alloc, Error *error)
  *   is freed before the AST. 
  *
  */
-AST *parse(Source *src, BPAlloc *alloc, Error *error)
+AST *parse(Source *src, BPAlloc *alloc, Error *error, int *error_offset)
 {
 	assert(src != NULL);
 	assert(alloc != NULL);
@@ -436,9 +441,10 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 	AST *ast = BPAlloc_Malloc(alloc, sizeof(AST));
 
 	if(ast == NULL)
+		#warning "should an error be reported here?"
 		return NULL;
 
-	Token *tokens = tokenize(src, alloc, error);
+	Token *tokens = tokenize(src, alloc, error, error_offset);
 
 	if(tokens == NULL)
 		return NULL;
@@ -448,7 +454,7 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error)
 	ctx.token = tokens;
 	ctx.alloc = alloc;
 	ctx.error = error;
-
+	ctx.error_offset = error_offset;
 	Node *root = parse_compound_statement(&ctx, TDONE);
 
 	if(root == NULL)
@@ -599,6 +605,7 @@ static Node *parse_statement(Context *ctx)
 
 			if(current(ctx) != ';')
 			{
+				*ctx->error_offset = token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
 				return NULL;
 			}
@@ -609,6 +616,7 @@ static Node *parse_statement(Context *ctx)
 				
 			if(node == NULL)
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 				return NULL;
 			}
@@ -633,6 +641,7 @@ static Node *parse_statement(Context *ctx)
 
 			if(current(ctx) != ';')
 			{
+				*ctx->error_offset = current_token(ctx)->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, 
 					         "Got token \"%.*s\" where \";\" was expected", 
 					         ctx->token->length, ctx->src + ctx->token->offset);
@@ -645,6 +654,7 @@ static Node *parse_statement(Context *ctx)
 				
 			if(node == NULL)
 			{
+				*ctx->error_offset = current_token(ctx)->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 				return NULL;
 			}
@@ -667,6 +677,7 @@ static Node *parse_statement(Context *ctx)
 		return parse_dowhile_statement(ctx);
 	}
 
+	*ctx->error_offset = current_token(ctx)->offset;
 	Error_Report(ctx->error, ErrorType_SYNTAX, "Got token \"%.*s\" where the start of a statement was expected", 
 		ctx->token->length, ctx->src + ctx->token->offset);
 	return NULL;
@@ -683,15 +694,14 @@ static Node *parse_expression_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended right after an expression, where a ';' was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != ';')
 	{
-		// ERROR: 	Got something other than a semicolon at the end 
-		// 			of statement.
-
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got token \"%.*s\" where \";\" was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -715,6 +725,7 @@ static Node *makeStringExprNode(Context *ctx, const char *str, int len)
 
 		if(copy == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -730,6 +741,7 @@ static Node *makeStringExprNode(Context *ctx, const char *str, int len)
 
 		if(node == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -752,12 +764,14 @@ static Node *parse_string_primary_expression(Context *ctx)
 	
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a string literal was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != TSTRING)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got token \"%.*s\" where a string literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -784,6 +798,7 @@ static Node *parse_string_primary_expression(Context *ctx)
 
 		if(temp_used + segm_len >= (int) sizeof(temp))
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "String is too big to be rendered inside the fixed size buffer");
 			return NULL;
 		}
@@ -797,6 +812,7 @@ static Node *parse_string_primary_expression(Context *ctx)
 						
 			if(temp_used + 1 >= (int) sizeof(temp))
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "String is too big to be rendered inside the fixed size buffer");
 				return NULL;
 			}
@@ -818,6 +834,7 @@ static Node *parse_string_primary_expression(Context *ctx)
 					case '\'': temp[temp_used++] = '\''; break;
 								
 					default:
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_SYNTAX, "Invalid escape sequence \\%c", src[i]);
 					return NULL;
 				}
@@ -843,12 +860,14 @@ static Node *parse_list_primary_expression(Context *ctx)
 	
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a list literal was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != '[')
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got token \"%.*s\" where a list literal was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -887,6 +906,7 @@ static Node *parse_list_primary_expression(Context *ctx)
 
 			if(current(ctx) != ',')
 			{
+				*ctx->error_offset = ctx->token->offset;
 				if(current(ctx) == TDONE)
 					Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended inside a list literal");
 				else
@@ -910,6 +930,7 @@ static Node *parse_list_primary_expression(Context *ctx)
 
 		if(list == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -933,6 +954,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 	
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, 
 			"Source ended where a map literal was expected");
 		return NULL;
@@ -940,6 +962,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 	if(current(ctx) != '{')
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, 
 			"Got token \"%.*s\" where a map literal was expected", 
 			ctx->token->length, ctx->src + ctx->token->offset);
@@ -956,6 +979,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a map child item's key was expected");
 		return NULL;
 	}
@@ -1007,6 +1031,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 				if(done(ctx))
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_SYNTAX, 
 						"Source ended where a map key-value "
 						"separator ':' was expected");
@@ -1015,6 +1040,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 				if(current(ctx) != ':')
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_SYNTAX, 
 						"Got token \"%.*s\" where a map key-value "
 						"separator ':' was expected", 
@@ -1054,6 +1080,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 			if (!item_is_func_decl) {
 				if(current(ctx) != ',')
 				{
+					*ctx->error_offset = ctx->token->offset;
 					if(current(ctx) == TDONE)
 						Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended inside a map literal");
 					else
@@ -1080,6 +1107,7 @@ static Node *parse_map_primary_expression(Context *ctx)
 
 		if(map == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -1119,6 +1147,7 @@ static Node *makeIdentExprNode(Context *ctx)
 
 	if(copy == NULL)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 		return NULL;
 	}
@@ -1129,6 +1158,7 @@ static Node *makeIdentExprNode(Context *ctx)
 
 		if(node == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -1151,6 +1181,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a primary expression was expected");
 		return NULL;
 	}
@@ -1175,12 +1206,14 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			if(done(ctx))
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended before \")\", after sub-expression");
 				return NULL;
 			}
 
 			if(current(ctx) != ')')
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Missing \")\", after sub-expression");
 				return NULL;
 			}
@@ -1194,6 +1227,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			if(ctx->token->length >= (int) sizeof(buffer))
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "Integer is too big");
 				return NULL;
 			}
@@ -1207,6 +1241,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			if(errno == ERANGE)
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "Integer is too big");
 				return NULL;
 			}
@@ -1218,6 +1253,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 				if(node == NULL)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 					return NULL;
 				}
@@ -1241,6 +1277,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			if(ctx->token->length >= (int) sizeof(buffer))
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "Floating is too big");
 				return NULL;
 			}
@@ -1254,6 +1291,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 			if(errno == ERANGE)
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "Floating is too big");
 				return NULL;
 			}
@@ -1265,6 +1303,7 @@ static Node *parse_primary_expresion(Context *ctx)
 
 				if(node == NULL)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 					return NULL;
 				}
@@ -1295,6 +1334,7 @@ static Node *parse_primary_expresion(Context *ctx)
 				
 				if(node == NULL)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 					return NULL;
 				}
@@ -1319,6 +1359,7 @@ static Node *parse_primary_expresion(Context *ctx)
 				
 				if(node == NULL)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 					return NULL;
 				}
@@ -1343,6 +1384,7 @@ static Node *parse_primary_expresion(Context *ctx)
 				
 				if(node == NULL)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 					return NULL;
 				}
@@ -1369,10 +1411,12 @@ static Node *parse_primary_expresion(Context *ctx)
 		}
 
 		case TDONE:
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_INTERNAL, "Unexpected end of source where a primary expression was expected");
 		return NULL;
 
 		default:
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_INTERNAL, "Unexpected token \"%.*s\" where a primary expression was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -1387,6 +1431,7 @@ static Node *makeIndexOrArrowSelectionExprNode(Context *ctx, bool arrow, Node *s
 
 	if(sel == NULL)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 		return NULL;
 	}
@@ -1425,12 +1470,14 @@ static Node *parse_postfix_expression(Context *ctx)
 
 				if(done(ctx))
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended after dot or arrow");
 					return NULL;
 				}
 
 				if(current(ctx) != TIDENT)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" after dot or arrow, where an identifier was expected", ctx->token->length, ctx->src + ctx->token->offset);
 					return NULL;
 				}
@@ -1462,6 +1509,7 @@ static Node *parse_postfix_expression(Context *ctx)
 
 				if(ls->itemc == 0)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_SYNTAX, "Missing index in index selection expression");
 					return NULL;
 				}
@@ -1507,6 +1555,7 @@ static Node *parse_postfix_expression(Context *ctx)
 
 						if(current(ctx) != ',')
 						{
+							*ctx->error_offset = ctx->token->offset;
 							if(current(ctx) == TDONE)
 								Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended inside a function argument list");
 							else
@@ -1529,6 +1578,7 @@ static Node *parse_postfix_expression(Context *ctx)
 
 					if(call == NULL)
 					{
+						*ctx->error_offset = ctx->token->offset;
 						Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 						return NULL;
 					}
@@ -1559,6 +1609,7 @@ static Node *parse_prefix_expression(Context *ctx)
 {
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a prefix expression was expected");
 		return NULL;
 	}
@@ -1566,6 +1617,7 @@ static Node *parse_prefix_expression(Context *ctx)
 	switch(current(ctx))
 	{
 		case TDONE:
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_INTERNAL, "Unexpected end of source where a prefix expression was expected");
 		return NULL;
 
@@ -1779,12 +1831,14 @@ static Node *parse_ifelse_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where an if-else statement was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != TKWIF)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" where an if-else statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -1801,12 +1855,14 @@ static Node *parse_ifelse_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended right after an if-else condition, where a ':' was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != ':')
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" after an if-else condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -1836,7 +1892,7 @@ static Node *parse_ifelse_statement(Context *ctx)
 		
 		if(ifelse == NULL)
 		{
-			// ERROR: No memory.
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -1876,6 +1932,7 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 
 	if(current(ctx) != end)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended inside compound statement");
 		return NULL;
 	}
@@ -1886,7 +1943,7 @@ static Node *parse_compound_statement(Context *ctx, TokenKind end)
 		
 		if(node == NULL)
 		{
-			// ERROR: No memory.
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -1907,6 +1964,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 
 	if(next(ctx) != '(')
 	{
+		*ctx->error_offset = ctx->token->offset;
 		if(done(ctx))
 			Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a function argument list was expected");
 		else
@@ -1925,12 +1983,14 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 		{
 			if(done(ctx))
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended inside a function argument list");
 				return 0;
 			}
 
 			if(current(ctx) != TIDENT)
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" where a function argument name was expected", ctx->token->length, ctx->src + ctx->token->offset);
 				return 0;
 			}
@@ -1939,6 +1999,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 
 			if(arg_name == NULL)
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 				return 0;
 			}
@@ -1968,6 +2029,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 
 				if(arg == NULL)
 				{
+					*ctx->error_offset = ctx->token->offset;
 					Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 					return 0;
 				}
@@ -1990,6 +2052,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 
 			if(done(ctx))
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended inside a function argument list");
 				return 0;
 			}
@@ -1999,6 +2062,7 @@ static _Bool parse_function_arguments(Context *ctx, int *argc_, Node **argv_)
 
 			if(current(ctx) != ',')
 			{
+				*ctx->error_offset = ctx->token->offset;
 				Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" inside function argument list, where either ',' or ')' were expected", ctx->token->length, ctx->src + ctx->token->offset);
 				return 0;
 			}
@@ -2021,12 +2085,14 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a function definition was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != TKWFUN)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" where a function definition was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -2035,6 +2101,7 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 
 	if(next(ctx) != TIDENT)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		if(done(ctx))
 			Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where an identifier was expected as function name");
 		else
@@ -2045,6 +2112,7 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 	char *name_val = copy_token_text(ctx);
 	if(name_val == NULL)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 		return NULL;
 	}
@@ -2059,6 +2127,7 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 	
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended before function body");
 		return NULL;
 	}
@@ -2077,6 +2146,7 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 		FuncExprNode *expr = BPAlloc_Malloc(ctx->alloc, sizeof(FuncExprNode));
 		if (expr == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -2092,6 +2162,7 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 		StringExprNode *name = BPAlloc_Malloc(ctx->alloc, sizeof(StringExprNode));
 		if (name == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -2106,6 +2177,7 @@ static FuncDeclNode *parse_function_definition(Context *ctx)
 		func = BPAlloc_Malloc(ctx->alloc, sizeof(FuncDeclNode));
 		if(func == NULL)
 		{
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -2126,12 +2198,14 @@ static Node *parse_while_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a while statement was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != TKWWHILE)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" where a while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -2148,12 +2222,14 @@ static Node *parse_while_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended right after a while loop condition, where a ':' was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != ':')
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" after a while loop condition, where a ':' was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -2171,7 +2247,7 @@ static Node *parse_while_statement(Context *ctx)
 		
 		if(whl == NULL)
 		{
-			// ERROR: No memory.
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}
@@ -2193,12 +2269,14 @@ static Node *parse_dowhile_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended where a do-while statement was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != TKWDO)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" where a do-while statement was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -2215,12 +2293,14 @@ static Node *parse_dowhile_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended right after a do-while body, where the \"while\" keyword was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != TKWWHILE)
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" after a do-while body, where the \"while\" keyword was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -2234,12 +2314,14 @@ static Node *parse_dowhile_statement(Context *ctx)
 
 	if(done(ctx))
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Source ended right after a do-while condition, where a ';' was expected");
 		return NULL;
 	}
 
 	if(current(ctx) != ';')
 	{
+		*ctx->error_offset = ctx->token->offset;
 		Error_Report(ctx->error, ErrorType_SYNTAX, "Got unexpected token \"%.*s\" after a do-while conditnion, where a ';' was expected", ctx->token->length, ctx->src + ctx->token->offset);
 		return NULL;
 	}
@@ -2252,7 +2334,7 @@ static Node *parse_dowhile_statement(Context *ctx)
 		
 		if(dowhl == NULL)
 		{
-			// ERROR: No memory.
+			*ctx->error_offset = ctx->token->offset;
 			Error_Report(ctx->error, ErrorType_INTERNAL, "No memory");
 			return NULL;
 		}

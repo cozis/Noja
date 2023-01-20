@@ -137,7 +137,7 @@ void Error_Panic_(const char *file, int line,
 	abort();
 }
 
-void Error_Print(Error *error, ErrorType type_if_unspecified)
+void Error_Print(Error *error, ErrorType type_if_unspecified, FILE *stream)
 {
     ErrorType type = error->type;
     if (type == ErrorType_UNSPECIFIED)
@@ -152,19 +152,19 @@ void Error_Print(Error *error, ErrorType type_if_unspecified)
         default: name = "Error"; break;
     }
 
-    fprintf(stderr, "%s: %s.", name, error->message);
+    fprintf(stream, "%s: %s.", name, error->message);
 
 #ifdef DEBUG
     if(error->file != NULL)
     {
         if(error->line > 0 && error->func != NULL)
-            fprintf(stderr, " (Reported in %s:%d in %s)", error->file, error->line, error->func);
+            fprintf(stream, " (Reported in %s:%d in %s)", error->file, error->line, error->func);
         else if(error->line > 0 && error->func == NULL)
-            fprintf(stderr, " (Reported in %s:%d)", error->file, error->line);
+            fprintf(stream, " (Reported in %s:%d)", error->file, error->line);
         else if(error->line < 1 && error->func != NULL)
-            fprintf(stderr, " (Reported in %s in %s)", error->file, error->func);
+            fprintf(stream, " (Reported in %s in %s)", error->file, error->func);
     }
 #endif
     
-    fprintf(stderr, "\n");
+    fprintf(stream, "\n");
 }

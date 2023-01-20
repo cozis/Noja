@@ -3,5 +3,5 @@
 #include "../utils/error.h"
 #include "../utils/source.h"
 #include "../common/executable.h"
-Executable *assemble(Source *src, Error *error);
+Executable *assemble(Source *src, Error *error, int *error_offset);
 #endif /* ASSEMBLE_H */

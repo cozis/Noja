@@ -40,6 +40,7 @@
 
 typedef struct xRuntime Runtime;
 typedef struct xSnapshot Snapshot;
+typedef struct StaticMapSlot StaticMapSlot;
 
 typedef struct {
     bool (*func)(Runtime*, void*);
@@ -48,31 +49,49 @@ typedef struct {
 
 typedef struct {
     bool time;
+    size_t heap;
     size_t stack;
     RuntimeCallback callback;
 } RuntimeConfig;
 
-Runtime*	 Runtime_New(int heap_size, RuntimeConfig config);
-Runtime*	 Runtime_New2(Heap *heap, bool free_it, RuntimeConfig config);
+Runtime*     Runtime_New(RuntimeConfig config);
 void 		 Runtime_Free(Runtime *runtime);
-_Bool 		 Runtime_Pop(Runtime *runtime, Error *error, unsigned int n);
-_Bool 		 Runtime_Push(Runtime *runtime, Error *error, Object *obj);
+
+Object *Runtime_Top(Runtime *runtime, int n);
+bool Runtime_Pop (Runtime *runtime, Error *error, Object **p, unsigned int n);
+bool Runtime_Push(Runtime *runtime, Error *error, Object *obj);
+bool Runtime_PushFrame(Runtime *runtime, Error *error, Object *closure, Executable *exe, int index);
+bool Runtime_PushNativeFrame(Runtime *runtime, Error *error);
+bool Runtime_PushFailedFrame(Runtime *runtime, Error *error, Source *source, int offset);
+bool Runtime_PopFrame(Runtime *runtime);
+void Runtime_SetInstructionIndex(Runtime *runtime, int index);
+bool Runtime_SetVariable(Runtime *runtime, Error *error, const char *name, Object *value);
+bool Runtime_GetVariable(Runtime *runtime, Error *error, const char *name, Object **value);
+Object *Runtime_GetLocals(Runtime *runtime);
+Object *Runtime_GetClosure(Runtime *runtime);
+size_t Runtime_GetFrameStackUsage(Runtime *runtime);
+bool Runtime_WasInterrupted(Runtime *runtime);
+RuntimeCallback Runtime_GetCallback(Runtime *runtime);
+bool Runtime_CollectGarbage(Runtime *runtime, Error *error);
+void Runtime_PrintStackTrace(Runtime *runtime, FILE *stream);
 void         Runtime_Interrupt(Runtime *runtime);
 Heap*		 Runtime_GetHeap(Runtime *runtime);
 Stack*		 Runtime_GetStack(Runtime *runtime);
-Object*		 Runtime_GetBuiltins(Runtime *runtime);
-void 		 Runtime_SetBuiltins(Runtime *runtime, Object *builtins);
 int 		 Runtime_GetCurrentIndex(Runtime *runtime);
 Executable  *Runtime_GetCurrentExecutable(Runtime *runtime);
+Executable  *Runtime_GetMostRecentExecutable(Runtime *runtime);
 size_t       Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize);
 const char  *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime);
 TimingTable *Runtime_GetTimingTable(Runtime *runtime);
 RuntimeConfig Runtime_GetDefaultConfigs();
 
+bool Runtime_plugBuiltins(Runtime *runtime, Object *object, Error *error);
+int  Runtime_runSource(Runtime *runtime, Source *source, Object *rets[static MAX_RETS], Error *error);
+int  Runtime_runBytecodeSource(Runtime *runtime, Source *source, Object *rets[static MAX_RETS], Error *error);
+
 Snapshot   *Snapshot_New(Runtime *runtime);
 void 	    Snapshot_Free(Snapshot *snapshot);
 void 	    Snapshot_Print(Snapshot *snapshot, FILE *fp);
-int         run(Runtime *runtime, Error *error, Executable *exe, int index, Object *closure, Object **argv, int argc, Object *rets[static MAX_RETS]);
 
 typedef enum {
     SM_END,
@@ -86,8 +105,6 @@ typedef enum {
     SM_TYPE,
     SM_OBJECT,
 } StaticMapSlotKind;
-
-typedef struct StaticMapSlot StaticMapSlot;
 
 struct StaticMapSlot {
     const char       *name;
@@ -117,5 +134,6 @@ typedef struct {
 
 void RuntimeError_Init(RuntimeError *error, Runtime *runtime);
 void RuntimeError_Free(RuntimeError *error);
+void RuntimeError_Print(RuntimeError *error, ErrorType type_if_unspecified, FILE *stream);
 
 #endif

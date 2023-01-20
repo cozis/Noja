@@ -320,7 +320,7 @@ static void flattenTupleTree(CodegenContext *ctx, ExprNode *root, ExprNode *tupl
 
 		if(max == *count)
 		{
-			CodegenContext_ReportErrorAndJump(ctx, ErrorType_INTERNAL, "Static buffer is too small");
+			CodegenContext_ReportErrorAndJump(ctx, root->base.offset, ErrorType_INTERNAL, "Static buffer is too small");
 			UNREACHABLE;
 		}
 
@@ -348,7 +348,7 @@ static void emitInstrForAssignmentNode(CodegenContext *ctx, OperExprNode *asgn, 
 		if(((ExprNode*) rop)->kind == EXPR_CALL)
 			emitInstrForFuncCallNode(ctx, (CallExprNode*) rop, label_break, count);
 		else {
-			CodegenContext_ReportErrorAndJump(ctx, ErrorType_SEMANTIC, "Assigning to %d variables only 1 value", count);
+			CodegenContext_ReportErrorAndJump(ctx, rop->offset, ErrorType_SEMANTIC, "Assigning to %d variables only 1 value", count);
 			UNREACHABLE;
 		}
 	}
@@ -376,7 +376,7 @@ static void emitInstrForAssignmentNode(CodegenContext *ctx, OperExprNode *asgn, 
 			}
 
 			default:
-			CodegenContext_ReportErrorAndJump(ctx, ErrorType_SEMANTIC, "Assigning to something that it can't be assigned to");
+			CodegenContext_ReportErrorAndJump(ctx, tuple_item->base.offset, ErrorType_SEMANTIC, "Assigning to something that it can't be assigned to");
 			UNREACHABLE;
 		}
 
@@ -392,8 +392,8 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 	{
 		case EXPR_PAIR:
 		CodegenContext_ReportErrorAndJump(
-			ctx, 0, "Tuple outside of "
-			"assignment or return statement");
+			ctx, expr->base.offset, 0, 
+			"Tuple outside of assignment or return statement");
 		UNREACHABLE;
 		return; // For the compiler warning.
 
@@ -415,7 +415,7 @@ static void emitInstrForExprNode(CodegenContext *ctx, ExprNode *expr,
 		}
 
 		case EXPR_ARW:
-		CodegenContext_ReportErrorAndJump(ctx, ErrorType_SEMANTIC, "Operator -> out of a function call");
+		CodegenContext_ReportErrorAndJump(ctx, expr->base.offset, ErrorType_SEMANTIC, "Operator -> out of a function call");
 		UNREACHABLE;
 		return;
 
@@ -683,7 +683,7 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break
 
 		case NODE_BREAK:
 		if(label_break == NULL)
-			CodegenContext_ReportErrorAndJump(ctx, ErrorType_SEMANTIC, "Break not inside a loop");
+			CodegenContext_ReportErrorAndJump(ctx, node->offset, ErrorType_SEMANTIC, "Break not inside a loop");
 		emitInstr_JUMP(ctx, label_break, node->offset, node->length);
 		return;
 
@@ -761,7 +761,7 @@ static void emitInstrForNode(CodegenContext *ctx, Node *node, Label *label_break
  *   returned and the `error` structure is filled out.
  *
  */
-Executable *codegen(AST *ast, BPAlloc *alloc, Error *error)
+Executable *codegen(AST *ast, BPAlloc *alloc, Error *error, int *error_offset)
 {
 	assert(ast != NULL);
 	assert(error != NULL);
@@ -770,6 +770,7 @@ Executable *codegen(AST *ast, BPAlloc *alloc, Error *error)
 
 	CodegenContext *ctx = CodegenContext_New(error, alloc);
 	if(ctx == NULL) {
+		*error_offset = 0;
 		Error_Report(error, ErrorType_INTERNAL, "No memory");
 		return NULL;
 	}

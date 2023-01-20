@@ -9,8 +9,8 @@ void            CodegenContext_EmitInstr(CodegenContext *ctx, Opcode opcode, Ope
 void            CodegenContext_SetJumpDest(CodegenContext *ctx, jmp_buf *env);
 void            CodegenContext_Free(CodegenContext *ctx);
 Executable     *CodegenContext_MakeExecutableAndFree(CodegenContext *ctx, Source *src);
-void            CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, const char *func, int line, ErrorType type, const char *format, ...);
-#define         CodegenContext_ReportErrorAndJump(ctx, int, fmt, ...) CodegenContext_ReportErrorAndJump_(ctx, __FILE__, __func__, __LINE__, int, fmt, ## __VA_ARGS__) 
+void            CodegenContext_ReportErrorAndJump_(CodegenContext *ctx, const char *file, const char *func, int line, int error_offset, ErrorType type, const char *format, ...);
+#define         CodegenContext_ReportErrorAndJump(ctx, error_offset, typ, fmt, ...) CodegenContext_ReportErrorAndJump_(ctx, __FILE__, __func__, __LINE__, error_offset, typ, fmt, ## __VA_ARGS__) 
 int             CodegenContext_InstrCount(CodegenContext *ctx);
 
 typedef struct Label Label;
