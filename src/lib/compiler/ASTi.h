@@ -158,7 +158,6 @@ typedef struct {
 	Node    *set;
 } IndexSelectionExprNode;
 
-#warning "temp"
 typedef struct {
 	ExprNode base;
 	Node    *argv;

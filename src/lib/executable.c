@@ -32,9 +32,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "../utils/defs.h"
-#include "../utils/bucketlist.h"
 #include "executable.h"
+#include "utils/defs.h"
+#include "utils/bucketlist.h"
 
 #define MAX_OPS 3
 #define MAX_OPCODE_NAME_SIZE 127

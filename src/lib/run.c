@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "runtime.h"
-#include "../utils/defs.h"
-#include "../utils/path.h"
-#include "../compiler/compile.h"
-#include "../assembler/assemble.h"
+#include "utils/defs.h"
+#include "utils/path.h"
+#include "compiler/compile.h"
+#include "assembler/assemble.h"
 
 static int runExecutableAtIndex(Runtime *runtime, Error *error,
 		    				    Executable *exe, int index,
@@ -1040,7 +1040,7 @@ static _Bool runInstruction(Runtime *runtime, Error *error)
 			UNUSED(retc);
 			ASSERT(retc >= 0);
 			ASSERT(retc <= MAX_RETS);
-			ASSERT(retc == Runtime_GetFrameStackUsage(runtime));
+			ASSERT((size_t) retc == Runtime_GetFrameStackUsage(runtime));
 			return 0;
 		}
 

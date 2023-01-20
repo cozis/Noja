@@ -30,7 +30,7 @@
 
 #include "objects.h"
 #include "../utils/defs.h"
-#include "../common/defs.h"
+#include "../defs.h"
 
 static _Bool op_eql(Object *self, Object *other);
 static bool istypeof(Object *self, Object *other, Heap *heap, Error *error);

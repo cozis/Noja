@@ -31,7 +31,7 @@
 #include <string.h>
 #include "objects.h"
 #include "../utils/defs.h"
-#include "../common/defs.h"
+#include "../defs.h"
 
 static _Bool op_eql(Object *self, Object *other);
 static void   print(Object *obj, FILE *fp);

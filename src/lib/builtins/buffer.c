@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "../utils/defs.h"
 #include "../utils/utf8.h"
-#include "../runtime/runtime.h"
+#include "../runtime.h"
 
 static int bin_new(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
@@ -30,24 +30,14 @@ static int bin_sliceUp(Runtime *runtime, Object **argv, unsigned int argc, Objec
 {
     UNUSED(argc);
     ASSERT(argc == 3);
-
-    if(!Object_IsInt(argv[1]))
-    {
-        Error_Report(error, ErrorType_RUNTIME, "Argument 1 is not an int");
+    
+    ParsedArgument pargs[3];
+    if (!parseArgs(error, argv, argc, pargs, "Bii"))
         return -1;
-    }
-
-    if(!Object_IsInt(argv[2]))
-    {
-        Error_Report(error, ErrorType_RUNTIME, "Argument 2 is not an int");
-        return -1;
-    }
-
-    long long int offset = Object_GetInt(argv[1]);
-    long long int length = Object_GetInt(argv[2]);
+    long long int offset = pargs[1].as_int;
+    long long int length = pargs[2].as_int;
 
     Object *temp = Object_SliceBuffer(argv[0], offset, length, Runtime_GetHeap(runtime), error);
-
     if(temp == NULL)
         return -1;
 

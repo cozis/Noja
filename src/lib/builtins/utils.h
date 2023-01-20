@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include "../utils/error.h"
 #include "../objects/objects.h"
-#include "../runtime/runtime.h"
+#include "../runtime.h"
 
 typedef struct {
 	bool defined;

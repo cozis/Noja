@@ -33,7 +33,7 @@
 #include "../utils/defs.h"
 #include "../utils/hash.h"
 #include "../utils/utf8.h"
-#include "../common/defs.h"
+#include "../defs.h"
 
 typedef struct {
 	Object  base;

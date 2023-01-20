@@ -62,6 +62,11 @@
 #include "parse.h"
 #include "ASTi.h"
 
+#ifdef DEBUG
+#include <stdio.h>
+FILE *token_dest;
+#endif
+
 typedef enum {
 	
 	TOPT = '?',
@@ -438,6 +443,10 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error, int *error_offset)
 	assert(alloc != NULL);
 	assert(error != NULL);
 
+#ifdef DEBUG
+		token_dest = fopen("tokens.txt", "wb");
+#endif
+	
 	AST *ast = BPAlloc_Malloc(alloc, sizeof(AST));
 
 	if(ast == NULL)
@@ -482,10 +491,7 @@ static inline TokenKind current(Context *ctx)
 	return current_token(ctx)->kind;
 }
 
-// Compile with -DDEBUG to get debugging messages printed to stderr.
 #ifdef DEBUG
-#include <stdio.h>
-
 static inline TokenKind next(Context *ctx, const char *file, int line)
 {
 	assert(ctx != NULL);
@@ -495,12 +501,12 @@ static inline TokenKind next(Context *ctx, const char *file, int line)
 	Token *prev = ctx->token;
 
 	ctx->token = ctx->token->next;
-/*
-	fprintf(stderr, "NEXT [%.*s] -> [%.*s] from %s:%d\n", 
+
+	fprintf(token_dest, "NEXT [%.*s] -> [%.*s] from %s:%d\n", 
 		      prev->length, ctx->src +       prev->offset,
 		ctx->token->length, ctx->src + ctx->token->offset, 
 		file, line);
-*/
+
 	return current(ctx);
 }
 
@@ -517,7 +523,7 @@ static inline TokenKind prev(Context *ctx)
 
 static void Error_Report_(Error *error, const char *file, const char *func, int line, _Bool internal, const char *fmt, ...)
 {
-	fprintf(stderr, "Reporting error at %s:%d (in %s)\n", file, line, func);
+	//fprintf(stderr, "Reporting error at %s:%d (in %s)\n", file, line, func);
 	
 	va_list args;
 	va_start(args, fmt);

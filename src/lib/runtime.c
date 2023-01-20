@@ -28,11 +28,15 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
+#include <unistd.h>
+#include <string.h>
 #include <stdbool.h>
+#include "run.h"
 #include "runtime.h"
-#include "../utils/path.h"
-#include "../utils/defs.h"
-#include "../utils/stack.h"
+#include "utils/path.h"
+#include "utils/defs.h"
+#include "utils/stack.h"
+#include "builtins/basic.h"
 
 #define MAX_FRAME_STACK 16
 #define MAX_FRAMES 16
@@ -184,7 +188,7 @@ static void printFrame(Frame *frame, int depth, FILE *stream)
 		const char *body = Source_GetBody(source);
 
 		int i = 0;
-	
+
 		while(i < offset)
 		{
 			if(body[i] == '\n')
@@ -214,6 +218,74 @@ void Runtime_PrintStackTrace(Runtime *runtime, FILE *stream)
 			depth++;
 		} while (frame != NULL);
 	}
+}
+
+// Returns the length written in buff (not considering the zero byte)
+size_t Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize)
+{
+	const char *path = Runtime_GetCurrentScriptAbsolutePath(runtime);
+	if(path == NULL) {
+		if(getcwd(buff, buffsize) == NULL)
+			return 0;
+		size_t cwdlen = strlen(buff);
+		if (buff[cwdlen-1] == '/')
+			return cwdlen;
+		else {
+			if (cwdlen+1 >= buffsize)
+				return 0;
+			buff[cwdlen] = '/';
+			return cwdlen+1;
+		}
+	}
+	
+	// This following block is a custom implementation
+	// of [dirname], which doesn't write into the input
+	// string and is way buggier. It will for sure give
+	// problems in the future!!
+	size_t dir_len;
+	{
+		// This is buggy code!!
+		size_t path_len = strlen(path);
+		ASSERT(path_len > 0); // Not empty
+		ASSERT(Path_IsAbsolute(path)); // Is absolute
+		ASSERT(path[path_len-1] != '/'); // Doesn't end with a slash.
+
+		size_t popped = 0;
+		while(path[path_len-1-popped] != '/')
+			popped += 1;
+		
+		ASSERT(path_len > popped);
+
+		dir_len = path_len - popped;
+		
+		ASSERT(dir_len < path_len);
+		ASSERT(path[dir_len-1] == '/');
+	}
+
+	if(dir_len >= buffsize)
+		return 0;
+
+	memcpy(buff, path, dir_len);
+	buff[dir_len] = '\0';
+	return dir_len;
+}
+
+const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime)
+{
+	Executable *exe = Runtime_GetMostRecentExecutable(runtime);
+	if (exe == NULL)
+		return NULL;
+
+	Source *src = Executable_GetSource(exe);
+	if(src == NULL)
+		return NULL;
+
+	const char *path = Source_GetAbsolutePath(src);
+	if(path == NULL)
+		return NULL;
+
+	ASSERT(path[0] != '\0');
+	return path;
 }
 
 Executable *Runtime_GetMostRecentExecutable(Runtime *runtime)
@@ -657,4 +729,85 @@ bool Runtime_CollectGarbage(Runtime *runtime, Error *error)
 	}
 
 	return Heap_StopCollection(runtime->heap);
+}
+
+
+bool Runtime_plugBuiltinsFromStaticMap(Runtime *runtime, StaticMapSlot *bin_table,  void (*bin_table_constructor)(StaticMapSlot*), Error *error)
+{
+	Object *object = Object_NewStaticMap(bin_table, bin_table_constructor, runtime, error);
+	if (object == NULL)
+		return false;
+	return Runtime_plugBuiltins(runtime, object, error);
+}
+
+bool Runtime_plugBuiltinsFromSource(Runtime *runtime, Source *source, Error *error)
+{
+    Object *rets[8];
+    int retc = runSource(runtime, source, rets, error);
+    if(retc < 0)
+        return false;
+    if (retc == 0)
+        return true;
+    return Runtime_plugBuiltins(runtime, rets[0], error);
+}
+
+bool Runtime_plugBuiltinsFromFile(Runtime *runtime, const char *file, Error *error)
+{
+	Source *source = Source_FromFile(file, error);
+    if (source == NULL)
+        return false;
+    
+    bool result = Runtime_plugBuiltinsFromSource(runtime, source, error);
+
+    Source_Free(source);
+    return result;
+}
+
+bool Runtime_plugBuiltinsFromString(Runtime *runtime, const char *string, Error *error)
+{
+	Source *source = Source_FromString("<prelude>", string, -1, error);
+    if (source == NULL)
+        return false;
+    
+    bool result = Runtime_plugBuiltinsFromSource(runtime, source, error);
+
+    Source_Free(source);
+    return result;
+}
+
+bool Runtime_plugDefaultBuiltins(Runtime *runtime, Error *error)
+{
+	extern char start_noja[];
+    return Runtime_plugBuiltinsFromStaticMap(runtime, bins_basic, bins_basic_init, error)
+		&& Runtime_plugBuiltinsFromString(runtime, start_noja, error);
+}
+
+void Runtime_SerializeProfilingResultsToStream(Runtime *runtime, FILE *stream)
+{
+    TimingTable *table = Runtime_GetTimingTable(runtime);
+    if (table == NULL)
+        return; // Runtime wasn't profiling
+
+    size_t count;
+    const FunctionExecutionSummary *summary = TimingTable_getSummary(table, &count);
+
+    for (size_t i = 0; i < count; i++) {
+        if (summary[i].calls > 0) {
+            fprintf(stream, "%20s - %s - %ld calls - %.2lfus\n",
+                   summary[i].name,
+                   Source_GetName(summary[i].src),
+                   summary[i].calls,
+                   summary[i].time * 1000000);
+        }
+    }
+}
+
+bool Runtime_SerializeProfilingResultsToFile(Runtime *runtime, const char *file)
+{
+    FILE *stream = fopen(file, "wb");
+    if (stream == NULL)
+        return false;
+    Runtime_SerializeProfilingResultsToStream(runtime, stream);
+    fclose(stream);
+    return true;
 }

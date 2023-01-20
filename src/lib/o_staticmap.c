@@ -47,9 +47,9 @@
 */
 #include <string.h>
 #include <assert.h>
-#include "../runtime/runtime.h"
-#include "../utils/defs.h"
-#include "../objects/objects.h"
+#include "runtime.h"
+#include "utils/defs.h"
+#include "objects/objects.h"
 
 typedef struct {
 	Object   base;

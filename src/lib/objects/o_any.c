@@ -1,4 +1,4 @@
-#include "../common/defs.h" 
+#include "../defs.h" 
 #include "../utils/defs.h"
 #include "objects.h"
 

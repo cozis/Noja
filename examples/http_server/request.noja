@@ -65,7 +65,7 @@ fun fromSocket(fd: int, max_head: int = 1024) {
 		request, error, parsed_bytes = parseHead(text);
 		if error != none:
 			return none, error, false;
-
+		
 		# Split the received data into head and body.
 		head_bytes = buffer.sliceUp(head_buffer, 0, parsed_bytes);
 		body_bytes = buffer.sliceUp(head_buffer, parsed_bytes, count(head_buffer) - parsed_bytes);

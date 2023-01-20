@@ -31,8 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "objects.h"
+#include "../defs.h"
 #include "../utils/defs.h"
-#include "../common/defs.h"
 
 typedef struct {
 	size_t refs, size;

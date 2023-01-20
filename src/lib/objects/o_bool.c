@@ -30,8 +30,8 @@
 
 #include <string.h>
 #include "objects.h"
+#include "../defs.h"
 #include "../utils/defs.h"
-#include "../common/defs.h"
 
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);

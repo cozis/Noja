@@ -1,7 +1,7 @@
 #ifndef CODEGENCTX_H
 #define CODEGENCTX_H
 #include <setjmp.h>
-#include "../common/executable.h"
+#include "../executable.h"
 
 typedef struct CodegenContext CodegenContext;
 CodegenContext *CodegenContext_New(Error *error, BPAlloc *alloc);

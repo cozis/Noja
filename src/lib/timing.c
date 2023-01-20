@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "timing.h"
-#include "../utils/defs.h"
+#include "utils/defs.h"
 
 struct TimingTable {
 	FunctionExecutionSummary *entries;

@@ -4,9 +4,9 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "../lib/executable.h"
 #include "../lib/utils/source.h"
 #include "../lib/compiler/compile.h"
-#include "../lib/common/executable.h"
 #include "../lib/assembler/assemble.h"
 
 //Regular text

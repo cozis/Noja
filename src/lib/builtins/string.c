@@ -6,7 +6,7 @@
 #include "string.h"
 #include "../utils/defs.h"
 #include "../utils/utf8.h"
-#include "../runtime/runtime.h"
+#include "../runtime.h"
 
 static int bin_ord(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {

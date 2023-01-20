@@ -29,7 +29,7 @@
 */
 
 #include "objects.h"
-#include "../common/defs.h"
+#include "../defs.h"
 
 typedef struct {
 	Object base;

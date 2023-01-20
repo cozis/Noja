@@ -33,10 +33,8 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <stdbool.h>
-#include "../lib/runtime/run.h"
-#include "../lib/runtime/runtime.h"
-#include "../lib/runtime/builtins_api.h"
-#include "../lib/runtime/serialize_profiling.h"
+#include "../lib/run.h"
+#include "../lib/runtime.h"
 
 static void usage(FILE *stream, const char *name) 
 {

@@ -28,6 +28,6 @@
 ** +--------------------------------------------------------------------------+ 
 */
 
-#include "../runtime/runtime.h"
+#include "../runtime.h"
 void bins_basic_init(StaticMapSlot slots[]);
 extern StaticMapSlot bins_basic[];

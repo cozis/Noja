@@ -32,7 +32,7 @@
 #include "objects.h"
 #include "../utils/defs.h"
 #include "../utils/hash.h"
-#include "../common/defs.h"
+#include "../defs.h"
 
 static void print(Object *obj, FILE *fp);
 static _Bool op_eql(Object *self, Object *other);

@@ -1,4 +1,4 @@
-#include "../common/defs.h" 
+#include "../defs.h" 
 #include "objects.h"
 
 static void walk(Object *self, void (*callback)(Object **referer, void *userp), void *userp);

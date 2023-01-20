@@ -31,8 +31,8 @@
 #ifndef EXECUTABLE_H
 #define EXECUTABLE_H
 #include <stdio.h>
-#include "../utils/source.h"
-#include "../utils/promise.h"
+#include "utils/source.h"
+#include "utils/promise.h"
 
 typedef enum {
 	OPTP_IDX,

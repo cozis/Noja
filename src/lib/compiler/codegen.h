@@ -30,9 +30,9 @@
 
 #ifndef CODEGEN_H
 #define CODEGEN_H
+#include "../executable.h"
 #include "../utils/error.h"
 #include "../utils/bpalloc.h"
-#include "../common/executable.h"
 #include "AST.h"
 Executable *codegen(AST *ast, BPAlloc *alloc, Error *error, int *error_offset);
 #endif /* CODEGEN_H */

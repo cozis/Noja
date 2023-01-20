@@ -33,10 +33,10 @@
 
 #include <stdio.h> // meh.. just for the definition of FILE.
 #include "timing.h"
-#include "../utils/error.h"
-#include "../utils/stack.h"
-#include "../objects/objects.h"
-#include "../common/executable.h"
+#include "executable.h"
+#include "utils/error.h"
+#include "utils/stack.h"
+#include "objects/objects.h"
 
 typedef struct xRuntime Runtime;
 typedef struct xSnapshot Snapshot;
@@ -57,6 +57,13 @@ typedef struct {
 Runtime*     Runtime_New(RuntimeConfig config);
 void 		 Runtime_Free(Runtime *runtime);
 
+bool Runtime_plugDefaultBuiltins(Runtime *runtime, Error *error);
+bool Runtime_plugBuiltinsFromString(Runtime *runtime, const char *string, Error *error);
+bool Runtime_plugBuiltinsFromFile(Runtime *runtime, const char *file, Error *error);
+bool Runtime_plugBuiltinsFromStaticMap(Runtime *runtime, StaticMapSlot *bin_table,  void (*bin_table_constructor)(StaticMapSlot*), Error *error);
+bool Runtime_plugBuiltinsFromSource(Runtime *runtime, Source *source, Error *error);
+void Runtime_SerializeProfilingResultsToStream(Runtime *runtime, FILE *stream);
+bool Runtime_SerializeProfilingResultsToFile(Runtime *runtime, const char *file);
 Object *Runtime_Top(Runtime *runtime, int n);
 bool Runtime_Pop (Runtime *runtime, Error *error, Object **p, unsigned int n);
 bool Runtime_Push(Runtime *runtime, Error *error, Object *obj);
@@ -71,6 +78,8 @@ Object *Runtime_GetLocals(Runtime *runtime);
 Object *Runtime_GetClosure(Runtime *runtime);
 size_t Runtime_GetFrameStackUsage(Runtime *runtime);
 bool Runtime_WasInterrupted(Runtime *runtime);
+const char *Runtime_GetCurrentScriptAbsolutePath(Runtime *runtime);
+size_t      Runtime_GetCurrentScriptFolder(Runtime *runtime, char *buff, size_t buffsize);
 RuntimeCallback Runtime_GetCallback(Runtime *runtime);
 bool Runtime_CollectGarbage(Runtime *runtime, Error *error);
 void Runtime_PrintStackTrace(Runtime *runtime, FILE *stream);

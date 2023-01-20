@@ -30,7 +30,7 @@
 
 #include "objects.h"
 #include "../utils/defs.h"
-#include "../common/defs.h"
+#include "../defs.h"
 
 typedef struct {
 	Object base;

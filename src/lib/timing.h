@@ -2,7 +2,7 @@
 #define TIMING_H
 
 #include <stddef.h>
-#include "../utils/source.h"
+#include "utils/source.h"
 
 typedef struct {
 	size_t calls;

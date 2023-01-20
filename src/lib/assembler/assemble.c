@@ -2,10 +2,10 @@
 #include <limits.h>
 #include <string.h>
 #include <assert.h>
+#include "../executable.h"
 #include "../utils/error.h"
 #include "../utils/source.h"
 #include "../utils/labellist.h"
-#include "../common/executable.h"
 
 typedef struct {
     const char *str;

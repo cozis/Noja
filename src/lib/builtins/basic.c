@@ -40,11 +40,11 @@
 #include "string.h"
 #include "buffer.h"
 #include "random.h"
+#include "../defs.h"
 #include "../utils/defs.h"
-#include "../common/defs.h"
 #include "../objects/objects.h"
-#include "../runtime/runtime.h"
-#include "../runtime/run.h"
+#include "../runtime.h"
+#include "../run.h"
 
 static int bin_getCurrentWorkingDirectory(Runtime *runtime, Object **argv, unsigned int argc, Object *rets[static MAX_RETS], Error *error)
 {
