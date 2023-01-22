@@ -1,0 +1,7 @@
+@type [compiler]
+
+@source
+    # (Empty source)
+    
+@bytecode
+    EXIT;

@@ -82,6 +82,10 @@ struct xRuntime {
 	Heap  *heap;
 	TimingTable *timing;
 
+	FILE *stdin;
+	FILE *stdout;
+	FILE *stderr;
+
 	FailedFrame failed_frame;
 };
 
@@ -112,12 +116,15 @@ RuntimeConfig Runtime_GetDefaultConfigs()
         .stack = 1024,
         .callback = { .func = NULL, .data = NULL },
         .time = false,
+        .stdin  = stdin,
+        .stdout = stdout,
+        .stderr = stderr,
     };
 }
 
 Stack *Runtime_GetStack(Runtime *runtime)
 {
-	return Stack_Copy(runtime->stack, 1);
+	return runtime->stack;
 }
 
 Heap *Runtime_GetHeap(Runtime *runtime)
@@ -352,6 +359,10 @@ Runtime *Runtime_New(RuntimeConfig config)
 	runtime->builtins = NULL;
 	runtime->frame = NULL;
 	runtime->depth = 0;
+	
+	runtime->stdin  = config.stdin;
+	runtime->stderr = config.stderr;
+	runtime->stdout = config.stdout;
 
 	return runtime;
 }
@@ -365,6 +376,21 @@ void Runtime_Free(Runtime *runtime)
 	Stack_Free(runtime->stack);
 	Heap_Free(runtime->heap);
 	free(runtime);
+}
+
+FILE *Runtime_GetErrorStream(Runtime *runtime)
+{
+	return runtime->stderr;
+}
+
+FILE *Runtime_GetOutputStream(Runtime *runtime)
+{
+	return runtime->stdout;
+}
+
+FILE *Runtime_GetInputStream(Runtime *runtime)
+{
+	return runtime->stdin;
 }
 
 _Bool Runtime_Push(Runtime *runtime, Error *error, Object *obj)

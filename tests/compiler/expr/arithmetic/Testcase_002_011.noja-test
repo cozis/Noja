@@ -1,0 +1,13 @@
+
+@type [compiler]
+@source
+    
+    1 / 7.0;
+
+@bytecode
+    
+    PUSHINT 1;
+    PUSHFLT 7.0;
+    DIV;
+    POP 1;
+    EXIT;

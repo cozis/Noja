@@ -1,0 +1,15 @@
+
+@type [compiler]
+@source
+
+    while none:
+        {}
+
+@bytecode
+    
+begin:
+    PUSHNNE;
+    JUMPIFNOTANDPOP end;
+    JUMP begin;
+end:
+    EXIT;

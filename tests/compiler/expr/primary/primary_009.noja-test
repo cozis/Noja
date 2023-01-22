@@ -1,0 +1,11 @@
+@type [compiler]
+
+@source
+    
+    'This \\ is a slash!';
+
+@bytecode
+    
+    PUSHSTR "This \\ is a slash!";
+    POP     1;
+    EXIT;

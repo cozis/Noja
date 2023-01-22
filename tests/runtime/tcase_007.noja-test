@@ -1,0 +1,13 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHTRU;
+	PUSHTYP;
+
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 2;
+	EXIT;
+
+@output [bool]

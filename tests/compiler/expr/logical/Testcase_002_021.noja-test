@@ -1,0 +1,19 @@
+
+@type [compiler]
+@source
+
+    1 and 2;
+
+@bytecode
+    
+    PUSHINT 1;
+    JUMPIFNOTANDPOP false;
+    PUSHINT 2;
+    JUMPIFNOTANDPOP false;
+    PUSHTRU;
+    JUMP end;
+false:
+    PUSHFLS;
+end:
+    POP 1;
+    EXIT;

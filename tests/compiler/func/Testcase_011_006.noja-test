@@ -1,0 +1,28 @@
+
+@type [compiler]
+@source
+
+    fun add(a: int, b) {
+        return a + b;
+    }
+
+@bytecode
+    
+    PUSHFUN fun, 2, "add";
+    JUMP end;
+fun:
+    ASS "b";
+    POP 1;
+    PUSHVAR "int";
+    CHECKTYPE 0, "a";
+    ASS "a";
+    POP 1;
+    PUSHVAR "a";
+    PUSHVAR "b";
+    ADD;
+    RETURN 1;
+    RETURN 0;
+end:
+    ASS "add";
+    POP 1;
+    EXIT;

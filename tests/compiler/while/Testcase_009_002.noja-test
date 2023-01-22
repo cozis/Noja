@@ -1,0 +1,24 @@
+
+@type [compiler]
+@source
+
+    while none: {
+        true;
+        "Hello, world!";
+    }
+    false;
+
+@bytecode
+    
+begin:
+    PUSHNNE;
+    JUMPIFNOTANDPOP end;
+    PUSHTRU;
+    POP 1;
+    PUSHSTR "Hello, world!";
+    POP 1;
+    JUMP begin;
+end:
+    PUSHFLS;
+    POP 1;
+    EXIT;

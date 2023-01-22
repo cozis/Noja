@@ -1,0 +1,12 @@
+
+@type [compiler]
+@source
+
+    var = none;
+
+@bytecode
+
+    PUSHNNE;
+    ASS    "var";
+    POP    1;
+    EXIT;

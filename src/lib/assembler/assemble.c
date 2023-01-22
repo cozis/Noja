@@ -107,12 +107,57 @@ static bool parseStringOperand(Context *ctx, Error *error, BPAlloc *alloc, Opera
     assert(ctx->cur < ctx->len && ctx->str[ctx->cur] == '"');
     ctx->cur += 1;
 
-    size_t literal_offset = ctx->cur;
+    char buffer[1024];
+    size_t used = 0;
 
-    // For now do a dumb copy into the buffer
-    // without considering special characters.
-    while(ctx->cur < ctx->len && ctx->str[ctx->cur] != '"')
-        ctx->cur += 1;
+    do {
+
+        size_t offset = ctx->cur;
+        while (ctx->cur < ctx->len && ctx->str[ctx->cur] != '\\' && ctx->str[ctx->cur] != '"')
+            ctx->cur++;
+        size_t length = ctx->cur - offset;
+
+        if (used + length > sizeof(buffer)) {
+            *ctx->error_offset = ctx->cur;
+            Error_Report(error, ErrorType_INTERNAL, "Buffer is too short to hold string literal");
+            return false;
+        }
+        memcpy(buffer + used, ctx->str + offset, length);
+        used += length;
+
+        if (ctx->cur < ctx->len && ctx->str[ctx->cur] == '\\') {
+            
+            ctx->cur++;
+            if (ctx->cur == ctx->len) {
+                *ctx->error_offset = ctx->cur;
+                Error_Report(error, ErrorType_SYNTAX, "End of source inside a string literal");
+                return false;
+            }
+
+            char c;
+            switch (ctx->str[ctx->cur]) {
+                case 'n': c = '\n'; break;
+                case 't': c = '\t'; break;
+                case 'r': c = '\r'; break;
+                case '"': c = '"'; break;
+                case '\\': c = '\\'; break;
+                default:
+                *ctx->error_offset = ctx->cur;
+                Error_Report(error, ErrorType_SYNTAX, "End of source inside a string literal");
+                return false;
+            }
+
+            if (used + 1 > sizeof(buffer)) {
+                *ctx->error_offset = ctx->cur;
+                Error_Report(error, ErrorType_INTERNAL, "Buffer is too short to hold string literal");
+                return false;
+            }
+            buffer[used++] = c;
+
+            ctx->cur++;
+        }
+
+    } while (ctx->cur < ctx->len && ctx->str[ctx->cur] != '"');
 
     if(ctx->cur == ctx->len) {
         *ctx->error_offset = ctx->cur;
@@ -120,21 +165,18 @@ static bool parseStringOperand(Context *ctx, Error *error, BPAlloc *alloc, Opera
         return false;
     }
 
-    size_t literal_length = ctx->cur - literal_offset;
-
     // Skip the ending double quotes.
     assert(ctx->cur < ctx->len && ctx->str[ctx->cur] == '"');
     ctx->cur += 1;
     
-    char *copy = BPAlloc_Malloc(alloc, literal_length+1);
+    char *copy = BPAlloc_Malloc(alloc, used+1);
     if(copy == NULL) {
         *ctx->error_offset = ctx->cur;
         Error_Report(error, ErrorType_INTERNAL, "No memory");
         return false;
     }
-
-    memcpy(copy, ctx->str + literal_offset, literal_length);
-    copy[literal_length] = '\0';
+    memcpy(copy, buffer, used);
+    copy[used] = '\0';
 
     op->type = OPTP_STRING;
     op->as_string = copy;

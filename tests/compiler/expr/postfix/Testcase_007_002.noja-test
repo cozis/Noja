@@ -1,0 +1,13 @@
+
+@type [compiler]
+@source
+    
+    set.key;
+
+@bytecode
+    
+    PUSHVAR "set";
+    PUSHSTR "key";
+    SELECT;
+    POP 1;
+    EXIT;

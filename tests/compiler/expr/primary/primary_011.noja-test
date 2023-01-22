@@ -1,0 +1,11 @@
+@type [compiler]
+
+@source
+    
+    'This \t is an horizontal tab!';
+
+@bytecode
+    
+    PUSHSTR "This \t is an horizontal tab!";
+    POP     1;
+    EXIT;

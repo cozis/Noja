@@ -1,0 +1,9 @@
+@type [compiler]
+
+@source
+    return none;
+
+@bytecode
+    PUSHNNE;
+    RETURN 1;
+    EXIT;

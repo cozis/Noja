@@ -1,0 +1,11 @@
+
+@type [compiler]
+@source
+
+    ({});
+
+@bytecode
+    
+    PUSHMAP 0;
+    POP     1;
+    EXIT;

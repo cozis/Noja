@@ -1,0 +1,13 @@
+
+@type [compiler]
+@source
+    
+    1.0 - 7;
+
+@bytecode
+    
+    PUSHFLT 1.0;
+    PUSHINT 7;
+    SUB;
+    POP 1;
+    EXIT;

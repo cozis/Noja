@@ -1,0 +1,16 @@
+@type [compiler]
+
+@source
+    # This comment is because there
+    # can't be a '[' right before a
+    # tag.
+    [1];
+
+@bytecode
+    
+    PUSHLST 1;
+    PUSHINT 0;
+    PUSHINT 1;
+    INSERT;
+    POP     1;
+    EXIT;

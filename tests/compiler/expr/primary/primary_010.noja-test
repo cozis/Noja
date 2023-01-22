@@ -1,0 +1,11 @@
+@type [compiler]
+
+@source
+    
+    'This \n is a newline!';
+
+@bytecode
+    
+    PUSHSTR "This \n is a newline!";
+    POP     1;
+    EXIT;

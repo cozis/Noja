@@ -1,0 +1,11 @@
+@type [compiler]
+
+@source
+    
+    'This \r is a special character!';
+
+@bytecode
+    
+    PUSHSTR "This \r is a special character!";
+    POP     1;
+    EXIT;

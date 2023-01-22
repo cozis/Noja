@@ -1,0 +1,11 @@
+@type [compiler]
+
+@source
+    
+    'Hello, world!';
+
+@bytecode
+    
+    PUSHSTR "Hello, world!";
+    POP     1;
+    EXIT;

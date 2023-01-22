@@ -1,0 +1,11 @@
+@type [compiler]
+
+@source
+    
+    "Look at this \"!";
+
+@bytecode
+    
+    PUSHSTR "Look at this \"!";
+    POP     1;
+    EXIT;

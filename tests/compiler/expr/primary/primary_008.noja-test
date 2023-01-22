@@ -1,0 +1,9 @@
+
+@type [compiler]
+@source
+
+    {}
+
+@bytecode
+    
+    EXIT;

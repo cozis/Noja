@@ -1,0 +1,14 @@
+
+@type [compiler]
+@source
+
+    var[key] = none;
+
+@bytecode
+    
+    PUSHNNE;
+    PUSHVAR "var";
+    PUSHVAR "key";
+    INSERT2;
+    POP     1;
+    EXIT;

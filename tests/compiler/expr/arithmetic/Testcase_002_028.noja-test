@@ -1,0 +1,17 @@
+
+@type [compiler]
+@source
+
+    1 * (2 * (3 * 4));
+
+@bytecode
+    
+    PUSHINT 1;
+    PUSHINT 2;
+    PUSHINT 3;
+    PUSHINT 4;
+    MUL;
+    MUL;
+    MUL;
+    POP     1;
+    EXIT;

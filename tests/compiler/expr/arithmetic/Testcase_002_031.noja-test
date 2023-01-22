@@ -1,0 +1,24 @@
+
+@type [compiler]
+@source
+    
+    A - B - C;
+    A - B * C;
+
+@bytecode
+    
+    PUSHVAR "A";
+    PUSHVAR "B";
+    SUB;
+    PUSHVAR "C";
+    SUB;
+    POP 1;
+
+    PUSHVAR "A";
+    PUSHVAR "B";
+    PUSHVAR "C";
+    MUL;
+    SUB;
+    POP 1;
+
+    EXIT;

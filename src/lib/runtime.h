@@ -51,12 +51,17 @@ typedef struct {
     bool time;
     size_t heap;
     size_t stack;
+    FILE *stdin;
+    FILE *stderr;
+    FILE *stdout;
     RuntimeCallback callback;
 } RuntimeConfig;
 
 Runtime*     Runtime_New(RuntimeConfig config);
 void 		 Runtime_Free(Runtime *runtime);
-
+FILE *Runtime_GetErrorStream(Runtime *runtime);
+FILE *Runtime_GetInputStream(Runtime *runtime);
+FILE *Runtime_GetOutputStream(Runtime *runtime);
 bool Runtime_plugDefaultBuiltins(Runtime *runtime, Error *error);
 bool Runtime_plugBuiltinsFromString(Runtime *runtime, const char *string, Error *error);
 bool Runtime_plugBuiltinsFromFile(Runtime *runtime, const char *file, Error *error);

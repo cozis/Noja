@@ -1,0 +1,12 @@
+
+@type [compiler]
+@source
+
+    not 1;
+
+@bytecode
+
+    PUSHINT 1;
+    NOT;
+    POP 1;
+    EXIT;

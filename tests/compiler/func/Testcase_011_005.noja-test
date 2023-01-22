@@ -1,0 +1,24 @@
+
+@type [compiler]
+@source
+
+    fun nop(a: None) {
+        return a;
+    }
+
+@bytecode
+    
+    PUSHFUN fun, 1, "nop";
+    JUMP end;
+fun:
+    PUSHVAR "None";
+    CHECKTYPE 0, "a";
+    ASS "a";
+    POP 1;
+    PUSHVAR "a";
+    RETURN 1;
+    RETURN 0;
+end:
+    ASS "nop";
+    POP 1;
+    EXIT;

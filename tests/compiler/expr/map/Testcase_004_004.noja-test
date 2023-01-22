@@ -1,0 +1,15 @@
+
+@type [compiler]
+@source
+    
+    ({+name: 'Francesco'});
+
+@bytecode
+
+    PUSHMAP 1;
+    PUSHVAR "name";
+    POS;
+    PUSHSTR "Francesco";
+    INSERT;
+    POP     1;
+    EXIT;

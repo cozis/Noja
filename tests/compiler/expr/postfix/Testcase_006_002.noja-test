@@ -1,0 +1,14 @@
+
+@type [compiler]
+@source
+    
+    func(true, false);
+
+@bytecode
+    
+    PUSHFLS;
+    PUSHTRU;
+    PUSHVAR "func";
+    CALL 2, 1;
+    POP 1;
+    EXIT;

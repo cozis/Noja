@@ -1,0 +1,28 @@
+
+@type [compiler]
+@source
+    
+    fun nop(a, b = true)
+        {}
+
+@bytecode
+
+    PUSHFUN nop, 2, "nop";
+    JUMP nop_end;
+nop:
+    PUSHTYP;
+    PUSHNNETYP;
+    EQL;
+    JUMPIFNOTANDPOP not_none;
+    POP 1;
+    PUSHTRU;
+not_none:
+    ASS "b";
+    POP 1;
+    ASS "a";
+    POP 1;
+    RETURN 0;
+nop_end:
+    ASS "nop";
+    POP 1;
+    EXIT;

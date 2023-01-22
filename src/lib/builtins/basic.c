@@ -115,7 +115,7 @@ static int bin_print(Runtime *runtime, Object **argv, unsigned int argc, Object 
 	UNUSED(error);
 	
 	for(int i = 0; i < (int) argc; i += 1)
-		Object_Print(argv[i], stdout);
+		Object_Print(argv[i], Runtime_GetOutputStream(runtime));
 	return 0;
 }
 
@@ -178,7 +178,7 @@ static int bin_input(Runtime *runtime, Object **argv, unsigned int argc, Object 
 
 	while(1)
 	{
-		char c = getc(stdin);
+		char c = getc(Runtime_GetInputStream(runtime));
 
 		if(c == '\n')
 			break;

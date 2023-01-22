@@ -1,0 +1,23 @@
+
+@type [compiler]
+@source
+
+    fun X() {
+        "Hello, world!";
+        return false;
+    }
+
+@bytecode
+    
+    PUSHFUN fun, 0, "X";
+    JUMP end;
+fun:
+    PUSHSTR "Hello, world!";
+    POP 1;
+    PUSHFLS;
+    RETURN 1;
+    RETURN 0;
+end:
+    ASS "X";
+    POP 1;
+    EXIT;

@@ -1,0 +1,14 @@
+
+@type [compiler]
+@source
+    
+    do
+        {}
+    while none;
+
+@bytecode
+    
+begin:
+    PUSHNNE;
+    JUMPIFANDPOP begin;
+    EXIT;

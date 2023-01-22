@@ -446,7 +446,7 @@ AST *parse(Source *src, BPAlloc *alloc, Error *error, int *error_offset)
 #ifdef DEBUG
 		token_dest = fopen("tokens.txt", "wb");
 #endif
-	
+
 	AST *ast = BPAlloc_Malloc(alloc, sizeof(AST));
 
 	if(ast == NULL)
