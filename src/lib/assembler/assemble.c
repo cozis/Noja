@@ -189,7 +189,16 @@ static bool parseIntegerOperand(Context *ctx, Error *error, Operand *op)
     // pointing to a sequence of one or more digits
     // NOT followed by a dot and a digit after that
     // (so this is an integer for sure, not a float).
-    assert(ctx->cur < ctx->len && isdigit(ctx->str[ctx->cur]));
+    // Also, the sequence may be preceded by a '+' or
+    // '-'.
+
+    int sign = 1;
+    if (ctx->str[ctx->cur] == '+')
+        ctx->cur++;
+    else if (ctx->str[ctx->cur] == '-') {
+        sign = -1;
+        ctx->cur++;
+    }
 
     long long int buffer = 0;
     do {
@@ -209,9 +218,9 @@ static bool parseIntegerOperand(Context *ctx, Error *error, Operand *op)
     } while(ctx->cur < ctx->len && isdigit(ctx->str[ctx->cur]));
 
     // Not a float!
-
+    
     op->type = OPTP_INT;
-    op->as_int = buffer;
+    op->as_int = sign * buffer;
     return true;
 }
 
@@ -224,7 +233,16 @@ static bool parseFloatingOperand(Context *ctx, Error *error, Operand *op)
     // It's ensured by the caller that the cursor is
     // pointing to a sequence of one or more digits
     // followed by a dot and a digit after that.
-    assert(ctx->cur < ctx->len && isdigit(ctx->str[ctx->cur]));
+    // Also, the sequence may be preceded by a '+' or
+    // '-'.
+    
+    int sign = 1;
+    if (ctx->str[ctx->cur] == '+')
+        ctx->cur++;
+    else if (ctx->str[ctx->cur] == '-') {
+        sign = -1;
+        ctx->cur++;
+    }
 
     double buffer = 0;
     do {
@@ -256,7 +274,7 @@ static bool parseFloatingOperand(Context *ctx, Error *error, Operand *op)
     } while(ctx->cur < ctx->len && isdigit(ctx->str[ctx->cur]));
     
     op->type = OPTP_FLOAT;
-    op->as_float = buffer;
+    op->as_float = sign * buffer;
     return true;
 }
 
@@ -277,11 +295,21 @@ static bool parseOperands(Context *ctx, BPAlloc *alloc, Error *error,
                 if(!parseStringOperand(ctx, error, alloc, &op))
                     return false;
             
-            } else if(isdigit(c)) {
-            
+            } else if(isdigit(c) || c == '-' || c == '+') {
+                
                 /* Integer or float operand */
 
                 size_t k = ctx->cur;
+                
+                if (c == '-' || c == '+') {
+                    k++;
+                    if (k == ctx->len || !isdigit(ctx->str[k])) {
+                        *ctx->error_offset = k;
+                        Error_Report(error, ErrorType_SYNTAX, "Invalid character '%c' not followed by a digit", c);
+                        return false;
+                    }
+                }
+
                 while(k < ctx->len && isdigit(ctx->str[k]))
                     k += 1;
                 

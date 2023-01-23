@@ -114,10 +114,6 @@ ErrorID findField(NojaTestScanner *scanner)
 	return ErrorID_VOID;
 }
 
-// Returns: 
-//    0  if there are no more fields
-//   -1  on error
-//    1  if a field was parsed
 ErrorID parseField(NojaTestScanner *scanner, NojaTestField *field)
 {
 	ErrorID error;

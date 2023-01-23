@@ -1758,7 +1758,8 @@ static Node *parse_expression_2(Context *ctx, Node *left_expr, int min_prec, _Bo
 
 		while(isbinop(ctx->token) && (precedenceof(ctx->token) > precedenceof(op) || (precedenceof(ctx->token) == precedenceof(op) && isrightassoc(ctx->token))))
 		{
-			right_expr = parse_expression_2(ctx, right_expr, precedenceof(op) + 1, allow_toplev_tuples, allow_assignments);
+			int new_prec = precedenceof(op) + (precedenceof(op) < precedenceof(ctx->token));
+			right_expr = parse_expression_2(ctx, right_expr, new_prec, allow_toplev_tuples, allow_assignments);
 			
 			if(right_expr == NULL)
 				return NULL;				

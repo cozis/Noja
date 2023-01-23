@@ -1,5 +1,5 @@
-
 @type [compiler]
+
 @source
     
     fun nop(a = 1)

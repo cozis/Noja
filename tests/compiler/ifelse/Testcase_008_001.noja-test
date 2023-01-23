@@ -1,5 +1,6 @@
 
 @type [compiler]
+
 @source
 
     if true:

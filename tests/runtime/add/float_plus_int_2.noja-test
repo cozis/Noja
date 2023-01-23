@@ -1,0 +1,14 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHFLT -90.39;
+	PUSHINT 700;
+	ADD;
+
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+	EXIT;
+
+@output [609.61]

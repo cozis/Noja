@@ -884,7 +884,7 @@ static _Bool runInstruction(Runtime *runtime, Error *error)
 
 			return Runtime_Push(runtime, error, obj);
 		}
-
+		
 		case OPCODE_PUSHFLT:
 		{
 			ASSERT(opc == 1);
