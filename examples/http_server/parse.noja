@@ -312,7 +312,7 @@ fun parseHead(src: String) {
             return none, "Invalid header (missing \":\" after name)";
         scan->consume();
         char = scan->consumeSpaces();
-
+        
         # Header body until \r
         body = "";
         do {

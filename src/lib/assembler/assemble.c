@@ -463,7 +463,7 @@ Executable *assemble(Source *src, Error *error, int *error_offset)
             goto done;
         }
     }
-
+    
     size_t unresolved_count = LabelList_GetUnresolvedCount(list);
     if(unresolved_count > 0) {
         *error_offset = -1;

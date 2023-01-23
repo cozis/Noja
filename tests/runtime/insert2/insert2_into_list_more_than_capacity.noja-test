@@ -1,0 +1,31 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHLST 2;
+	ASS "list";
+	POP 1;
+
+	PUSHSTR "A";
+	PUSHVAR "list";
+	PUSHINT 0;
+	INSERT2;
+
+	PUSHSTR "B";
+	PUSHVAR "list";
+	PUSHINT 1;
+	INSERT2;
+
+	PUSHSTR "C";
+	PUSHVAR "list";
+	PUSHINT 2;
+	INSERT2;
+
+	PUSHVAR "list";
+
+	PUSHVAR "print";
+	CALL 4, 1;
+	POP 1;
+	EXIT;
+
+@output {[A, B, C]CBA}

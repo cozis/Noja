@@ -1,0 +1,24 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHLST 2;
+
+	PUSHINT 0;
+	PUSHSTR "A";
+	INSERT;
+
+	PUSHINT 1;
+	PUSHSTR "B";
+	INSERT;
+
+	PUSHINT 2;
+	PUSHSTR "C";
+	INSERT;
+	
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+	EXIT;
+
+@output {[A, B, C]}

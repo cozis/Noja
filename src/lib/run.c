@@ -497,8 +497,7 @@ static _Bool runInstruction(Runtime *runtime, Error *error)
 	ASSERT(runtime != NULL);
 	ASSERT(error->occurred == 0);
 
-	Stack *stack = Runtime_GetStack(runtime);
-	Heap  *heap  = Runtime_GetHeap(runtime);
+	Heap *heap = Runtime_GetHeap(runtime);
 	Executable *exe = Runtime_GetCurrentExecutable(runtime);
 	ASSERT(exe != NULL);
 	int index = Runtime_GetCurrentIndex(runtime);
@@ -855,14 +854,14 @@ static _Bool runInstruction(Runtime *runtime, Error *error)
 
 			return Object_Insert(col, key, val, heap, error);
 		}
-
+		
 		case OPCODE_INSERT2:
 		{
 			ASSERT(opc == 0);
 
-			Object *val = Stack_Top(stack, -2);
-			Object *col = Stack_Top(stack, -1);
-			Object *key = Stack_Top(stack,  0);
+			Object *val = Runtime_Top(runtime, -2);
+			Object *col = Runtime_Top(runtime, -1);
+			Object *key = Runtime_Top(runtime,  0);
 			if (val == NULL || col == NULL || key == NULL) {
 				Error_Report(error, ErrorType_INTERNAL, "Frame has not enough values on the stack to run INSERT2 instruction");
 				return 0;

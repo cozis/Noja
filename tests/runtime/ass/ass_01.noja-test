@@ -1,0 +1,28 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHNNE;
+	ASS "xyz";
+	POP 1;
+	PUSHVAR "xyz";
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+	
+	PUSHSTR "/";
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+
+	PUSHINT 99;
+	ASS "xyz";
+	POP 1;
+	PUSHVAR "xyz";
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+
+	EXIT;
+
+@output [none/99]

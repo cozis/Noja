@@ -35,7 +35,6 @@
 #include "timing.h"
 #include "executable.h"
 #include "utils/error.h"
-#include "utils/stack.h"
 #include "objects/objects.h"
 
 typedef struct xRuntime Runtime;
@@ -90,7 +89,6 @@ bool Runtime_CollectGarbage(Runtime *runtime, Error *error);
 void Runtime_PrintStackTrace(Runtime *runtime, FILE *stream);
 void         Runtime_Interrupt(Runtime *runtime);
 Heap*		 Runtime_GetHeap(Runtime *runtime);
-Stack*		 Runtime_GetStack(Runtime *runtime);
 int 		 Runtime_GetCurrentIndex(Runtime *runtime);
 Executable  *Runtime_GetCurrentExecutable(Runtime *runtime);
 Executable  *Runtime_GetMostRecentExecutable(Runtime *runtime);

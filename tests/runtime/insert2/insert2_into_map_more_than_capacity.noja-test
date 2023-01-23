@@ -1,0 +1,32 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHMAP 2;
+	ASS "map";
+	POP 1;
+
+	PUSHSTR "A";
+	PUSHVAR "map";
+	PUSHINT 0;
+	INSERT2;
+
+	PUSHSTR "B";
+	PUSHVAR "map";
+	PUSHINT 1;
+	INSERT2;
+
+	PUSHSTR "C";
+	PUSHVAR "map";
+	PUSHINT 2;
+	INSERT2;
+	
+	PUSHVAR "map";
+
+	PUSHVAR "print";
+	CALL 4, 1;
+	POP 1;
+
+	EXIT;
+
+@output [{0: A, 1: B, 2: C}CBA]
