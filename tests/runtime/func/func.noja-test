@@ -1,0 +1,19 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHFUN func, 0, "func";
+	CALL 0, 3;
+
+	PUSHVAR "print";
+	CALL 3, 1;
+	POP 1;
+
+	EXIT;
+func:
+	PUSHINT 1;
+	PUSHINT 2;
+	PUSHINT 3;
+	RETURN 3;
+
+@output [321]

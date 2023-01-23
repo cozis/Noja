@@ -1121,9 +1121,9 @@ static int runExecutableAtIndex(Runtime *runtime, Error *error,
     	return -1;
 
     // Get return values
-    int retc = 0;
-    while (retc < MAX_RETS && (rets[retc] = Runtime_Top(runtime, -retc)))
-    	retc++;
+    int retc = Runtime_GetFrameStackUsage(runtime);
+    for (int i = 0; i < MIN(retc, MAX_RETS); i++)
+    	rets[i] = Runtime_Top(runtime, i-retc+1);
 
     if (!Runtime_PopFrame(runtime))
 		return -1;

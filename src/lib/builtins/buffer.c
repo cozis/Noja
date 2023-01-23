@@ -30,7 +30,7 @@ static int bin_sliceUp(Runtime *runtime, Object **argv, unsigned int argc, Objec
 {
     UNUSED(argc);
     ASSERT(argc == 3);
-    
+
     ParsedArgument pargs[3];
     if (!parseArgs(error, argv, argc, pargs, "Bii"))
         return -1;

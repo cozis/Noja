@@ -284,7 +284,7 @@ fun parseHead(src: String) {
 
     if scan->hint(0) != "\r" 
     or scan->hint(1) != "\n": {
-    
+        
         # Request with no headers or body
         return {
             method: method, 
@@ -333,7 +333,7 @@ fun parseHead(src: String) {
         assert(char == "\r" and scan->hint(1) == "\n");
         scan->consume(2); # Consume the final "\r\n"
     }
-    
+
     return {
         method: method, 
         url: url, 
