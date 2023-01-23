@@ -1,0 +1,13 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHVAR "int";
+	NLB;
+
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+	EXIT;
+
+@output [?int]
