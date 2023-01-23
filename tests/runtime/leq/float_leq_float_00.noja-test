@@ -1,0 +1,14 @@
+@type [runtime]
+
+@bytecode
+	
+	PUSHFLT 6.9;
+	PUSHFLT 7.1;
+	LEQ;
+
+	PUSHVAR "print";
+	CALL 1, 1;
+	POP 1;
+	EXIT;
+
+@output [true]

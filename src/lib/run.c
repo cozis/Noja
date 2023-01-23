@@ -1137,7 +1137,10 @@ int runSource(Runtime *runtime, Source *source, Object *rets[static MAX_RETS], E
 	int error_offset;
 	Executable *exe = compile(source, error, &error_offset);
     if(exe == NULL) {
-    	Runtime_PushFailedFrame(runtime, error, source, error_offset); // If this fails, there's nothing we can do
+    	Error suberror;
+    	Error_Init(&suberror);
+    	Runtime_PushFailedFrame(runtime, &suberror, source, error_offset); // If this fails, there's nothing we can do
+        Error_Free(&suberror);
         return -1;
     }
 
@@ -1152,7 +1155,10 @@ int runBytecodeSource(Runtime *runtime, Source *source, Object *rets[static MAX_
 	int error_offset;
 	Executable *exe = assemble(source, error, &error_offset);
     if(exe == NULL) {
-    	Runtime_PushFailedFrame(runtime, error, source, error_offset); // If this fails, there's nothing we can do
+    	Error suberror;
+    	Error_Init(&suberror);
+    	Runtime_PushFailedFrame(runtime, &suberror, source, error_offset); // If this fails, there's nothing we can do
+    	Error_Free(&suberror);
         return -1;
     }
 

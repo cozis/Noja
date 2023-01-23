@@ -458,8 +458,10 @@ Executable *assemble(Source *src, Error *error, int *error_offset)
         assert(ctx.cur == ctx.len || ctx.str[ctx.cur] == ';');
         if(ctx.cur < ctx.len) ctx.cur += 1;
 
-        if(!ExeBuilder_Append(builder, error, opcode, opv, opc, opcode_name.offset, opcode_name.length))
+        if(!ExeBuilder_Append(builder, error, opcode, opv, opc, opcode_name.offset, opcode_name.length)) {
+            *error_offset = ctx.cur;
             goto done;
+        }
     }
 
     size_t unresolved_count = LabelList_GetUnresolvedCount(list);
@@ -470,7 +472,7 @@ Executable *assemble(Source *src, Error *error, int *error_offset)
     }
 
     exe = ExeBuilder_Finalize(builder, error);
-
+    
     if(exe != NULL)
         (void) Executable_SetSource(exe, src);
 

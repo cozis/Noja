@@ -620,7 +620,7 @@ bool Runtime_PushFailedFrame(Runtime *runtime, Error *error, Source *source, int
 
 	failed_frame->base.type = FrameType_FAILED;
 	failed_frame->base.prev = NULL;
-	failed_frame->source = source;
+	failed_frame->source = source_copy;
 	failed_frame->offset = offset;
 
 	if (!appendFrame(runtime, error, (Frame*) failed_frame)) {
