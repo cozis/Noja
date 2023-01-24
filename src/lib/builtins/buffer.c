@@ -21,7 +21,7 @@ static int bin_new(Runtime *runtime, Object **argv, unsigned int argc, Object *r
     
     if(temp == NULL)
         return -1;
-
+    
     rets[0] = temp;
     return 1;
 }

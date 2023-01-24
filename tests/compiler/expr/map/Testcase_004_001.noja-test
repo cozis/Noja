@@ -16,5 +16,5 @@
     PUSHINT 25;
     INSERT;
 
-    POP     1;
+    POP 1;
     EXIT;

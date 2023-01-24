@@ -7,6 +7,7 @@
 6. [Development state](#development-state)
 7. [Build](#build)
 8. [Usage](#usage)
+9. [Testing](#testing)
 
 ## Introduction
 This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
@@ -62,7 +63,7 @@ To build the interpreter, run:
 ```sh
 $ make
 ```
-The `noja` executable will be generated, which is a CLI that runs Noja code.
+The `noja` executable will be generated, which is a command-line interface that runs Noja code.
 
 ## Usage
 You can run files by doing:
@@ -73,4 +74,17 @@ location/of/noja <filename>
 or you can run strings by doing:
 ```sh
 location/of/noja -i <string>
+```
+
+## Testing
+
+Running `make` will also generate the `test` executable, which is a program that lets you run the testcases in the `tests/` folder. A testcase is a text file with extension `.noja-test`.
+
+Tu run all tests, you can do:
+```sh
+$ ./test tests
+```
+or you can execute specific suites of tests like this:
+```sh
+$ ./test tests/compiler/expr tests/runtime/push
 ```

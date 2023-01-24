@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
 			Error error;
 		   Error_Init(&error);
-
+		   
 		   if (!Runtime_plugDefaultBuiltins(runtime, (Error*) &error)) {
 		   	Error_Print(&error, ErrorType_RUNTIME, stderr);
 		   	Error_Free(&error);
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 		    	code = -1;
 		    	break;
 		   }
-
+		   
 		   bool ok;
 		   if (mode == Mode_ASSEMBLY) {
 		    	if (no_file)
@@ -219,20 +219,3 @@ int main(int argc, char **argv)
 
 	return code;
 }
-
-/*
-	noja [-o <file> | -p | {-d | -a}] [--] <file>
-	
-	-o can only be used with -d or -a
-	
-	-h --help
-	-d --disassembly disassembly
-	-i --inline      inline
-	-a --assembly
-    -p --profile
-	-o --output
-	
-    noja <file>
-    noja -i <code>
-
-*/

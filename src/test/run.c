@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "run.h"
 #include "test.h"
+#include "color.h"
 
 static const TestType *findTestType(const TestType *test_types, const char *name)
 {
@@ -189,17 +190,17 @@ TestBatchResults runTestDirectory(const TestType *test_types, const char *dir_na
         TestResult result = runTestFile(test_types, full, log_stream);
         switch (result) {
             case TestResult_PASSED:
-            fprintf(log_stream, "Test %s .. PASSED\n", full);
+            fprintf(log_stream, " [ " BGRN "PASSED" CRESET " ] %s\n", full);
             results.passed++;
             break;
             
             case TestResult_FAILED:
-            fprintf(log_stream, "Test %s .. FAILED\n", full);
+            fprintf(log_stream, " [ " BRED "FAILED" CRESET " ] %s\n", full);
             results.failed++;
             break;
             
             case TestResult_ABORTED:
-            fprintf(log_stream, "Test %s .. ABORTED\n", full);
+            fprintf(log_stream, " [ " BYEL "ABORTED" CRESET " ] %s\n", full);
             results.aborted++;
             break;
         }

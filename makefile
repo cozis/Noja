@@ -45,8 +45,8 @@ CC = gcc
 AR = ar
 
 # Program flags
-CFLAGS = -Wall -Wextra
-LFLAGS = -lm
+CFLAGS = -Wall -Wextra -fsanitize=undefined
+LFLAGS = -lm -fsanitize=undefined
 
 # Build the library with valgrind support.
 # Can be one of: YES, NO
@@ -177,3 +177,4 @@ clean:
 	rm -rf $(REPORTDIR)
 	rm  -f $(LIB)
 	rm  -f $(CLI)
+	rm -f embedder tokens.txt

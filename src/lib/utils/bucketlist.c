@@ -42,7 +42,8 @@ struct Bucket {
 	int 	size, 
 			used, 
 			aidx;
-	char    body[];
+	_Alignas(void*) 
+	char body[];
 };
 
 struct xBucketList {
