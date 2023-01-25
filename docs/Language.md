@@ -22,7 +22,7 @@ Both integers and floats (floating point values) are signed and represented usin
 * multiplication `*`
 * division `/`
 * modulo `%`
- 
+
 Here "modulo" refers to the remainder of the division. These operations mainly behave like one would expect and have the following type conversion rules:
 1. Operations involving integers evaluate to integers, except division. The result of a division is always a float.
 1. If an arithmetic operation involves a float, the result is also float. 

@@ -39,27 +39,27 @@
 static void usage(FILE *stream, const char *name) 
 {
 	fprintf(stream, 
-		"USAGE\n"
-		"  $ %s [-h | -o <file> | -p | -H <heap size> | {-d | -a}] [--] <file>\n", name);
+		"\n"
+		"Usage:\n"
+		"  $ %s [-h | -o <file> | -p | -H <heap size> | {-d | -a}] <file>\n", name);
 }
 
 static void help(FILE *stream, const char *name)
 {
 	usage(stream, name);
 	fprintf(stream, 
-		"OPTIONS\n"
-		"  -h, --help        Show this message\n"
-		"  -d, --disassembly Output the bytecode associated to noja code\n"
-		"  -i, --inline      Execute a string of code instead of a file\n"
-		"  -a, --assembly    Specify that the source is bytecode and not noja code\n"
-		"  -p, --profile     Profile the execution of the source (can't be used with -d)\n"
-		"  -o, --output      Specify the output file of -p or -d\n"
-		"  -H, --heap <size> Heap size\n"
+		"\n"
+		"Options:\n"
+		"  -h, --help          Show this message\n"
+		"  -i, --inline        Execute a string of code instead of a file\n"
+		"  -a, --assembly      Specify that the source is bytecode and not noja code\n"
+		"  -p, --profile       Profile the execution of the source (can't be used with -d)\n"
+		"  -o, --output <file> Specify the output file of -p or -d\n"
+		"  -H, --heap <size>   Specify the heap size of the runtime\n"
 		"\n");
 }
 
 typedef enum {
-	Mode_DISASSEMBLY,
 	Mode_ASSEMBLY,
 	Mode_DEFAULT,
 	Mode_HELP,
@@ -89,10 +89,6 @@ int main(int argc, char **argv)
 	
 			mode = Mode_HELP;
 		
-		} else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--disassembly")) {
-
-			mode = Mode_DISASSEMBLY;
-
 		} else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--inline")) {
 			
 			no_file = true;
@@ -146,7 +142,8 @@ int main(int argc, char **argv)
 		case Mode_ASSEMBLY:
 		{
 			if (input == NULL) {
-				fprintf(stderr, "No input file");
+				fprintf(stderr, "Error: No input file\n");
+				usage(stderr, argv[0]);
 				code = -1;
 				break;
 			}
@@ -157,7 +154,7 @@ int main(int argc, char **argv)
 
 			runtime = Runtime_New(config);
 			if (runtime == NULL) {
-				fprintf(stderr, "Failed to initialize runtime");
+				fprintf(stderr, "Error: Failed to initialize runtime\n");
 				code = -1;
 				break;
 			}
@@ -167,7 +164,7 @@ int main(int argc, char **argv)
 			Error error;
 		   Error_Init(&error);
 		   
-		   if (!Runtime_plugDefaultBuiltins(runtime, (Error*) &error)) {
+		   if (!Runtime_plugDefaultBuiltins(runtime, &error)) {
 		   	Error_Print(&error, ErrorType_RUNTIME, stderr);
 		   	Error_Free(&error);
 		   	Runtime_PrintStackTrace(runtime, stderr);
@@ -179,14 +176,14 @@ int main(int argc, char **argv)
 		   bool ok;
 		   if (mode == Mode_ASSEMBLY) {
 		    	if (no_file)
-			    	ok = runBytecodeString(runtime, input, (Error*) &error);
+			    	ok = runBytecodeString(runtime, input, &error);
 			   else
-					ok = runBytecodeFile(runtime, input, (Error*) &error);
+					ok = runBytecodeFile(runtime, input, &error);
 		   } else {
 			   if (no_file)
-				  	ok = runString(runtime, input, (Error*) &error);
+				  	ok = runString(runtime, input, &error);
 			   else
-					ok = runFile(runtime, input, (Error*) &error);
+					ok = runFile(runtime, input, &error);
 			}
 
 			if (ok == false) {
@@ -206,15 +203,6 @@ int main(int argc, char **argv)
 			Runtime_Free(runtime);
 			break;
 		}
-		
-		case Mode_DISASSEMBLY:
-		if (input == NULL) {
-			fprintf(stderr, "No disassembly input file");
-			code = -1;
-			break;
-		}
-		/* .. */
-		break;
 	}
 
 	return code;

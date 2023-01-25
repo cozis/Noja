@@ -45,8 +45,8 @@ CC = gcc
 AR = ar
 
 # Program flags
-CFLAGS = -Wall -Wextra -fsanitize=undefined
-LFLAGS = -lm -fsanitize=undefined
+CFLAGS = -Wall -Wextra
+LFLAGS = -lm
 
 # Build the library with valgrind support.
 # Can be one of: YES, NO
