@@ -20,7 +20,7 @@ If you want to know more, check out the `/docs` folder for documentation and `/e
 This project aims at being an interpreter design reference, therefore it optimizes for code quality and readability. That's not to mean that it won't be feature-complete. The end goal is to have a language you can do arbitrarily complex things in.
 
 ## Show me the code!
-Here's an example of a noja program taken from the example HTTP server in `examples/http_server/main.noja`
+Here's a juicy snippet of noja taken from the example HTTP server in `examples/http_server/main.noja`
 ```
 router->plug("/login", {
     GET: 'pages/login.html',
@@ -73,8 +73,10 @@ The architecture is pretty much the same as CPython. The source code is executed
 
 (More detailed explanations are provided alongside the code.)
 
-## Supported platforms
+## Supported platforms and editors
 I wrote it on a linux machine, but there should be very few places where a linux host is assumed. It should be very easy to port.
+
+Regarding code editors, plugins for syntax highlighting are available for Visual Studio Code and Sublime Text in the `/support` folder. To install them, you just need to drop the file/folder for that editor in it's extension folder.
 
 ## Development state
 The interpreter is fully functional, but many built-in functions that one would expect still need to be implemented. At this time the priority is writing documentation and tests so that more people can try it, give feedback and move forward without breaking the world!
