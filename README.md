@@ -12,7 +12,9 @@
 ## Introduction
 This language was written as a personal study of how interpreters and compilers work. For this reason, the language is very basic. One of the main inspirations was CPython.
 
-Noja is a very high level and dynamic language. It operates in the same range of abstraction as languages like Ruby, Python and Javascript. 
+Noja is a very high level language. It operates in the same range of abstraction as languages like Ruby, Python and Javascript. 
+
+If you want to know more, check out the `/docs` folder for documentation and `/examples` for - you guessed it - some examples!
 
 ## Objective
 This project aims at being an interpreter design reference, therefore it optimizes for code quality and readability. That's not to mean that it won't be feature-complete. The end goal is to have a language you can do arbitrarily complex things in.

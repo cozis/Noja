@@ -54,7 +54,7 @@ static void help(FILE *stream, const char *name)
 		"  -i, --inline        Execute a string of code instead of a file\n"
 		"  -a, --assembly      Specify that the source is bytecode and not noja code\n"
 		"  -p, --profile       Profile the execution of the source (can't be used with -d)\n"
-		"  -o, --output <file> Specify the output file of -p or -d\n"
+		"  -o, --output <file> Specify the output file of -p\n"
 		"  -H, --heap <size>   Specify the heap size of the runtime\n"
 		"\n");
 }
