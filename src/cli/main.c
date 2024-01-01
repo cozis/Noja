@@ -157,11 +157,13 @@ int main(int argc, char **argv)
 			Error error;
 		   Error_Init(&error);
 
+		   int error_offset;
+
 			char *result;
 			if (no_file)
-			  	result = diagramStringAST(input, &error, NULL);
+			  	result = diagramStringAST(input, &error, &error_offset);
 		   else
-				result = diagramFileAST(input, &error, NULL);
+				result = diagramFileAST(input, &error, &error_offset);
 
 			if (!result) {
 				Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
