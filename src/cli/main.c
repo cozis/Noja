@@ -35,13 +35,14 @@
 #include <stdbool.h>
 #include "../lib/run.h"
 #include "../lib/runtime.h"
+#include "../lib/diagram.h"
 
 static void usage(FILE *stream, const char *name) 
 {
 	fprintf(stream, 
 		"\n"
 		"Usage:\n"
-		"  $ %s [-h | -o <file> | -p | -H <heap size> | {-d | -a}] <file>\n", name);
+		"  $ %s ..OPTIONS <file>\n", name);
 }
 
 static void help(FILE *stream, const char *name)
@@ -54,12 +55,14 @@ static void help(FILE *stream, const char *name)
 		"  -i, --inline        Execute a string of code instead of a file\n"
 		"  -a, --assembly      Specify that the source is bytecode and not noja code\n"
 		"  -p, --profile       Profile the execution of the source (can't be used with -d)\n"
-		"  -o, --output <file> Specify the output file of -p\n"
+		"  -o, --output <file> Specify the output file of -p or --diagram-ast\n"
 		"  -H, --heap <size>   Specify the heap size of the runtime\n"
+		"  --diagram-ast       Generate a GraphViz view of the AST\n"
 		"\n");
 }
 
 typedef enum {
+	Mode_DIAGRAM,
 	Mode_ASSEMBLY,
 	Mode_DEFAULT,
 	Mode_HELP,
@@ -96,6 +99,10 @@ int main(int argc, char **argv)
 		} else if (!strcmp(argv[i], "-a") || !strcmp(argv[i], "--assembly")) {
 
 			mode = Mode_ASSEMBLY;
+
+		} else if (!strcmp(argv[i], "--diagram-ast")) {
+
+			mode = Mode_DIAGRAM;
 
 		} else if (!strcmp(argv[i], "-p") || !strcmp(argv[i], "--profile")) {
 
@@ -136,6 +143,51 @@ int main(int argc, char **argv)
 		case Mode_HELP: 
 		help(stdout, argv[0]); 
 		code = 0; 
+		break;
+
+		case Mode_DIAGRAM:
+		{
+			if (input == NULL) {
+				fprintf(stderr, "Error: No input file\n");
+				usage(stderr, argv[0]);
+				code = -1;
+				break;
+			}
+			
+			Error error;
+		   Error_Init(&error);
+
+			char *result;
+			if (no_file)
+			  	result = diagramStringAST(input, &error, NULL);
+		   else
+				result = diagramFileAST(input, &error, NULL);
+
+			if (!result) {
+				Error_Print(&error, ErrorType_UNSPECIFIED, stderr);
+		   	Error_Free(&error);
+		   	code = -1;
+		   	break;
+			}
+
+			FILE *stream;
+			if (output == NULL)
+				stream = stdout;
+			else {
+				stream = fopen(output, "wb");
+				if (!stream) {
+					fprintf(stderr, "Error: Couldn't open '%s'\n", output);
+					free(result);
+					code = -1;
+					break;
+				}
+			}
+			fwrite(result, 1, strlen(result), stream);
+			if (stream != stdout)
+				fclose(stream);
+			free(result);
+		}
+		code = 0;
 		break;
 		
 		case Mode_DEFAULT:
